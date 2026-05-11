@@ -14,12 +14,12 @@
 
 ---
 
-
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v16+)
-- npm 
+- npm
 
 ### Installation & Running
 
@@ -92,6 +92,7 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 ## Features
 
 ### For Hirers (Event Organizers)
+
 - Browse and search venues by name, location, capacity, and suitability
 - Save venues to a ranked wishlist
 - Submit detailed event applications with compliance documents
@@ -101,6 +102,7 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 - View vendor ratings and feedback
 
 ### For Vendors (Venue Managers)
+
 - View and manage event applications for their venues
 - Review hirer profiles including compliance documents and booking history
 - Sort applicants by reputation score
@@ -124,20 +126,24 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 ---
 
 ## How to Test
+
 - When testing as a hirer, apply to a venue then log in as that venue's vendor to see the application come through
 - To test compliance documents: upload docs as a hirer first, then view on vendor's Hirer Profiles page
 
 ### Sign In as a Hirer
+
 1. Go to [http://localhost:3000/signin](http://localhost:3000/signin)
 2. Enter: `taylorswift@gmail.com` / `Password/101`
 3. You'll be redirected to the hirer dashboard
 
 ### Sign In as a Vendor
+
 1. Go to [http://localhost:3000/signin](http://localhost:3000/signin)
 2. Enter: `harrystyles@gmail.com` / `Password/104`
 3. You'll be redirected to the vendor dashboard
 
 ### Submit an Application
+
 1. Sign in as a hirer
 2. Click "Browse Venues"
 3. Select a venue and click "Apply"
@@ -145,15 +151,16 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 5. Submit and view status in "Booking History"
 
 ### Approve/Reject Applications
+
 1. Sign in as a vendor
 2. Go to "Venue Applications"
 3. Click on an application to review
 4. Click "Approve" or "Decline"
 5. Application status updates on hirer's dashboard
 
---- 
+---
 
-## Unit tests (Jest + React Testing Library) 
+## Unit tests (Jest + React Testing Library)
 
 - Install dependencies (if not already installed):
 
@@ -239,12 +246,14 @@ src/
 ## Key Pages
 
 ### Public Pages
+
 - `/` - Home page
 - `/signin` - Sign in with email & password
 - `/signup` - Create new account (hirer or vendor)
 - `/browseVenues` - Browse and search all venues
 
 ### Hirer Pages (Protected)
+
 - `/hirer/dashboard` - View saved venues and booking history
 - `/hirer/apply?venueId=xxx` - Multi-step application form
 - `/hirer/bookingHistory` - Full booking history with status
@@ -253,6 +262,7 @@ src/
 - `/hirer/savedVenues` - Manage saved venues & rankings
 
 ### Vendor Pages (Protected)
+
 - `/vendorDashboard` - Vendor dashboard overview
 - `/vendorDashboard/applications` - View & manage applications
 - `/vendorDashboard/hirerProfiles/[hirerId]` - View hirer profile & compliance documents
@@ -261,3 +271,10 @@ src/
 - `/vendorDashboard/myVenues` - Manage vendor's venues
 - `/vendorDashboard/calendar/[venueId]` - Venue availability calendar
 - `/vendorDashboard/infographicReport` - Analytics dashboard with summary table (most/least/not selected)
+
+### Backend Structure
+
+- `entity/` → TypeScript classes that map to your database tables (User.ts, Venue.ts, etc.) — these use TypeORM
+- `controller/` → Functions that handle each API request (e.g. "what happens when someone POSTs to /api/auth/login")
+- `routes/index.ts` → Maps URL paths to controller functions (e.g. /api/auth/login → calls the login controller)
+- `data-source.ts` → Your database connection config (connects to the RMIT MS SQL server)
