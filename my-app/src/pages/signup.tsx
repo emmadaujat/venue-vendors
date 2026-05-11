@@ -1,6 +1,12 @@
-import { isValidConfirmPassword, isValidEmail, isValidPassword } from "@/validation";
+import {
+  isValidConfirmPassword,
+  isValidEmail,
+  isValidPassword,
+  isValidPhoneNumber,
+} from "@/validation";
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { authApi } from "@/services/auth";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import Logo from "@/components/logo";
@@ -19,23 +25,15 @@ import {
 } from "@chakra-ui/react";
 import { CheckIcon } from "@chakra-ui/icons";
 
-interface SignUp {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
 export default function SignUp() {
-  const [formData, setFormData] = useState<SignUp>({
-    id: 1,
+  const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    phoneNumber: "",
+    role: "",
   });
 
   const [validateEmail, setValidateEmail] = useState<string | null>(null); // can be a string or null
@@ -44,7 +42,9 @@ export default function SignUp() {
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [validateFirstName, setValidateFirstName] = useState<string | null>(null);
   const [validateLastName, setValidateLastName] = useState<string | null>(null);
+  const [validatePhoneNumber, setValidatePhoneNumber] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string>("hirer"); // Track if user is hirer or vendor
+  const [signUpError, setSignUpError] = useState<string | null>(null);
 
   // track if user tried to submit
   const [submitted, setSubmitted] = useState(false);
@@ -65,13 +65,16 @@ export default function SignUp() {
     if (name === "firstName") setValidateFirstName(null);
     if (name === "lastName") setValidateLastName(null);
     if (name === "confirmPassword") setValidateConfirmPassword(null);
+    if (name == "phoneNumber") setValidatePhoneNumber(null);
   }
 
   // validates and submits
-  function handleSubmit() {
+  async function handleSubmit() {
     setSubmitted(true);
     const emailError = isValidEmail(formData.email);
     const passwordError = isValidPassword(formData.password);
+    const phoneNumberError = isValidPhoneNumber(formData.phoneNumber);
+
     const passwordConfirmError = isValidConfirmPassword(
       formData.password,
       formData.confirmPassword,
@@ -80,16 +83,30 @@ export default function SignUp() {
     const lastNameError = !formData.lastName ? "Last Name is required" : null;
 
     // check if fields are valid
-    if (emailError || passwordError || passwordConfirmError) {
+    if (emailError || passwordError || passwordConfirmError || phoneNumberError) {
       // setting my functions to display error message
       setValidateEmail(emailError);
       setValidatePassword(passwordError);
       setValidateConfirmPassword(passwordConfirmError);
       setValidateFirstName(firstNameError);
       setValidateLastName(lastNameError);
+      setValidatePhoneNumber(phoneNumberError);
     } else {
-      setTimeout(() => router.push("/signin"), 2000); // Display sign up success and redirect after 2seconds
-      setSignUpSuccess(true);
+      // send to backend
+      try {
+        await authApi.signUp({
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phoneNumber,
+          password: formData.password,
+          role: accountType,
+        });
+        setSignUpSuccess(true);
+        setTimeout(() => router.push("/signin"), 2000); // Display sign up success and redirect after 2seconds
+      } catch (err) {
+        setSignUpError("Sign up failed. Please try again.");
+      }
     }
   }
 
@@ -242,6 +259,23 @@ export default function SignUp() {
               {/* adding error message if email is not valid */}
             </FormControl>
 
+            {/* phone number field */}
+            <FormControl isRequired>
+              <FormLabel mt={5}>Enter your phone number</FormLabel>
+              <Input
+                name="phoneNumber"
+                fontSize="small"
+                placeholder="Please enter your phone number"
+                onChange={handleInput}
+              />
+              {submitted && validatePhoneNumber && (
+                <Text fontSize={"13px"} fontWeight={"semibold"} color={"red.400"}>
+                  {validatePhoneNumber}
+                </Text>
+              )}{" "}
+              {/* adding error message if email is not valid */}
+            </FormControl>
+
             {/* password field */}
             <FormControl isRequired>
               <FormLabel mt={5}>Enter your password</FormLabel>
@@ -277,6 +311,12 @@ export default function SignUp() {
               )}{" "}
               {/* adding error message for confirming password */}
             </FormControl>
+
+            {signUpError && (
+              <Text fontSize={"13px"} fontWeight={"semibold"} color="red.400">
+                {signUpError}
+              </Text>
+            )}
 
             {/* submit button */}
             <Button

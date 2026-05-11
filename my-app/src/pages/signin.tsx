@@ -1,7 +1,7 @@
 import { isValidEmail, isValidPassword } from "@/validation";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { DEFAULT_USERS } from "@/dummyData";
+import { authApi } from "@/services/auth";
 import { useAuth } from "@/hooks/useAuth";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -18,15 +18,8 @@ import {
 } from "@chakra-ui/react";
 import { CheckIcon } from "@chakra-ui/icons";
 
-interface Signin {
-  id: number;
-  email: string;
-  password: string;
-}
-
 export default function Signin() {
-  const [formData, setFormData] = useState<Signin>({
-    id: 1,
+  const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
@@ -59,7 +52,7 @@ export default function Signin() {
   }
 
   // validates and submits the form
-  function handleSubmit() {
+  async function handleSubmit() {
     setSubmitted(true);
     const emailError = isValidEmail(formData.email);
     const passwordError = isValidPassword(formData.password);
@@ -70,20 +63,17 @@ export default function Signin() {
       setValidateEmail(emailError);
       setValidatePassword(passwordError);
     } else {
-      // if successful, check if signin details match a registered user
-      const matchedUser = DEFAULT_USERS.find(
-        (user) => user.email === formData.email && user.password === formData.password,
-      );
-
-      // login() saves the user to localStorage and updates auth state
-      if (matchedUser) {
-        login(matchedUser);
-        const redirectPath = matchedUser.role === "hirer" ? "/hirer/dashboard" : "/vendorDashboard";
+      // check with backend
+      try {
+        const result = await authApi.signIn({
+          email: formData.email,
+          password: formData.password,
+        });
+        login(result.user);
+        const redirectPath = result.user.role === "hirer" ? "/hirer/dashboard" : "/vendorDashboard";
         setTimeout(() => router.push(redirectPath), 2000); // Display sign in success and redirect after 2seconds
-        setInvalidSignIn(false);
         setSignInSuccess(true);
-      } else {
-        // if fields are valid but sign in details dont match dummerUser data
+      } catch (err) {
         setInvalidSignIn(true);
       }
     }
