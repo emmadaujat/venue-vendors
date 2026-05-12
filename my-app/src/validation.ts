@@ -26,3 +26,10 @@ export function isValidConfirmPassword(password: string, confirmPassword: string
   if (password !== confirmPassword) return "Passwords do not match, please try again";
   return null;
 }
+
+export function isValidPhoneNumber(phoneNumber: string) {
+  if (!phoneNumber) return "Phone Number is required";
+  if (phoneNumber.length != 10) return "Phone Number is invalid";
+  if (!/^04/.test(phoneNumber)) return "Phone Number is invalid";
+  return null;
+}
