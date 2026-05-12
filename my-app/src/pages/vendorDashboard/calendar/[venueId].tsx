@@ -31,6 +31,9 @@ type BlockedPeriod = {
   reason: string;
 };
 
+{
+  /*TODO: RETRIEVE drop down options from database*/
+}
 // Reason options for the dropdown
 const REASON_OPTIONS = ["Maintenance", "Renovation", "Private Event", "Staff Holiday", "Other"];
 
@@ -47,6 +50,9 @@ export default function VenueCalendar() {
     return `${year}-${month}-${day}`;
   }
 
+  {
+    /*TODO: RETRIEVE venues from database*/
+  }
   // Find the venue from dummyData
   const venue = DEFAULT_VENUES.find((v) => v.id === venueId);
 
@@ -63,6 +69,9 @@ export default function VenueCalendar() {
   const { isOpen: isRemoveOpen, onOpen: onRemoveOpen, onClose: onRemoveClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  {
+    /*TODO: RETRIEVE blocked dates from database*/
+  }
   // Load blocked periods from localStorage on page load
   useEffect(() => {
     if (!venueId) return;
@@ -73,6 +82,9 @@ export default function VenueCalendar() {
     }
   }, [venueId]);
 
+  {
+    /*TODO: CREATE- save blocked dates for venue to database*/
+  }
   // Save blocked periods to localStorage
   function saveToLocalStorage(updated: BlockedPeriod[]) {
     const saved = localStorage.getItem("blockedDates");
@@ -92,6 +104,9 @@ export default function VenueCalendar() {
       reason,
     };
 
+    {
+      /*TODO: UPDATE blocked dates for venue to database*/
+    }
     const updated = [...blockedPeriods, newPeriod];
     setBlockedPeriods(updated);
     saveToLocalStorage(updated);
@@ -105,6 +120,9 @@ export default function VenueCalendar() {
     }, 2000);
   }
 
+  {
+    /*TODO: DELETE - blocked dates for venues from database*/
+  }
   // Handle remove blocked period
   function handleRemoveConfirm() {
     if (!periodToRemove) return;

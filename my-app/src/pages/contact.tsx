@@ -3,6 +3,10 @@ import Footer from "@/components/footer";
 import { Box, Text, Flex } from "@chakra-ui/react";
 
 // contact info for the cards
+{
+  /*TODO: add contact info to database and retrieve info*/
+}
+
 const contactCards = [
   {
     title: "Contact Email",

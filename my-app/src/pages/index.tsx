@@ -13,6 +13,7 @@ import { DEFAULT_VENUES } from "../dummyData";
 import { useAuth } from "@/hooks/useAuth";
 
 // grab a couple venues with limited availability for the sidebar
+// TODO: Update getting venues with limited availability from database
 const limitedVenues = DEFAULT_VENUES.filter(
   (v) => v.availabilityStatus === "Limited Availability",
 ).slice(0, 2); // show max 2
@@ -194,6 +195,7 @@ export default function Home() {
 
           {/* venue cards 2x2 grid */}
           <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4} mb="10%" alignItems={"stretch"}>
+            {/*TODO: update getting venues from database*/}
             {DEFAULT_VENUES.map((venue) => (
               <Box
                 key={venue.id}
@@ -207,11 +209,7 @@ export default function Home() {
                 borderRadius={8}
                 h="100%"
               >
-                <Image
-                  src={venue.imageUrl}
-                  alt={venue.name}
-                  objectFit="cover"
-                ></Image>
+                <Image src={venue.imageUrl} alt={venue.name} objectFit="cover"></Image>
                 <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
                   {venue.name}
                 </Text>
@@ -276,6 +274,7 @@ export default function Home() {
               <Flex>
                 <Box flex="1" textAlign="center">
                   <Text fontSize={"large"} fontWeight={"semibold"}>
+                    {/*TODO: update getting venues from database*/}
                     {DEFAULT_VENUES.length} +
                   </Text>
                   <Text fontSize={"md"} fontWeight={"regular"} color={"gray.500"}>
@@ -313,6 +312,7 @@ export default function Home() {
             <Divider borderColor={"brand.primary"} borderWidth={"1px"} />
 
             <Box p={4}>
+              {/*TODO: update getting venues from database*/}
               {limitedVenues.map((venue) => (
                 <Box key={venue.id} mb={2}>
                   <Flex align={"center"} gap={4}>

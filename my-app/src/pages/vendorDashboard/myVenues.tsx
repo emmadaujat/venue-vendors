@@ -7,9 +7,15 @@ import { useAuth } from "@/hooks/useAuth";
 export default function MyVenues() {
   const { user } = useAuth("vendor");
 
+  {
+    /*TODO: update getting venues from database*/
+  }
   // Filter data to only show this vendor's data
   const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
 
+  {
+    /*TODO: update getting venues from database*/
+  }
   // Helper - get total completed bookings for a venue
   function getTotalBookings(venueId: string) {
     return DEFAULT_BOOKINGS.filter((b) => b.venueId === venueId && b.status === "Completed").length;

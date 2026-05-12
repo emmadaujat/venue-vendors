@@ -61,6 +61,9 @@ export default function ApplicationReview() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  {
+    /*TODO: RETRIEVE applications from database*/
+  }
   // On load - find the application, check localStorage for
   // any previously saved status updates
   useEffect(() => {
@@ -80,6 +83,9 @@ export default function ApplicationReview() {
     }
   }, [hirerId]);
 
+  {
+    /*TODO: RETRIEVE comments from database*/
+  }
   // Load existing comment from localStorage on mount
   useEffect(() => {
     if (!hirerId || !application) return;
@@ -111,6 +117,9 @@ export default function ApplicationReview() {
 
   const reputation = getReputationBadge(application.hirerId);
 
+  {
+    /*TODO: update- getting data from database*/
+  }
   // Cross reference helpers
   const hirer = DEFAULT_USERS.find((u) => u.id === application.hirerId);
   const venue = DEFAULT_VENUES.find((v) => v.id === application.venueId);
@@ -139,6 +148,9 @@ export default function ApplicationReview() {
     onOpen();
   }
 
+  {
+    /*TODO: UPDATE saving application status to database*/
+  }
   // Confirm the action - saves to localStorage and shows
   // success message, then redirects back to applications list
   function handleConfirm() {
@@ -160,6 +172,9 @@ export default function ApplicationReview() {
     }, 1000);
   }
 
+  {
+    /*TODO: CREATE- save comment for application in database*/
+  }
   // Save comment to localStorage keyed by hirerId
   // Shows confirmation message for 1 second
   function handleSaveComment() {
@@ -172,6 +187,9 @@ export default function ApplicationReview() {
     setTimeout(() => setCommentSaved(false), 1000);
   }
 
+  {
+    /*TODO: REMOVE comment from database*/
+  }
   // Delete comment - clears from localStorage and resets state
   function handleDeleteComment() {
     const savedComments = localStorage.getItem("vendorComments");

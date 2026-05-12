@@ -63,6 +63,9 @@ export default function HirerProfileDetail() {
   useEffect(() => {
     if (!hirerId || !user?.id) return;
 
+    {
+      /*TODO: RETRIEVE comments from database*/
+    }
     // Load vendor's comment for this hirer
     // Check localStorage first, fall back to dummyData
     const storedComments = localStorage.getItem("vendorComments");
@@ -85,6 +88,9 @@ export default function HirerProfileDetail() {
       if (dummyComment) setVendorComment(dummyComment.commentText);
     }
 
+    {
+      /*TODO: RETRIEVE docs from database*/
+    }
     // Load compliance documents from localStorage (JPG) and IndexedDB (PDFs)
     const savedLicense = localStorage.getItem("complianceDoc_license");
     if (savedLicense) {
@@ -109,6 +115,9 @@ export default function HirerProfileDetail() {
       }
     });
 
+    {
+      /*TODO: update getting doc from database*/
+    }
     const savedIsBusiness = localStorage.getItem("complianceDoc_isBusiness");
     if (savedIsBusiness === "true") setIsBusiness(true);
 
@@ -117,12 +126,21 @@ export default function HirerProfileDetail() {
     if (savedCredibility) setCredibilityScore(Number(savedCredibility));
   }, [hirerId, user?.id]);
 
+  {
+    /*TODO: RETRIEVE hirer from database*/
+  }
   // Find the hirer from dummyData
   const hirer = DEFAULT_USERS.find((u) => u.id === hirerId);
 
+  {
+    /*TODO: RETRIEVE getting hirer from database*/
+  }
   // Hirer's full booking history across ALL venues
   const hirerBookings = DEFAULT_BOOKINGS.filter((b) => b.hirerId === hirerId);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Totals row calculations for the booking history table
   const totalEvents = hirerBookings.length;
   const uniqueVenueCount = [...new Set(hirerBookings.map((b) => b.venueId))].length;
@@ -144,6 +162,9 @@ export default function HirerProfileDetail() {
         ? { label: "Good standing", color: "blue" }
         : { label: "Unverified", color: "orange" };
 
+  {
+    /*TODO: update getting applications from database*/
+  }
   // Applications hirer has made to this vendor's venues
   const vendorVenueIds = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id).map((v) => v.id);
   const hirerApplicationToThisVendor = DEFAULT_APPLICATIONS.find(

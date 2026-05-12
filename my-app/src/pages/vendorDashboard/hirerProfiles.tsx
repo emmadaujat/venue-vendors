@@ -46,11 +46,17 @@ export default function HirerProfiles() {
     if (storedScore) setCredibilityScore(Number(storedScore));
   }, [user?.id]);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Filter data to only show this vendor's data
   const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
   const vendorVenueIds = vendorVenues.map((v) => v.id);
   const vendorApplications = applications.filter((a) => vendorVenueIds.includes(a.venueId));
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Deduplicate hirers - one row per unique hirerId
   // A hirer may have applied to multiple venues so we only
   // want to show them once in the list
@@ -58,10 +64,16 @@ export default function HirerProfiles() {
     .map((a) => a.hirerId)
     .filter((id, index, self) => self.indexOf(id) === index);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Build hirer rows with all display data pre-calculated
   const hirerRows = uniqueHirerIds.map((hirerId) => {
     const hirer = DEFAULT_USERS.find((u) => u.id === hirerId);
 
+    {
+      /*TODO: update getting data from database*/
+    }
     // All applications this hirer has made to this vendor's venues
     const hirerApplications = vendorApplications.filter((a) => a.hirerId === hirerId);
 
