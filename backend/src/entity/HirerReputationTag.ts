@@ -14,7 +14,7 @@ export class HirerReputationTag {
 
   // Foreign key — references the application these tags belong to
   // Many tags can belong to one application
-  @ManyToOne(() => Application)
+  @ManyToOne(() => Application, (application) => application.reputationTags)
   @JoinColumn({ name: "applicationID" })
   application: Application;
 

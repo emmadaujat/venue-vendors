@@ -3,7 +3,13 @@
 // Covers both hirers and vendors, differentiated by the role field
 // ===========================================================
 
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from "typeorm";
+
+import { Venue } from "./Venue";
+import { Application } from "./Application";
+import { ComplianceDocument } from "./ComplianceDocument";
+import { VendorComment } from "./VendorComment";
+import { SavedVenue } from "./SavedVenue";
 
 @Entity()
 export class User {
@@ -11,14 +17,14 @@ export class User {
   @PrimaryGeneratedColumn()
   userID: number;
 
-  @Column()
+  @Column({ length: 20, default: "hirer" })
   role: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column()
-  password: string;
+  @Column({ name: "passwordHash" })
+  passwordHash: string;
 
   @Column()
   firstName: string;
@@ -26,14 +32,33 @@ export class User {
   @Column()
   lastName: string;
 
-  // optional display name (if vendors operate under a business name!)
+  // optional display name
   @Column({ nullable: true })
   displayName: string;
 
-  @Column()
+  @Column({ length: 10 })
   phoneNumber: string;
 
   // automatically set to current date when user is created
   @CreateDateColumn()
   joinedDate: Date;
+
+  // A user - vendor, can own many venues
+  @OneToMany(() => Venue, (venue) => venue.vendor)
+  venues: Venue[];
+
+  // A user - hirer, can submit many applications
+  @OneToMany(() => Application, (application) => application.hirer)
+  applications: Application[];
+
+  // A user - hirer, can have many compliance documents
+  @OneToMany(() => ComplianceDocument, (doc) => doc.hirer)
+  complianceDocuments: ComplianceDocument[];
+
+  // A user - vendor, can leave many comments
+  @OneToMany(() => VendorComment, (comment) => comment.vendor)
+  vendorComments: VendorComment[];
+
+  @OneToMany(() => SavedVenue, (savedVenue) => savedVenue.hirer)
+  savedVenues: SavedVenue[];
 }

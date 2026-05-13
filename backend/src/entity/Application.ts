@@ -2,21 +2,32 @@
 // Applications.ts — Entity representing the applications table in the database
 // ===========================================================
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  JoinColumn,
+  CreateDateColumn,
+  OneToMany,
+} from "typeorm";
 import { User } from "./User";
 import { Venue } from "./Venue";
+import { HirerReputationTag } from "./HirerReputationTag";
+import { Booking } from "./Booking";
 
 @Entity()
 export class Application {
   @PrimaryGeneratedColumn()
   applicationID: number;
 
-  @ManyToOne(() => Venue)
+  @ManyToOne(() => Venue, (venue) => venue.applications)
   @JoinColumn({ name: "venueID" })
   venue: Venue;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: "userID" })
+  @ManyToOne(() => User, (user) => user.applications)
+  @JoinColumn({ name: "hirerID" })
   hirer: User;
 
   @Column()
@@ -34,9 +45,17 @@ export class Application {
   @Column({ nullable: true })
   additionalNotes: string;
 
-  @Column()
+  @Column({ length: 20, default: "pending" })
   status: string;
 
-  @Column()
+  @CreateDateColumn()
   submittedAt: Date;
+
+  // One application can have many reputation tags
+  @OneToMany(() => HirerReputationTag, (tag) => tag.application)
+  reputationTags: HirerReputationTag[];
+
+  // One application can become one booking
+  @OneToOne(() => Booking, (booking) => booking.application)
+  booking: Booking;
 }

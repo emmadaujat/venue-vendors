@@ -12,7 +12,7 @@ export class VenueAmenities {
   amenityID: number;
 
   // Foreign key — references the venue who has these amenities
-  @ManyToOne(() => Venue)
+  @ManyToOne(() => Venue, (venue) => venue.amenities)
   @JoinColumn({ name: "venueID" })
   venue: Venue;
 

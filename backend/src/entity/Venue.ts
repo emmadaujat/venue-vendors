@@ -2,8 +2,13 @@
 // Venue.ts — Entity representing the venue table in the database
 // ===========================================================
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { User } from "./User";
+import { VenueAmenities } from "./VenueAmenities";
+import { VenueSuitabilityTag } from "./VenueSuitabilityTag";
+import { VenueBlockedDates } from "./VenueBlockedDates";
+import { Application } from "./Application";
+import { SavedVenue } from "./SavedVenue";
 
 @Entity()
 export class Venue {
@@ -12,8 +17,8 @@ export class Venue {
   venueID: number;
 
   // Foreign key — references the vendor (User) who owns this venue
-  @ManyToOne(() => User)
-  @JoinColumn({ name: "userID" })
+  @ManyToOne(() => User, (user) => user.venues)
+  @JoinColumn({ name: "vendorID" })
   vendor: User;
 
   @Column()
@@ -37,12 +42,31 @@ export class Venue {
   @Column()
   reviewCount: number;
 
-  @Column("text")
+  @Column({ length: 1000 })
   shortDescription: string;
 
-  @Column()
+  @Column({ length: 500 })
   imageURL: string;
 
-  @Column()
+  @Column({ length: 50 })
   availabilityStatus: string;
+
+  // A venue can have many amenities
+  @OneToMany(() => VenueAmenities, (amenity) => amenity.venue)
+  amenities: VenueAmenities[];
+
+  // A venue can have many suitability tags
+  @OneToMany(() => VenueSuitabilityTag, (tag) => tag.venue)
+  suitabilityTags: VenueSuitabilityTag[];
+
+  // A venue can have many blocked date ranges
+  @OneToMany(() => VenueBlockedDates, (blocked) => blocked.venue)
+  blockedDates: VenueBlockedDates[];
+
+  // A venue can have many applications
+  @OneToMany(() => Application, (application) => application.venue)
+  applications: Application[];
+
+  @OneToMany(() => SavedVenue, (savedVenue) => savedVenue.venue)
+  savedByUsers: SavedVenue[];
 }

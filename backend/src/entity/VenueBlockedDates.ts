@@ -14,7 +14,7 @@ export class VenueBlockedDates {
 
   // Foreign key — references the venue that has this blocked date range
   // 0 or Many blocked dates can belong to one venue
-  @ManyToOne(() => Venue, { nullable: true })
+  @ManyToOne(() => Venue, (venue) => venue.blockedDates, { nullable: true })
   @JoinColumn({ name: "venueID" })
   venue: Venue;
 

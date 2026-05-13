@@ -25,6 +25,7 @@ export class AuthController {
   async register(request: Request, response: Response) {
     // get details from submitted form
     const { firstName, lastName, email, phoneNumber, role, password } = request.body;
+    console.log("Body received:", request.body); // 👈 add this
 
     // validate all required fields have been entered
     if (!firstName || !lastName || !email || !phoneNumber || !role || !password) {
@@ -71,7 +72,7 @@ export class AuthController {
       email,
       phoneNumber,
       role,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
     });
 
     try {
@@ -99,7 +100,7 @@ export class AuthController {
     }
 
     // check if typed password matches the hashed password in database
-    const isValid = await argon2.verify(user.password, password);
+    const isValid = await argon2.verify(user.passwordHash, password);
 
     // if password not valid, return error message
     if (!isValid) {
