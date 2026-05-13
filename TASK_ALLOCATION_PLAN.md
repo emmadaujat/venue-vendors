@@ -2,7 +2,7 @@
 
 **Team**
 - **Aleeya Ahmad (s4093344)** — Hirer pages + User Story list
-- **Emma Daujat (s4151401)** — Vendor pages + Database schema + Admin Figma designs
+- **Emma Daujat (s4151401)** — Vendor pages + Database schema + Sign-up/Sign-in + Profile + Admin Figma designs
 
 **HD extension chosen:** Option B — **6 contextual unit tests in the backend (Node & Express)**. Each member writes **3 tests** for their own side (Hirer / Vendor) = 6 total.
 
@@ -138,19 +138,19 @@ Why Emma: she owns the schema. This file is needed in **both** `/backend` and `/
 
 ### S3. Database schema (all entities) + ER diagram — **Emma (Day 1–2, ~4 hrs)** [SHARED, BLOCKING]
 
-Aleeya cannot wire bookings/applications APIs until these entity classes exist. Create entity files in `/backend/src/entity/` — then **copy the same files** into `/admin-backend/src/entity/` (they read the same DB; keeping them separate ensures the 2 apps stay independent).
+Emma has already designed the ERD on Miro. Aleeya cannot wire bookings/applications APIs until these entity classes exist. Convert the Miro ERD into TypeORM entity files in `/backend/src/entity/` — then **copy the same files** into `/admin-backend/src/entity/` (they read the same DB; keeping them separate ensures the 2 apps stay independent).
 
-**Tables to create** (7 entities):
+**Tables to create** (7 entities — based on Emma's Miro design):
 
-| Entity | Key fields | Relationships |
-|---|---|---|
-| `User` | id, email (unique), passwordHash, role (`hirer`/`vendor`/`admin`), name, phone, dateJoined, avatarUrl?, reputationStars (hirer), complianceScore (hirer) | 1 user → many bookings (if hirer); 1 user → many venues (if vendor) |
-| `Venue` | id, name, location, capacity, description, imageUrl, suitabilityKeywords (csv or JSON), isFeatured (bool, default false) | ManyToOne → User (vendor); OneToMany → Timeslots; OneToMany → Bookings |
-| `Timeslot` | id, venueId, date, startTime, endTime, isBlocked (bool), blockReason? | ManyToOne → Venue |
-| `Booking` | id, hirerId, venueId, timeslotId, eventName, expectedGuests, status (`pending`/`approved`/`rejected`), createdAt | ManyToOne → User (hirer), Venue, Timeslot |
-| `ComplianceDocument` | id, hirerId, type (ID/Proof/ABN/etc.), fileUrl, uploadedAt | ManyToOne → User |
-| `Review` | id, hirerId, vendorId, bookingId, stars (0–5), comment | ManyToOne → User x2, Booking |
-| `SavedVenue` | id, hirerId, venueId, rank | ManyToOne → User, Venue |
+| Entity               | Key fields                                                                                                                                               | Relationships                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `User`               | id, email (unique), passwordHash, role (`hirer`/`vendor`/`admin`), name, phone, dateJoined, avatarUrl?, reputationStars (hirer), complianceScore (hirer) | 1 user → many bookings (if hirer); 1 user → many venues (if vendor)    |
+| `Venue`              | id, name, location, capacity, description, imageUrl, suitabilityKeywords (csv or JSON), isFeatured (bool, default false)                                 | ManyToOne → User (vendor); OneToMany → Timeslots; OneToMany → Bookings |
+| `Timeslot`           | id, venueId, date, startTime, endTime, isBlocked (bool), blockReason?                                                                                    | ManyToOne → Venue                                                      |
+| `Booking`            | id, hirerId, venueId, timeslotId, eventName, expectedGuests, status (`pending`/`approved`/`rejected`), createdAt                                         | ManyToOne → User (hirer), Venue, Timeslot                              |
+| `ComplianceDocument` | id, hirerId, type (ID/Proof/ABN/etc.), fileUrl, uploadedAt                                                                                               | ManyToOne → User                                                       |
+| `Review`             | id, hirerId, vendorId, bookingId, stars (0–5), comment                                                                                                   | ManyToOne → User x2, Booking                                           |
+| `SavedVenue`         | id, hirerId, venueId, rank                                                                                                                               | ManyToOne → User, Venue                                                |
 
 **Steps:**
 1. Create one file per entity in `/backend/src/entity/` using decorators (`@Entity`, `@PrimaryGeneratedColumn`, `@Column`, `@ManyToOne`, `@OneToMany`, `@JoinColumn`). Mirror the style of week9 Pet.ts and Profile.ts.
@@ -160,9 +160,9 @@ Aleeya cannot wire bookings/applications APIs until these entity classes exist. 
 5. In DBeaver/mssql extension, manually insert **3 vendors, 3 hirers, ~6 venues, ~10 timeslots** for development data (lecturer said this is required).
 6. Commit: `feat(db): add User/Venue/Timeslot/Booking/Compliance/Review/SavedVenue entities + ERD`.
 
-### S4. Shared auth middleware + JWT helper — **Aleeya (Day 2, ~2 hrs)** [SHARED]
+### S4. Shared auth middleware + JWT helper — **Aleeya (Day 2, ~2 hrs)** [SHARED, MUST BE FIRST]
 
-Used by every protected endpoint in the `/backend` app. The `/admin-backend` app has its own simpler auth (hard-coded admin/admin).
+Aleeya creates this utility before Emma can implement the sign-up/sign-in endpoints. Used by every protected endpoint in the `/backend` app. The `/admin-backend` app has its own simpler auth (hard-coded admin/admin).
 
 1. In `/backend/src/middlewares/auth.ts`:
    - `requireAuth(req, res, next)` — verifies JWT from `Authorization: Bearer <token>` header; attaches `req.user`.
@@ -171,9 +171,9 @@ Used by every protected endpoint in the `/backend` app. The `/admin-backend` app
 3. In `/backend/src/middlewares/validate.ts`: copy the class-validator middleware from week9 validate.ts.
 4. Commit: `feat(auth): shared JWT + role middleware`.
 
-### S5. Sign-up + Sign-in + Profile + Logout (5 marks PA) — **Aleeya (Day 2–3, ~5 hrs)** [SHARED]
+### S5. Sign-up + Sign-in + Profile + Logout (5 marks PA) — **Emma (Day 2–3, ~5 hrs)** [SHARED]
 
-This is shared because **both** hirer and vendor need to log in through the same `/backend` API.
+Emma is handling this section. This is shared because **both** hirer and vendor need to log in through the same `/backend` API.
 
 **Backend (in `/backend`):**
 1. `POST /api/auth/signup` — body: `{ email, password, role, name, phone }`. Validate (see rules below). Hash password with `bcrypt` (10 rounds). Insert into `User`. Return token + user.
@@ -224,6 +224,7 @@ Commit: `feat(auth): full signup/signin/profile/logout flow against MSSQL`.
 - `/backend/src/dtos/booking.dto.ts`, `compliance.dto.ts`
 - `/backend/src/__tests__/hirer.test.ts`, `booking.test.ts`, `compliance.test.ts` (your 3 HD tests)
 - `/docs/UserStoryList.xlsx` (you maintain)
+- `/frontend/src/services/api.ts`, `/frontend/src/contexts/AuthContext.tsx` (shared foundation, you create these)
 
 ---
 
@@ -231,33 +232,33 @@ Commit: `feat(auth): full signup/signin/profile/logout flow against MSSQL`.
 
 ### Pages to build (in `/frontend/src/pages/hirer/`)
 
-| Page | Existing file | Action |
-|---|---|---|
-| `dashboard.tsx` | exists | Replace dummy data with `GET /api/hirer/dashboard` |
-| `myDetails.tsx` | exists | Replace localStorage with `PUT /api/users/me` |
-| `browseVenues.tsx` (move from /pages root) | exists | `GET /api/venues` with search params |
-| `apply.tsx` | exists | `POST /api/bookings` |
-| `bookingHistory.tsx` | exists | `GET /api/hirer/bookings` |
-| `savedVenues.tsx` | exists | `POST /api/hirer/saved`, `DELETE /api/hirer/saved/:id` |
-| `complianceDocuments.tsx` | exists | `POST /api/compliance` (multipart upload to backend) |
-| `reputation.tsx` (**NEW**) | — | `GET /api/hirer/reputation` showing history with star ratings |
+| Page                                       | Existing file | Action                                                        |
+| ------------------------------------------ | ------------- | ------------------------------------------------------------- |
+| `dashboard.tsx`                            | exists        | Replace dummy data with `GET /api/hirer/dashboard`            |
+| `myDetails.tsx`                            | exists        | Replace localStorage with `PUT /api/users/me`                 |
+| `browseVenues.tsx` (move from /pages root) | exists        | `GET /api/venues` with search params                          |
+| `apply.tsx`                                | exists        | `POST /api/bookings`                                          |
+| `bookingHistory.tsx`                       | exists        | `GET /api/hirer/bookings`                                     |
+| `savedVenues.tsx`                          | exists        | `POST /api/hirer/saved`, `DELETE /api/hirer/saved/:id`        |
+| `complianceDocuments.tsx`                  | exists        | `POST /api/compliance` (multipart upload to backend)          |
+| `reputation.tsx` (**NEW**)                 | —             | `GET /api/hirer/reputation` showing history with star ratings |
 
 ### Backend endpoints you must implement (in `/backend`)
 
-| Method | Path | Purpose | Validation |
-|---|---|---|---|
-| GET | `/api/venues?search=&location=&capacity=&keyword=` | List with filters (search by name/location/capacity/suitability) | query params optional |
-| GET | `/api/venues/:id` | Single venue details + available timeslots | param id numeric |
-| POST | `/api/hirer/saved` | Save a venue to my list (ranked) | body: venueId, rank |
-| GET | `/api/hirer/saved` | My ranked saved venues | — |
-| PUT | `/api/hirer/saved/:id` | Update rank | body: rank ≥ 1 |
-| DELETE | `/api/hirer/saved/:id` | Remove | — |
-| POST | `/api/bookings` | Apply for a venue | body: venueId, timeslotId, eventName, expectedGuests ≥ 1, date, duration ≥ 1 hr |
-| GET | `/api/hirer/bookings` | My bookings + status | — |
-| GET | `/api/hirer/reputation` | Avg stars + history of past venues | — |
-| POST | `/api/compliance` | Upload doc metadata (multer or just URL) | file type pdf, ≤ 5MB |
-| GET | `/api/hirer/compliance` | My uploaded docs + compliance score | — |
-| GET | `/api/venues/:id/suitability` | Returns matched keywords | — |
+| Method | Path                                               | Purpose                                                          | Validation                                                                      |
+| ------ | -------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| GET    | `/api/venues?search=&location=&capacity=&keyword=` | List with filters (search by name/location/capacity/suitability) | query params optional                                                           |
+| GET    | `/api/venues/:id`                                  | Single venue details + available timeslots                       | param id numeric                                                                |
+| POST   | `/api/hirer/saved`                                 | Save a venue to my list (ranked)                                 | body: venueId, rank                                                             |
+| GET    | `/api/hirer/saved`                                 | My ranked saved venues                                           | —                                                                               |
+| PUT    | `/api/hirer/saved/:id`                             | Update rank                                                      | body: rank ≥ 1                                                                  |
+| DELETE | `/api/hirer/saved/:id`                             | Remove                                                           | —                                                                               |
+| POST   | `/api/bookings`                                    | Apply for a venue                                                | body: venueId, timeslotId, eventName, expectedGuests ≥ 1, date, duration ≥ 1 hr |
+| GET    | `/api/hirer/bookings`                              | My bookings + status                                             | —                                                                               |
+| GET    | `/api/hirer/reputation`                            | Avg stars + history of past venues                               | —                                                                               |
+| POST   | `/api/compliance`                                  | Upload doc metadata (multer or just URL)                         | file type pdf, ≤ 5MB                                                            |
+| GET    | `/api/hirer/compliance`                            | My uploaded docs + compliance score                              | —                                                                               |
+| GET    | `/api/venues/:id/suitability`                      | Returns matched keywords                                         | —                                                                               |
 
 ### Step-by-step (PA Hirer)
 
@@ -297,10 +298,10 @@ Commit: `feat(auth): full signup/signin/profile/logout flow against MSSQL`.
 
 ## A2. CR — Hirer additions (part of the 8 CR marks) — **Day 7**
 
-| Change | Spec | Your work |
-|---|---|---|
-| CHANGE 1 (Hirer DB) | All hirer data already in MSSQL | done in PA |
-| CHANGE 2 | **Recommended suitability** | New endpoint `GET /api/venues/:id/suitability` returning `{ matched: ["wedding","dinner"], score: 0.83 }` based on overlap between `venue.suitabilityKeywords` and a frontend-selected event-type keyword. Render as colored chips on the venue card. |
+| Change              | Spec                            | Your work                                                                                                                                                                                                                                             |
+| ------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CHANGE 1 (Hirer DB) | All hirer data already in MSSQL | done in PA                                                                                                                                                                                                                                            |
+| CHANGE 2            | **Recommended suitability**     | New endpoint `GET /api/venues/:id/suitability` returning `{ matched: ["wedding","dinner"], score: 0.83 }` based on overlap between `venue.suitabilityKeywords` and a frontend-selected event-type keyword. Render as colored chips on the venue card. |
 
 **Steps:**
 1. Seed each venue with 3–6 keywords (e.g., `"wedding,dinner,classical music"`).
@@ -371,10 +372,14 @@ Assert: Three sub-cases inside one `describe`. Use `node:assert/strict` for the 
 
 ---
 
-# Stream B — Emma (Vendor side + DB + Admin)
+# Stream B — Emma (Vendor side + DB + Auth + Admin)
 
 **Folders you own and only you edit:**
-- `/backend/src/entity/**` (you already owned this via shared foundation)
+- `/backend/src/entity/**` (you already owned this via shared foundation — from your Miro ERD)
+- `/backend/src/controller/AuthController.ts` (sign-up, sign-in, profile endpoints)
+- `/backend/src/routes/auth.routes.ts`
+- `/backend/src/dtos/auth.dto.ts`
+- `/frontend/src/pages/signin.tsx`, `/frontend/src/pages/signup.tsx`, `/frontend/src/pages/profile.tsx`
 - `/frontend/src/pages/vendorDashboard/**`
 - `/frontend/src/components/vendor*`
 - `/backend/src/controller/VendorController.ts`, `VenueController.ts`, `TimeslotController.ts`
@@ -383,7 +388,7 @@ Assert: Three sub-cases inside one `describe`. Use `node:assert/strict` for the 
 - `/backend/src/__tests__/vendor.test.ts`, `venue.test.ts`, `timeslot.test.ts` (your 3 HD tests)
 - `/admin-frontend/**` (entire admin frontend — App 3)
 - `/admin-backend/**` (entire admin GraphQL server — App 4)
-- `/docs/ERD.pdf` (you maintain)
+- `/docs/ERD.pdf` (you maintain — converted from your Miro design)
 
 ---
 
@@ -391,35 +396,35 @@ Assert: Three sub-cases inside one `describe`. Use `node:assert/strict` for the 
 
 ### Pages to build (in `/frontend/src/pages/vendorDashboard/`)
 
-| Page | Existing file | Action |
-|---|---|---|
-| `index.tsx` | exists | Dashboard summary — `GET /api/vendor/dashboard` |
-| `myDetails.tsx` | exists | `PUT /api/users/me` |
-| `myVenues.tsx` | exists | `GET /api/vendor/venues` |
-| `applications.tsx` | exists | `GET /api/vendor/bookings?status=pending` |
-| `hirerProfiles.tsx` | exists | `GET /api/vendor/hirers` |
-| `calendar/` | exists | `GET /api/vendor/venues/:id/timeslots` |
-| `infographicReport.tsx` | exists | (DI step — leave stub for now) |
-| `venueEdit.tsx` (**NEW**) | — | CRUD form (CR step) |
+| Page                      | Existing file | Action                                          |
+| ------------------------- | ------------- | ----------------------------------------------- |
+| `index.tsx`               | exists        | Dashboard summary — `GET /api/vendor/dashboard` |
+| `myDetails.tsx`           | exists        | `PUT /api/users/me`                             |
+| `myVenues.tsx`            | exists        | `GET /api/vendor/venues`                        |
+| `applications.tsx`        | exists        | `GET /api/vendor/bookings?status=pending`       |
+| `hirerProfiles.tsx`       | exists        | `GET /api/vendor/hirers`                        |
+| `calendar/`               | exists        | `GET /api/vendor/venues/:id/timeslots`          |
+| `infographicReport.tsx`   | exists        | (DI step — leave stub for now)                  |
+| `venueEdit.tsx` (**NEW**) | —             | CRUD form (CR step)                             |
 
 ### Backend endpoints (in `/backend`)
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/vendor/dashboard` | counts: venues, pending, approved |
-| GET | `/api/vendor/venues` | venues owned by `req.user.id` only |
-| POST | `/api/vendor/venues` | create venue |
-| PUT | `/api/vendor/venues/:id` | update (owner check!) |
-| DELETE | `/api/vendor/venues/:id` | delete (owner check!) |
-| GET | `/api/vendor/venues/:id/timeslots` | timeslots for one venue |
-| POST | `/api/vendor/timeslots` | create timeslot |
-| PUT | `/api/vendor/timeslots/:id/block` | block (CR change 4) |
-| PUT | `/api/vendor/timeslots/:id/unblock` | unblock |
-| GET | `/api/vendor/bookings` | all bookings for vendor's venues with hirer name/reputation/compliance |
-| PUT | `/api/vendor/bookings/:id/approve` | accept booking |
-| PUT | `/api/vendor/bookings/:id/reject` | reject booking |
-| GET | `/api/vendor/hirers` | hirer profiles + reputation |
-| GET | `/api/vendor/stats?range=week\|month\|lastMonth\|all` | DI charts data |
+| Method | Path                                                  | Purpose                                                                |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/api/vendor/dashboard`                               | counts: venues, pending, approved                                      |
+| GET    | `/api/vendor/venues`                                  | venues owned by `req.user.id` only                                     |
+| POST   | `/api/vendor/venues`                                  | create venue                                                           |
+| PUT    | `/api/vendor/venues/:id`                              | update (owner check!)                                                  |
+| DELETE | `/api/vendor/venues/:id`                              | delete (owner check!)                                                  |
+| GET    | `/api/vendor/venues/:id/timeslots`                    | timeslots for one venue                                                |
+| POST   | `/api/vendor/timeslots`                               | create timeslot                                                        |
+| PUT    | `/api/vendor/timeslots/:id/block`                     | block (CR change 4)                                                    |
+| PUT    | `/api/vendor/timeslots/:id/unblock`                   | unblock                                                                |
+| GET    | `/api/vendor/bookings`                                | all bookings for vendor's venues with hirer name/reputation/compliance |
+| PUT    | `/api/vendor/bookings/:id/approve`                    | accept booking                                                         |
+| PUT    | `/api/vendor/bookings/:id/reject`                     | reject booking                                                         |
+| GET    | `/api/vendor/hirers`                                  | hirer profiles + reputation                                            |
+| GET    | `/api/vendor/stats?range=week\|month\|lastMonth\|all` | DI charts data                                                         |
 
 ### Step-by-step (PA Vendor)
 
@@ -577,12 +582,12 @@ Use `node:assert/strict` in at least one test (the FAQ said this earns beyond-HD
 
 Emma deploys App 3 + App 4. Aleeya deploys App 1 + App 2.
 
-| Service | App | Owner | Render type | Build command | Start command |
-|---|---|---|---|---|---|
-| `vv-frontend` | App 1 `/frontend` | Aleeya | Static / Web | `npm i && npm run build` | `npm start` |
-| `vv-backend` | App 2 `/backend` | Aleeya | Web Service | `npm i && npm run build` | `node dist/index.js` |
-| `vv-admin-frontend` | App 3 `/admin-frontend` | Emma | Static Site | `npm i && npm run build` | (Render auto-serves `/dist`) |
-| `vv-admin-backend` | App 4 `/admin-backend` | Emma | Web Service | `npm i && npm run build` | `node dist/index.js` |
+| Service             | App                     | Owner  | Render type  | Build command            | Start command                |
+| ------------------- | ----------------------- | ------ | ------------ | ------------------------ | ---------------------------- |
+| `vv-frontend`       | App 1 `/frontend`       | Aleeya | Static / Web | `npm i && npm run build` | `npm start`                  |
+| `vv-backend`        | App 2 `/backend`        | Aleeya | Web Service  | `npm i && npm run build` | `node dist/index.js`         |
+| `vv-admin-frontend` | App 3 `/admin-frontend` | Emma   | Static Site  | `npm i && npm run build` | (Render auto-serves `/dist`) |
+| `vv-admin-backend`  | App 4 `/admin-backend`  | Emma   | Web Service  | `npm i && npm run build` | `node dist/index.js`         |
 
 **Steps for each Render service (repeat 4 times):**
 1. Push final code to GitHub `main`.
@@ -623,39 +628,39 @@ Branch names: `vendor/venue-crud`, `vendor/charts`, `admin/graphql-backend`, `ad
 
 # Day-by-day calendar (rough)
 
-| Day | Aleeya | Emma |
-|---|---|---|
-| 1 | S1 scaffold all 4 apps | S2 data-source (both /backend + /admin-backend) + S3 ERD start |
-| 2 | S4 auth middleware + start S5 | S3 ERD finish + seed data + copy entities to /admin-backend |
-| 3 | S5 auth pages + S6 user stories + S7 axios client | Vendor PA setup (controllers scaffold) |
-| 4 | Hirer PA pages start | Vendor PA pages start |
-| 5 | Hirer PA continues | Vendor PA continues |
-| 6 | Hirer PA finish + QA | Vendor PA finish + QA |
-| 7 | Hirer CR (suitability) | Vendor CR (CRUD/block/approve) |
-| 8 | Hirer polish + extra ACs in story list | Vendor DI charts |
-| 9 | HD test 1–2 | Admin GraphQL backend (admin-backend) |
-| 10 | HD test 3 + topApplicants resolver in admin-backend | Admin frontend (admin-frontend — Figma → React) |
-| 11 | Render vv-frontend + vv-backend deploy | Render admin-frontend + admin-backend deploy + HD tests 4–6 |
-| 12 | Joint checklist + submission | Joint checklist + submission |
+| Day | Aleeya                                              | Emma                                                                                      |
+| --- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | S1 scaffold all 4 apps                              | S2 data-source (both /backend + /admin-backend) + S3 ERD (from Miro) start                |
+| 2   | S4 auth middleware (utility)                        | S3 ERD finish + convert to TypeORM entities + seed data + copy entities to /admin-backend |
+| 3   | S6 user stories + S7 axios client                   | S5 sign-up/sign-in endpoints (uses S4 middleware) + profile page                          |
+| 4   | Hirer PA pages start                                | Vendor PA pages start                                                                     |
+| 5   | Hirer PA continues                                  | Vendor PA continues                                                                       |
+| 6   | Hirer PA finish + QA                                | Vendor PA finish + QA                                                                     |
+| 7   | Hirer CR (suitability)                              | Vendor CR (CRUD/block/approve)                                                            |
+| 8   | Hirer polish + extra ACs in story list              | Vendor DI charts                                                                          |
+| 9   | HD test 1–2                                         | Admin GraphQL backend (admin-backend)                                                     |
+| 10  | HD test 3 + topApplicants resolver in admin-backend | Admin frontend (admin-frontend — Figma → React)                                           |
+| 11  | Render vv-frontend + vv-backend deploy              | Render admin-frontend + admin-backend deploy + HD tests 4–6                               |
+| 12  | Joint checklist + submission                        | Joint checklist + submission                                                              |
 
 ---
 
 # Rubric coverage cross-check
 
-| Marks | Item | Owner | Where in plan |
-|---|---|---|---|
-| 3 | DB schema + ERD | Emma | S3 |
-| 3 | User Story list | Aleeya | S6 |
-| 5 | Sign-up/Sign-in/Profile/Logout | Aleeya | S5 |
-| 6 | Hirer pages PA | Aleeya | A1 |
-| 6 | Vendor pages PA | Emma | B1 |
-| 8 | CR changes 1–6 | CR2 = Aleeya / CR3–6 = Emma | A2, B2 |
-| 5 | DI charts | Emma | B3 |
-| 2 | Admin CRUD + vendor assign + feature toggle | Emma (App 3+4) | B4.1–B4.2 |
-| 2 | Admin reports (top venues + top applicants) | Emma + Aleeya resolver | B4.1, A4.1 |
-| 2 | 6 contextual unit tests (3 each) | Aleeya tests 1–3 / Emma tests 4–6 | A4.2, B4.3 |
-| 3 | Render deployment (4 services) | split | B5 |
-| **45** | **Total** | | |
+| Marks  | Item                                        | Owner                             | Where in plan |
+| ------ | ------------------------------------------- | --------------------------------- | ------------- |
+| 3      | DB schema + ERD                             | Emma                              | S3            |
+| 3      | User Story list                             | Aleeya                            | S6            |
+| 5      | Sign-up/Sign-in/Profile/Logout              | Emma                              | S5            |
+| 6      | Hirer pages PA                              | Aleeya                            | A1            |
+| 6      | Vendor pages PA                             | Emma                              | B1            |
+| 8      | CR changes 1–6                              | CR2 = Aleeya / CR3–6 = Emma       | A2, B2        |
+| 5      | DI charts                                   | Emma                              | B3            |
+| 2      | Admin CRUD + vendor assign + feature toggle | Emma (App 3+4)                    | B4.1–B4.2     |
+| 2      | Admin reports (top venues + top applicants) | Emma + Aleeya resolver            | B4.1, A4.1    |
+| 2      | 6 contextual unit tests (3 each)            | Aleeya tests 1–3 / Emma tests 4–6 | A4.2, B4.3    |
+| 3      | Render deployment (4 services)              | split                             | B5            |
+| **45** | **Total**                                   |                                   |               |
 
 ---
 
