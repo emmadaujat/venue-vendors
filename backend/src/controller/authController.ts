@@ -25,7 +25,6 @@ export class AuthController {
   async register(request: Request, response: Response) {
     // get details from submitted form
     const { firstName, lastName, email, phoneNumber, role, password } = request.body;
-    console.log("Body received:", request.body); // 👈 add this
 
     // validate all required fields have been entered
     if (!firstName || !lastName || !email || !phoneNumber || !role || !password) {
@@ -50,6 +49,10 @@ export class AuthController {
 
     if (!/[a-z]/.test(password)) {
       return response.status(400).json({ message: "Must contain a lowercase letter" });
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      return response.status(400).json({ message: "Must contain a special character" });
     }
 
     // check if email address is already taken

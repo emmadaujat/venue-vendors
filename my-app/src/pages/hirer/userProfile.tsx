@@ -8,11 +8,10 @@ import { getHirerStats } from "@/ratingCalculation";
 import { DEFAULT_BOOKINGS, DEFAULT_VENUES } from "@/dummyData";
 import { StarIcon } from "@chakra-ui/icons";
 import type { Venue, Booking, Application } from "@/types";
-
 import { Box, Text, Flex, Avatar, Table, Thead, Tbody, Tr, Th, Td, Badge } from "@chakra-ui/react";
 import Link from "next/link";
 
-export default function HirerDashboard() {
+export default function UserProfile() {
   // This page is only for hirers - redirect if not logged in as hirer
   const { user } = useAuth("hirer");
   const router = useRouter();
@@ -113,23 +112,14 @@ export default function HirerDashboard() {
         {/* Main content */}
         <Box flex="1" p={6}>
           {/* Welcome + credibility row */}
-          <Flex
-            justifyContent="space-between"
-            alignItems="center"
-            mb={8}
-            bg="gray.50"
-            borderRadius="lg"
-            p={6}
-            border="1px solid"
-            borderColor="gray.200"
-          >
+          <Flex justifyContent="left" alignItems="center" mb={8} borderRadius="lg" p={6}>
             {/* Welcome section */}
             <Flex alignItems="center" gap={4}>
               <Avatar
                 name={user.firstName + " " + user.lastName}
                 bg="brand.secondary"
                 color="brand.primary"
-                size="lg"
+                size="xl"
               />
               <Box>
                 <Text fontSize="xl" fontWeight="bold">
@@ -138,43 +128,59 @@ export default function HirerDashboard() {
                 <Text fontSize="xl" fontWeight="bold">
                   {user.firstName} {user.lastName}
                 </Text>
+
                 <Link href="/hirer/myDetails">
                   <Text
                     fontSize="sm"
                     color="brand.primary"
+                    mt={2}
                     _hover={{ textDecoration: "underline" }}
                   >
-                    View your profile →
+                    Edit your details →
                   </Text>
                 </Link>
               </Box>
             </Flex>
-
-            {/* Credibility rating section */}
-            <Box textAlign="center">
-              <Text fontSize="md" fontWeight="semibold" color="gray.700">
-                Current Credibility Rating:
-              </Text>
-              <Text fontSize="4xl" fontWeight="bold" color="brand.primary">
-                {credibilityPercentage}%
-              </Text>
-              <Link href="/hirer/complianceDocuments">
-                <Text fontSize="sm" color="brand.primary" _hover={{ textDecoration: "underline" }}>
-                  Add more Compliance Documents →
-                </Text>
-              </Link>
-            </Box>
           </Flex>
 
           {/* Dashboard title */}
-          <Box mb={4}>
-            <Text fontSize="lg" fontWeight="bold">
-              My Dashboard
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              Review and manage incoming hire requests
-            </Text>
-          </Box>
+          <Flex border="1px solid" borderColor="gray.200" borderRadius="md" p={4} mb={4}>
+            <Box mb={4}>
+              <Text fontSize="xl" fontWeight="bold">
+                My Profile
+              </Text>
+              <Flex gap={20}>
+                <Flex>
+                  <Text mr={2}> Account Type:</Text>
+                  <Text fontWeight={"bold"}>
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </Text>
+                </Flex>
+                <Box>
+                  <Flex>
+                    <Text fontSize="md" fontWeight="semibold" color="gray.700" mr={2}>
+                      Current Credibility Rating:
+                    </Text>
+                    <Text fontWeight={"bold"}>{credibilityPercentage}%</Text>
+                  </Flex>
+
+                  <Link href="/hirer/complianceDocuments">
+                    <Text
+                      fontSize="sm"
+                      color="brand.primary"
+                      _hover={{ textDecoration: "underline" }}
+                    >
+                      Add more Compliance Documents →
+                    </Text>
+                  </Link>
+                </Box>
+                <Flex>
+                  <Text mr={2}>Date Joined:</Text>
+                  <Text fontWeight={"bold"}>(date)</Text>
+                </Flex>
+              </Flex>
+            </Box>
+          </Flex>
 
           {/* Stats cards row */}
           <Flex gap={4} mb={6}>
