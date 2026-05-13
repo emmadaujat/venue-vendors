@@ -46,6 +46,9 @@ export default function VendorDashboard() {
     }
   }, [user?.id]);
 
+  {
+    /*TODO: update getting venues from database*/
+  }
   // Filter data to only show this vendor's data
   const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
   const vendorVenueIds = vendorVenues.map((v) => v.id);
@@ -53,6 +56,9 @@ export default function VendorDashboard() {
 
   // Stat card calculations
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Total Revenue Calculations
   const totalRevenue = vendorBookings
     .filter((b) => b.status === "Completed")
@@ -61,11 +67,17 @@ export default function VendorDashboard() {
       return sum + (venue?.pricePerDay ?? 0);
     }, 0);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Upcoming bookings
   const upcomingBookings = vendorBookings
     .filter((b) => new Date(b.eventDate) > new Date())
     .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Next upcoming booking date for display under the stat card
   const nextBookingDate = upcomingBookings[0]?.eventDate
     ? new Date(upcomingBookings[0].eventDate).toLocaleDateString("en-AU", {
@@ -74,14 +86,23 @@ export default function VendorDashboard() {
       })
     : "None";
 
+  {
+    /*TODO: update getting avg rating from database*/
+  }
   // Get avg rating
   const stats = getVendorStats(user?.id ?? "");
 
+  {
+    /*TODO: update getting vendors applications from database*/
+  }
   // Recent applications - last 4 for this vendor's venues
   const recentApplications = applications
     .filter((a) => vendorVenueIds.includes(a.venueId))
     .slice(0, 4);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Approved applications with all display data pre-calculated
   const approvedApplicationsWithDetails = applications
     .filter((a) => vendorVenueIds.includes(a.venueId) && a.status === "Approved")

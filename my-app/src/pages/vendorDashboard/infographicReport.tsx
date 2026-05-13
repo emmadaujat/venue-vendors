@@ -28,6 +28,9 @@ export default function InfographicReport() {
   const { user } = useAuth("vendor");
   const [applications, setApplications] = useState(DEFAULT_APPLICATIONS);
 
+  {
+    /*TODO: update getting venues from database*/
+  }
   // Filter data to only show this vendor's data
   const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
   const vendorVenueIds = vendorVenues.map((v) => v.id);

@@ -33,6 +33,9 @@ export default function VendorApplications() {
 
   const [applications, setApplications] = useState(DEFAULT_APPLICATIONS);
 
+  {
+    /*TODO: update getting venues from database*/
+  }
   // Filter data to only show this vendor's data
   const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
   const vendorVenueIds = vendorVenues.map((v) => v.id);
@@ -43,6 +46,9 @@ export default function VendorApplications() {
     setApplications(getAllApplications());
   }, [user?.id]);
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // get total applications for logged in vendor
   const vendorApplications = applications.filter((a) => vendorVenueIds.includes(a.venueId));
 
@@ -72,11 +78,17 @@ export default function VendorApplications() {
     return 0;
   });
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Helper - get hirer details from DEFAULT_USERS
   function getHirer(hirerId: string) {
     return DEFAULT_USERS.find((u) => u.id === hirerId);
   }
 
+  {
+    /*TODO: update getting data from database*/
+  }
   // Helper - get venue name from venueId
   function getVenueName(venueId: string) {
     return DEFAULT_VENUES.find((v) => v.id === venueId)?.name ?? "Unknown Venue";
