@@ -23,7 +23,7 @@ export class VendorComment {
   // Foreign key — references the vendor (User) who wrote the comment
   // Many comments can be written by one vendor
   @ManyToOne(() => User, (user) => user.vendorComments)
-  @JoinColumn({ name: "userID" })
+  @JoinColumn({ name: "vendorID" })
   vendor: User;
 
   // Foreign key — references the booking this comment is about
@@ -32,10 +32,10 @@ export class VendorComment {
   @JoinColumn({ name: "bookingID" })
   booking: Booking;
 
-  @Column()
+  @Column({ length: 1000 })
   commentText: string;
 
-  @Column()
+  @Column({ length: 20 })
   credibilityTag: string;
 
   @CreateDateColumn()

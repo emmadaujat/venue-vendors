@@ -5,7 +5,6 @@
 
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import { Application } from "./Application";
-import { application } from "express";
 
 @Entity()
 export class HirerReputationTag {

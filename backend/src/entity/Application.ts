@@ -27,7 +27,7 @@ export class Application {
   venue: Venue;
 
   @ManyToOne(() => User, (user) => user.applications)
-  @JoinColumn({ name: "userID" })
+  @JoinColumn({ name: "hirerID" })
   hirer: User;
 
   @Column()
@@ -45,7 +45,7 @@ export class Application {
   @Column({ nullable: true })
   additionalNotes: string;
 
-  @Column()
+  @Column({ length: 20, default: "pending" })
   status: string;
 
   @CreateDateColumn()

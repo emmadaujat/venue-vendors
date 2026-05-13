@@ -25,7 +25,7 @@ export class Booking {
   @Column({ nullable: true })
   vendorRating: number;
 
-  @Column()
+  @Column({ length: 20, default: "active" })
   status: string;
 
   @CreateDateColumn()

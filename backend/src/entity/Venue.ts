@@ -8,6 +8,7 @@ import { VenueAmenities } from "./VenueAmenities";
 import { VenueSuitabilityTag } from "./VenueSuitabilityTag";
 import { VenueBlockedDates } from "./VenueBlockedDates";
 import { Application } from "./Application";
+import { SavedVenue } from "./SavedVenue";
 
 @Entity()
 export class Venue {
@@ -17,7 +18,7 @@ export class Venue {
 
   // Foreign key — references the vendor (User) who owns this venue
   @ManyToOne(() => User, (user) => user.venues)
-  @JoinColumn({ name: "userID" })
+  @JoinColumn({ name: "vendorID" })
   vendor: User;
 
   @Column()
@@ -41,13 +42,13 @@ export class Venue {
   @Column()
   reviewCount: number;
 
-  @Column("text")
+  @Column({ length: 1000 })
   shortDescription: string;
 
-  @Column()
+  @Column({ length: 500 })
   imageURL: string;
 
-  @Column()
+  @Column({ length: 50 })
   availabilityStatus: string;
 
   // A venue can have many amenities
@@ -65,4 +66,7 @@ export class Venue {
   // A venue can have many applications
   @OneToMany(() => Application, (application) => application.venue)
   applications: Application[];
+
+  @OneToMany(() => SavedVenue, (savedVenue) => savedVenue.venue)
+  savedByUsers: SavedVenue[];
 }

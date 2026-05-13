@@ -22,7 +22,7 @@ export class ComplianceDocument {
   // Foreign key — references the hirer who uploaded this document
   // Many documents can belong to one hirer (up to 4)
   @ManyToOne(() => User, (user) => user.complianceDocuments)
-  @JoinColumn({ name: "userID" })
+  @JoinColumn({ name: "hirerID" })
   hirer: User;
 
   @Column()
@@ -34,6 +34,12 @@ export class ComplianceDocument {
   @CreateDateColumn()
   uploadedAt: Date;
 
-  @Column()
-  isVerified: boolean;
+  @Column({ length: 500, nullable: true })
+  fileURL: string;
+
+  @Column({ default: false })
+  isBusiness: boolean;
+
+  @Column({ nullable: true })
+  abnNumber: string;
 }

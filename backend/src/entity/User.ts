@@ -9,6 +9,7 @@ import { Venue } from "./Venue";
 import { Application } from "./Application";
 import { ComplianceDocument } from "./ComplianceDocument";
 import { VendorComment } from "./VendorComment";
+import { SavedVenue } from "./SavedVenue";
 
 @Entity()
 export class User {
@@ -16,14 +17,14 @@ export class User {
   @PrimaryGeneratedColumn()
   userID: number;
 
-  @Column()
+  @Column({ length: 20, default: "hirer" })
   role: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column()
-  password: string;
+  @Column({ name: "passwordHash" })
+  passwordHash: string;
 
   @Column()
   firstName: string;
@@ -35,7 +36,7 @@ export class User {
   @Column({ nullable: true })
   displayName: string;
 
-  @Column()
+  @Column({ length: 10 })
   phoneNumber: string;
 
   // automatically set to current date when user is created
@@ -57,4 +58,7 @@ export class User {
   // A user - vendor, can leave many comments
   @OneToMany(() => VendorComment, (comment) => comment.vendor)
   vendorComments: VendorComment[];
+
+  @OneToMany(() => SavedVenue, (savedVenue) => savedVenue.hirer)
+  savedVenues: SavedVenue[];
 }
