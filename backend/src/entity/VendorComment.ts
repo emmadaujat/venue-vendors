@@ -3,7 +3,15 @@
 // A vendor leaves a comment about a hirer after an accepted application (an accepted application becomes a booking)
 
 // ===========================================================
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, JoinColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from "typeorm";
 import { User } from "./User";
 import { Booking } from "./Booking";
 
@@ -14,13 +22,13 @@ export class VendorComment {
 
   // Foreign key — references the vendor (User) who wrote the comment
   // Many comments can be written by one vendor
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.vendorComments)
   @JoinColumn({ name: "userID" })
   vendor: User;
 
   // Foreign key — references the booking this comment is about
   // One comment belongs to one booking
-  @OneToOne(() => Booking)
+  @OneToOne(() => Booking, (booking) => booking.vendorComments)
   @JoinColumn({ name: "bookingID" })
   booking: Booking;
 
@@ -30,6 +38,6 @@ export class VendorComment {
   @Column()
   credibilityTag: string;
 
-  @Column()
+  @CreateDateColumn()
   dateAdded: Date;
 }

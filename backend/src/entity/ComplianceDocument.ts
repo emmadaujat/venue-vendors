@@ -3,7 +3,14 @@
 // A hirer can upload up to 4 compliance documents
 // ===========================================================
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from "typeorm";
 import { User } from "./User";
 
 @Entity()
@@ -14,7 +21,7 @@ export class ComplianceDocument {
 
   // Foreign key — references the hirer who uploaded this document
   // Many documents can belong to one hirer (up to 4)
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.complianceDocuments)
   @JoinColumn({ name: "userID" })
   hirer: User;
 
@@ -24,7 +31,7 @@ export class ComplianceDocument {
   @Column()
   fileName: string;
 
-  @Column()
+  @CreateDateColumn()
   uploadedAt: Date;
 
   @Column()
