@@ -69,7 +69,7 @@ export default function Signin() {
           email: formData.email,
           password: formData.password,
         });
-        login(result.user);
+        login(result.user); // this triggers useAuth hook's login function to save logged in user to localstorage
         const redirectPath = result.user.role === "hirer" ? "/hirer/dashboard" : "/vendorDashboard";
         setTimeout(() => router.push(redirectPath), 2000); // Display sign in success and redirect after 2seconds
         setSignInSuccess(true);
