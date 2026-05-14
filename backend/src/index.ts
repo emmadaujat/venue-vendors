@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Register auth routes — handles /api/register and /api/login
+// Register auth routes — handles /api/register and /api/signin and /api/getuserprofile
 app.use("/api", authRoutes);
 
 // Connect to the database then start the server
