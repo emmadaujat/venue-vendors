@@ -1,7 +1,7 @@
 import { isValidEmail, isValidPassword } from "@/validation";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { authApi } from "@/services/auth";
+import { authApi } from "@/services/authApi";
 import { useAuth } from "@/hooks/useAuth";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";

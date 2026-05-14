@@ -1,4 +1,3 @@
-import { DEFAULT_USERS, DEFAULT_APPLICATIONS, DEFAULT_VENUES } from "../../dummyData";
 import {
   Text,
   Avatar,
@@ -18,97 +17,78 @@ import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { getAllApplications } from "@/getApplications";
-
-// Hardcoded reputation scores
-const HIRER_REPUTATION_SCORES: Record<string, number> = {
-  "1": 4.5, // Taylor Swift
-  "2": 4.2, // Beyonce
-  "3": 3.8, // Ariana Grande
-};
+import { vendorApi } from "@/services/vendorApi";
+import type { Application } from "@/types";
 
 export default function VendorApplications() {
   const { user } = useAuth("vendor");
   const [sortBy, setSortBy] = useState("most-recent");
 
-  const [applications, setApplications] = useState(DEFAULT_APPLICATIONS);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  {
-    /*TODO: update getting venues from database*/
-  }
-  // Filter data to only show this vendor's data
-  const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
-  const vendorVenueIds = vendorVenues.map((v) => v.id);
-
-  // Helper - check local storage and dummy data for application status updates
   useEffect(() => {
-    if (!user?.id) return;
-    setApplications(getAllApplications());
-  }, [user?.id]);
+    if (user) {
+      fetchApplications();
+    }
+  }, [user]);
 
-  {
-    /*TODO: update getting data from database*/
-  }
-  // get total applications for logged in vendor
-  const vendorApplications = applications.filter((a) => vendorVenueIds.includes(a.venueId));
+  const fetchApplications = async () => {
+    try {
+      const data = await vendorApi.getVendorApplications(user!.id);
+      setApplications(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching applications", error);
+      setIsLoading(false);
+    }
+  };
 
   // Stats counts
-  const pendingCount = vendorApplications.filter((a) => a.status === "Pending").length;
-  const approvedCount = vendorApplications.filter((a) => a.status === "Approved").length;
-  const declinedCount = vendorApplications.filter((a) => a.status === "Declined").length;
+  const pendingCount = applications.filter((a) => a.status === "pending").length;
+  const approvedCount = applications.filter((a) => a.status === "approved").length;
+  const declinedCount = applications.filter((a) => a.status === "declined").length;
 
+  // TODO: implement reputation sorting once reputation score  is built
   // Sort applications based on selected sort option
-  const sortedApplications = [...vendorApplications].sort((a, b) => {
-    if (sortBy === "most-recent") {
-      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
-    }
-    if (sortBy === "least-recent") {
-      return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
-    }
-    if (sortBy === "reputation-high") {
-      const scoreA = HIRER_REPUTATION_SCORES[a.hirerId] ?? 0;
-      const scoreB = HIRER_REPUTATION_SCORES[b.hirerId] ?? 0;
-      return scoreB - scoreA;
-    }
-    if (sortBy === "reputation-low") {
-      const scoreA = HIRER_REPUTATION_SCORES[a.hirerId] ?? 0;
-      const scoreB = HIRER_REPUTATION_SCORES[b.hirerId] ?? 0;
-      return scoreA - scoreB;
-    }
-    return 0;
-  });
-
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Helper - get hirer details from DEFAULT_USERS
-  function getHirer(hirerId: string) {
-    return DEFAULT_USERS.find((u) => u.id === hirerId);
-  }
-
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Helper - get venue name from venueId
-  function getVenueName(venueId: string) {
-    return DEFAULT_VENUES.find((v) => v.id === venueId)?.name ?? "Unknown Venue";
-  }
+  // const sortedApplications = [...vendorApplications].sort((a, b) => {
+  //    (sortBy === "most-recent") {
+  //     return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+  //   }
+  //    (sortBy === "least-recent") {
+  //     return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+  //   }
+  //    (sortBy === "reputation-high") {
+  //     const scoreA = HIRER_REPUTATION_SCORES[a.hirerId] ?? 0;
+  //     const scoreB = HIRER_REPUTATION_SCORES[b.hirerId] ?? 0;
+  //     return scoreB - scoreA;
+  //   }
+  //    (sortBy === "reputation-low") {
+  //     const scoreA = HIRER_REPUTATION_SCORES[a.hirerId] ?? 0;
+  //     const scoreB = HIRER_REPUTATION_SCORES[b.hirerId] ?? 0;
+  //     return scoreA - scoreB;
+  //   }
+  //   return 0;
+  // });
 
   // Helper to get badge colour based on application status
   function getStatusColor(status: string) {
-    if (status === "Approved") return "green";
-    if (status === "Declined") return "red";
+    if (status === "approved") return "green";
+    if (status === "declined") return "red";
     return "purple";
   }
 
   // Helper - reputation badge label and colour
-  function getReputationBadge(hirerId: string) {
-    const score = HIRER_REPUTATION_SCORES[hirerId];
-    if (!score) return { label: "No rating", color: "gray" };
-    if (score >= 4.3) return { label: "Verified", color: "green" };
-    if (score >= 4.0) return { label: "Good standing", color: "blue" };
-    return { label: "Unverified", color: "orange" };
-  }
+  // function getReputationBadge(hirerId: string) {
+  //   const score = HIRER_REPUTATION_SCORES[hirerId];
+  //   if (!score) return { label: "No rating", color: "gray" };
+  //   if (score >= 4.3) return { label: "Verified", color: "green" };
+  //   if (score >= 4.0) return { label: "Good standing", color: "blue" };
+  //   return { label: "Unverified", color: "orange" };
+  // }
+
+  if (isLoading) return <Box>Loading...</Box>;
+  if (applications.length === 0) return <Box>No applications yet!</Box>;
 
   return (
     <VendorDashboardLayout>
@@ -180,7 +160,7 @@ export default function VendorApplications() {
             Total Applications
           </Text>
           <Text fontSize="xl" fontWeight="bold">
-            {vendorApplications.length}
+            {applications.length}
           </Text>
         </Box>
       </Flex>
@@ -193,7 +173,7 @@ export default function VendorApplications() {
             All Applications
           </Text>
           <Text color="white" fontSize="md">
-            Total: {vendorApplications.length}
+            Total: {applications.length}
           </Text>
         </Flex>
 
@@ -240,23 +220,21 @@ export default function VendorApplications() {
               </Tr>
             </Thead>
             <Tbody>
-              {sortedApplications.map((app) => {
-                const hirer = getHirer(app.hirerId);
-                const reputation = getReputationBadge(app.hirerId);
+              {applications.map((app) => {
                 return (
-                  <Tr key={app.id}>
+                  <Tr key={app.applicationID}>
                     {/* Applicant name + email */}
                     <Td>
                       <Text fontWeight="semibold">
-                        {hirer?.firstName} {hirer?.lastName}
+                        {app.hirer.firstName} {app.hirer.lastName}
                       </Text>
                       <Text fontSize="sm" color="gray.500">
-                        {hirer?.email}
+                        {app.hirer.email}
                       </Text>
                     </Td>
 
                     <Td>{app.eventType}</Td>
-                    <Td>{getVenueName(app.venueId)}</Td>
+                    <Td>{app.venue.name}</Td>
 
                     {/* Event date formatted */}
                     <Td>
@@ -268,18 +246,20 @@ export default function VendorApplications() {
 
                     <Td>{app.guestCount}</Td>
 
-                    {/* Reputation badge */}
-                    <Td>
-                      <Flex align="center" gap={1} direction="column">
-                        <Badge colorScheme={reputation.color}>{reputation.label}</Badge>
-                        {/* Show numeric score underneath */}
-                        {HIRER_REPUTATION_SCORES[app.hirerId] && (
-                          <Text fontSize="xs" color="gray.500">
-                            {HIRER_REPUTATION_SCORES[app.hirerId]} / 5
-                          </Text>
-                        )}
-                      </Flex>
-                    </Td>
+                    {/* TODO: implement reputation once reputation score endpoint is built */}
+                    {false && (
+                      <Td>
+                        <Flex align="center" gap={1} direction="column">
+                          <Badge colorScheme={reputation.color}>{reputation.label}</Badge>
+                          {/* Show numeric score underneath */}
+                          {HIRER_REPUTATION_SCORES[app.hirerId] && (
+                            <Text fontSize="xs" color="gray.500">
+                              {HIRER_REPUTATION_SCORES[app.hirerId]} / 5
+                            </Text>
+                          )}
+                        </Flex>
+                      </Td>
+                    )}
 
                     {/* Status badge */}
                     <Td>
@@ -288,7 +268,7 @@ export default function VendorApplications() {
 
                     {/* Review button - links to individual application page */}
                     <Td>
-                      <NextLink href={`/vendorDashboard/applications/${app.id}`}>
+                      <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>
                         <Button
                           size="sm"
                           variant="outline"
