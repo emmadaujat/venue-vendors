@@ -12,4 +12,8 @@ router.post("/signin", async (req, res) => {
   await authController.signIn(req, res);
 });
 
+router.get("/users/:id/profile", async (req, res) => {
+  await authController.getUserProfile(req, res);
+});
+
 export default router;

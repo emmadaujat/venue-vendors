@@ -122,4 +122,36 @@ export class AuthController {
       },
     });
   }
+
+  // -------------------------------------------------------------------
+  // ------------------ GET USER PROFILE -------------------------------
+  // -------------------------------------------------------------------
+  async getUserProfile(request: Request, response: Response) {
+    // get userID from the URL and convert to int
+    const userID = parseInt(request.params.id as string); //matches name in route file
+
+    // find user in database
+    const user = await this.userRepository.findOne({
+      where: { userID: userID },
+    });
+
+    // if no user found
+    if (!user) {
+      return response.status(404).json({ message: "User not found" });
+    }
+
+    // return user details
+    return response.status(200).json({
+      message: "User Profile successfully retrieved",
+      userProfile: {
+        userID: user.userID,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        joinedDate: user.joinedDate,
+      },
+    });
+  }
 }

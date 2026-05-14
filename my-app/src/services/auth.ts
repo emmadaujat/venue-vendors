@@ -1,6 +1,6 @@
 // bridge between frontend and backend
 import axios from "axios";
-
+import { User } from "@/types";
 const api = axios.create({
   baseURL: "http://localhost:3001/api",
 });
@@ -20,16 +20,6 @@ export interface SignUpCredentials {
   role: string;
 }
 
-// interface represents what we get back from the backend after login
-export interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-}
-
 export const authApi = {
   signIn: async (user: SignInCredentials) => {
     const response = await api.post("/signin", user);
@@ -39,5 +29,10 @@ export const authApi = {
   signUp: async (user: SignUpCredentials) => {
     const response = await api.post("/register", user);
     return response.data;
+  },
+
+  getProfile: async (userID: number): Promise<User> => {
+    const response = await api.get(`/users/${userID}/profile`); // get requests dont have a body
+    return response.data.userProfile;
   },
 };
