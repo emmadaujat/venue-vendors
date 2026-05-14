@@ -1,20 +1,35 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HirerSidebar from "@/components/hirerSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { getHirerStats } from "@/ratingCalculation";
-import { DEFAULT_BOOKINGS, DEFAULT_VENUES } from "@/dummyData";
+import { DEFAULT_BOOKINGS } from "@/dummyData";
 import { StarIcon } from "@chakra-ui/icons";
-import type { Venue, Booking, Application } from "@/types";
+import type { Venue, Booking, Application, User } from "@/types";
 import { Box, Text, Flex, Avatar, Table, Thead, Tbody, Tr, Th, Td, Badge } from "@chakra-ui/react";
 import Link from "next/link";
+import { authApi } from "@/services/auth";
 
 export default function UserProfile() {
   // This page is only for hirers - redirect if not logged in as hirer
   const { user } = useAuth("hirer");
-  const router = useRouter();
+  const [profile, setProfile] = useState<User | null>(null);
+
+  // Get profile from api/backend
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const data = await authApi.getProfile(user!.id);
+      setProfile(data);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
 
   // State for saved venues loaded from localStorage
   const [savedVenuesList, setSavedVenuesList] = useState<Venue[]>([]);
@@ -26,11 +41,13 @@ export default function UserProfile() {
     if (!user) return;
 
     // Load saved venues from localStorage
+    //TODO: get saved venues from database
     const savedVenuesFromStorage = localStorage.getItem("savedVenues");
     if (savedVenuesFromStorage) {
       setSavedVenuesList(JSON.parse(savedVenuesFromStorage));
     }
 
+    //TODO: get booking history from database
     // Load bookings - use localStorage if available, otherwise use default data
     const bookingsFromStorage = localStorage.getItem("hirerBookings");
     let loadedBookings: Booking[] = [];
@@ -61,6 +78,7 @@ export default function UserProfile() {
     }
     setHirerBookings(loadedBookings);
 
+    // TODO: get credibility score from database
     // Load credibility score from localStorage
     const savedCredibility = localStorage.getItem("credibilityScore");
     if (savedCredibility) {
@@ -99,7 +117,7 @@ export default function UserProfile() {
   }
 
   // Don't render anything until we know who the user is
-  if (!user) return null;
+  if (!profile) return <Box>Loading...</Box>;
 
   return (
     <Flex flexDirection="column" minHeight="100vh">
@@ -128,7 +146,7 @@ export default function UserProfile() {
               {/* Avatar overlapping banner */}
               <Flex flexDirection="column" alignItems="center" px={6} pb={6}>
                 <Avatar
-                  name={user.firstName + " " + user.lastName}
+                  name={profile.firstName + " " + profile.lastName}
                   bg="brand.secondary"
                   color="brand.primary"
                   size="xl"
@@ -136,10 +154,10 @@ export default function UserProfile() {
                   border="4px solid white"
                 />
                 <Text fontSize="lg" fontWeight="bold" mt={3} textAlign="center">
-                  {user.firstName} {user.lastName}
+                  {profile.firstName} {profile.lastName}
                 </Text>
                 <Text fontSize="sm" color="gray.500" mb={4}>
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Account
+                  {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)} Account
                 </Text>
 
                 {/* Divider */}
@@ -150,29 +168,30 @@ export default function UserProfile() {
                   <Flex justifyContent="space-between" mb={3}>
                     <Text color="gray.500">Email</Text>
                     <Text fontWeight="semibold" textAlign="right" maxW="160px" noOfLines={1}>
-                      {user.email}
+                      {profile.email}
                     </Text>
                   </Flex>
 
                   <Flex justifyContent="space-between" mb={3}>
                     <Text color="gray.500">Phone</Text>
-                    <Text fontWeight="semibold">{user.phoneNumber || "—"}</Text>
+                    <Text fontWeight="semibold">{profile.phoneNumber || "—"}</Text>
                   </Flex>
 
                   <Flex justifyContent="space-between" mb={3}>
                     <Text color="gray.500">Member since</Text>
                     <Text fontWeight="semibold">
-                      {user.joinedDate
-                        ? new Date(user.joinedDate).toLocaleDateString("en-AU", {
+                      {profile.joinedDate
+                        ? new Date(profile.joinedDate).toLocaleDateString("en-AU", {
                             month: "short",
                             year: "numeric",
                           })
-                        : "(date)"}
+                        : "date"}
                     </Text>
                   </Flex>
                   <Flex justifyContent="space-between" mb={3}>
                     <Text color="gray.500">Credibility</Text>
                     <Text fontWeight="semibold" color="green.500">
+                      {/* TODO: update once api is built */}
                       {credibilityPercentage}%
                     </Text>
                   </Flex>
@@ -221,6 +240,7 @@ export default function UserProfile() {
                     Total bookings
                   </Text>
                   <Text fontSize="2xl" fontWeight="bold">
+                    {/* TODO: update once api is built */}
                     {totalBookingsCount}
                   </Text>
                 </Box>
@@ -239,6 +259,7 @@ export default function UserProfile() {
                     Saved Venues
                   </Text>
                   <Text fontSize="2xl" fontWeight="bold">
+                    {/* TODO: update once api is built */}
                     {savedVenuesCount}
                   </Text>
                   <Link href="/hirer/savedVenues">
@@ -267,6 +288,7 @@ export default function UserProfile() {
                   <Flex justifyContent="center" alignItems="center" gap={1}>
                     <StarIcon color="yellow.500" boxSize={4} />
                     <Text fontSize="2xl" fontWeight="bold">
+                      {/* TODO: update once api is built */}
                       {averageRatingValue}
                     </Text>
                   </Flex>
@@ -285,6 +307,7 @@ export default function UserProfile() {
                     Total Ratings
                   </Text>
                   <Text fontSize="2xl" fontWeight="bold">
+                    {/* TODO: update once api is built */}
                     {totalRatingsCount}
                   </Text>
                 </Box>
@@ -314,6 +337,7 @@ export default function UserProfile() {
                   </Link>
                 </Flex>
 
+                {/* TODO: update once api is built */}
                 {savedVenuesPreview.length === 0 ? (
                   <Box p={4}>
                     <Text color="gray.500">No preferred venues have been saved.</Text>
@@ -360,6 +384,7 @@ export default function UserProfile() {
                 >
                   <Text fontWeight="semibold">Your Booking History</Text>
                   <Flex gap={4} alignItems="center">
+                    {/* TODO: update once api is built */}
                     <Text fontSize="sm">Total: {totalBookingsCount}</Text>
                     <Link href="/hirer/bookingHistory">
                       <Text fontSize="sm" _hover={{ textDecoration: "underline" }} color="white">
@@ -369,6 +394,7 @@ export default function UserProfile() {
                   </Flex>
                 </Flex>
 
+                {/* TODO: update once api is built */}
                 {bookingsPreview.length === 0 ? (
                   <Box p={4}>
                     <Text color="gray.500">No bookings yet.</Text>
