@@ -8,7 +8,7 @@ import { StarIcon } from "@chakra-ui/icons";
 import type { Venue, Booking, Application, User } from "@/types";
 import { Box, Text, Flex, Avatar, Table, Thead, Tbody, Tr, Th, Td, Badge } from "@chakra-ui/react";
 import Link from "next/link";
-import { authApi } from "@/services/auth";
+import { authApi } from "@/services/authApi";
 
 export default function UserProfile() {
   // This page is only for hirers - redirect if not logged in as hirer

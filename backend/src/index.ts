@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { AppDataSource } from "./data-source";
 import authRoutes from "./routes/auth.routes";
+import vendorRoutes from "./routes/vendor.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,6 +13,7 @@ app.use(express.json());
 
 // Register auth routes — handles /api/register and /api/signin and /api/getuserprofile
 app.use("/api", authRoutes);
+app.use("/api", vendorRoutes);
 
 // Connect to the database then start the server
 AppDataSource.initialize()

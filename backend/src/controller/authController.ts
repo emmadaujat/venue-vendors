@@ -13,7 +13,6 @@ export class AuthController {
   private userRepository = AppDataSource.getRepository(User);
 
   /**
-   * Creates a new user in the database
    * @param request - Express request object containing user details in body
    * @param response - Express response object
    * @returns JSON response containing the created user or error message

@@ -3,18 +3,42 @@ import { Text, Flex, Box, Button, Grid, Image, Badge } from "@chakra-ui/react";
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { vendorApi } from "@/services/vendorApi";
+import { useState, useEffect } from "react";
+import type { Venue } from "@/types";
 
 export default function MyVenues() {
   const { user } = useAuth("vendor");
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // -------------------------------------------------------------------
+  // ------------------ GET LOGGED IN VENDOR VENUES --------------------
+  // -------------------------------------------------------------------
+  useEffect(() => {
+    // useEffect runs when the component loads and whenever 'user' changes
+    if (user) {
+      fetchVenues();
+    }
+  }, [user]); // the [user] means "re-run this effect whenever user changes"
+
+  // async function that calls the backend API to get this vendor's venues
+  const fetchVenues = async () => {
+    try {
+      // user!.id is the logged in vendor's ID — the ! tells TypeScript we know user is not null here
+      // we pass it to getVendorsVenues which sends GET /api/{vendorID}/venues to the backend
+      const data = await vendorApi.getVendorsVenues(user!.id);
+      // store the returned array of venues in state so the page can display them
+      setVenues(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching venues", error); //log any error
+      setIsLoading(false);
+    }
+  };
 
   {
-    /*TODO: update getting venues from database*/
-  }
-  // Filter data to only show this vendor's data
-  const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
-
-  {
-    /*TODO: update getting venues from database*/
+    /*TODO: update getting venue bookings from database*/
   }
   // Helper - get total completed bookings for a venue
   function getTotalBookings(venueId: string) {
@@ -27,6 +51,9 @@ export default function MyVenues() {
     if (status === "Limited Availability") return "orange";
     return "red";
   }
+
+  if (isLoading) return <Box>Loading...</Box>;
+  if (venues.length === 0) return <Box>No venues found.</Box>;
 
   return (
     <VendorDashboardLayout>
@@ -50,12 +77,12 @@ export default function MyVenues() {
       </Flex>
       {/* Venue cards */}
       <Grid templateColumns="repeat(2, 1fr)" gap={4} alignItems="stretch">
-        {vendorVenues.map((venue) => {
-          const totalBookings = getTotalBookings(venue.id);
+        {venues.map((venue) => {
+          const totalBookings = getTotalBookings(venue.venueID);
 
           return (
             <Box
-              key={venue.id}
+              key={venue.venueID}
               display="flex"
               flexDirection="column"
               p={10}
@@ -68,7 +95,7 @@ export default function MyVenues() {
             >
               {/* Venue image */}
               <Image
-                src={venue.imageUrl}
+                src={venue.imageURL}
                 alt={venue.name}
                 objectFit="cover"
                 fallbackSrc="https://picsum.photos/400/200"
@@ -105,7 +132,7 @@ export default function MyVenues() {
                 </Text>
 
                 {/* Manage availability button */}
-                <NextLink href={`/vendorDashboard/calendar/${venue.id}`}>
+                <NextLink href={`/vendorDashboard/calendar/${venue.venueID}`}>
                   <Button
                     bg="brand.primary"
                     color="white"

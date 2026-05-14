@@ -6,7 +6,7 @@ import {
 } from "@/validation";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { authApi } from "@/services/auth";
+import { authApi } from "@/services/authApi";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import Logo from "@/components/logo";

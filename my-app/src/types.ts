@@ -14,8 +14,8 @@ export type User = {
 
 // venue that a vendor has listed
 export type Venue = {
-  id: string;
-  vendorId: string;
+  venueID: number;
+  vendorId: number;
   name: string;
   location: string;
   capacity: number;
@@ -23,7 +23,7 @@ export type Venue = {
   rating: number;
   reviewCount: number;
   shortDescription: string;
-  imageUrl: string;
+  imageURL: string;
   amenities: string[];
   suitabilityTags: string[]; // e.g. Corporate, Wedding, Conference, Gala Dinner
   availabilityStatus: string;
@@ -44,16 +44,22 @@ export type Booking = {
 
 // application from a hirer to hire a venue
 export type Application = {
-  id: string;
-  hirerId: string;
-  venueId: string;
-  venueName: string;
+  applicationID: number;
+  hirer: {
+    userID: number;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    dateJoined: string;
+    email: string;
+  };
+  venue: { venueID: number; name: string };
   eventName: string;
   eventType: string;
   eventDate: string;
   guestCount: number;
   additionalNotes: string;
-  reputationTags: string[];
+  reputationTags: { reputationID: number; reputationName: string }[];
   status: string;
   submittedAt: string;
 };
