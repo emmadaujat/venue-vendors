@@ -31,15 +31,40 @@ export type Venue = {
 
 // booking record for a hirer
 export type Booking = {
-  id: string;
-  hirerId: string;
-  venueId: string;
-  venueName: string;
-  venueLocation: string;
-  eventName: string;
-  eventDate: string;
+  bookingID: number;
   vendorRating: number; // 0 means not rated yet
   status: string;
+  createdAt: string;
+  application: {
+    applicationID: number;
+    eventName: string;
+    eventType: string;
+    eventDate: string;
+    guestCount: number;
+    additionalNotes: string;
+    status: string;
+    submittedAt: string;
+    venue: {
+      venueID: number;
+      name: string;
+      location: string;
+      pricePerDay: number;
+    };
+    hirer: {
+      userID: number;
+      firstName: string;
+      lastName: string;
+      phoneNumber: string;
+      dateJoined: string;
+      email: string;
+    };
+  };
+  vendorComments: {
+    commentID: number;
+    commentText: string;
+    credibilityTag: string;
+    dateAdded: string;
+  }[];
 };
 
 // application from a hirer to hire a venue
@@ -53,7 +78,7 @@ export type Application = {
     dateJoined: string;
     email: string;
   };
-  venue: { venueID: number; name: string };
+  venue: { venueID: number; name: string; location: string };
   eventName: string;
   eventType: string;
   eventDate: string;
@@ -66,13 +91,39 @@ export type Application = {
 
 // vendor feedback on a hirer
 export type VendorComment = {
-  id: string;
-  vendorId: string;
-  hirerId: string;
-  hirerName: string;
+  commentID: number;
   commentText: string;
   credibilityTag: string;
-  date: string;
+  dateAdded: string;
+  booking: {
+    bookingID: number;
+    status: string;
+    createdAt: string;
+    application: {
+      applicationID: number;
+      eventName: string;
+      eventType: string;
+      eventDate: string;
+      guestCount: number;
+      additionalNotes: string;
+      status: string;
+      submittedAt: string;
+      venue: {
+        venueID: number;
+        name: string;
+        location: string;
+        pricePerDay: number;
+      };
+      hirer: {
+        userID: number;
+        firstName: string;
+        lastName: string;
+        phoneNumber: string;
+        dateJoined: string;
+        email: string;
+      };
+    };
+  };
 };
 
 // uploaded compliance doc from a hirer

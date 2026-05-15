@@ -2,7 +2,9 @@ import SignOutButton from "@/components/signout";
 import Logo from "@/components/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { getVendorStats, getHirerStats } from "@/ratingCalculation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { vendorApi } from "@/services/vendorApi";
+import type { Application, Venue, Booking, VendorComment } from "@/types";
 
 import {
   Box,
@@ -48,8 +50,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 function NavBar() {
   const { user, isLoggedIn, isHirer, isVendor, logout } = useAuth();
   const router = useRouter();
-  const stats = isVendor ? getVendorStats(user?.id ?? "") : getHirerStats(user?.id ?? "");
-
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchText, setSearchText] = useState("");
 
   // pressing Enter in search bar goes to browseVenues with the query
@@ -58,6 +59,31 @@ function NavBar() {
       router.push("/browseVenues?search=" + encodeURIComponent(searchText.trim()));
     }
   }
+
+  // display star rating (avgRating) with total bookings
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
+
+  const fetchBookings = async () => {
+    try {
+      if (isVendor) {
+        const data = await vendorApi.getVendorBookings(user!.id);
+        setBookings(data);
+      }
+      // TODO: add hirer bookings when built
+    } catch (error) {
+      console.log("Error fetching bookings", error); //log any error
+    }
+  };
+
+  // Get avg rating
+  const avgRating =
+    bookings.length > 0
+      ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
+      : 0;
 
   return (
     <Box bg="white" p={4} ml={"20px"} mr={"20px"}>
@@ -127,7 +153,7 @@ function NavBar() {
                     <Box display="flex" alignItems={"center"} gap={1}>
                       <StarIcon color="yellow.600" boxSize={3} />
                       <Text color="yellow.600" fontSize="sm">
-                        {stats.avgRating} ({stats.totalBookings})
+                        {avgRating.toFixed(1)} ({bookings.length})
                       </Text>
                     </Box>
                     <NextLink href={isHirer ? "/hirer/dashboard" : "/vendorDashboard"}>
@@ -154,9 +180,7 @@ function NavBar() {
                   </MenuButton>
                   <MenuList>
                     <MenuItem
-                      onClick={
-                        () => router.push(isHirer ? "/hirer/dashboard" : "/vendorDashboard")
-                      }
+                      onClick={() => router.push(isHirer ? "/hirer/dashboard" : "/vendorDashboard")}
                     >
                       View Profile
                     </MenuItem>

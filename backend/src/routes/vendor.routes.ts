@@ -15,4 +15,12 @@ router.get("/:vendorID/applications", async (req, res) => {
   await vendorController.getVendorApplicants(req, res);
 });
 
+router.get("/:vendorID/bookings", async (req, res) => {
+  await vendorController.getVendorBookings(req, res);
+});
+
+router.get("/:vendorID/comments", async (req, res) => {
+  await vendorController.getVendorComments(req, res);
+});
+
 export default router;

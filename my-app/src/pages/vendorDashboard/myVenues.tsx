@@ -1,16 +1,16 @@
-import { DEFAULT_BOOKINGS, DEFAULT_VENUES } from "../../dummyData";
-import { Text, Flex, Box, Button, Grid, Image, Badge } from "@chakra-ui/react";
+import { Text, Flex, Box, Button, Grid, Image, Badge, Spinner } from "@chakra-ui/react";
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { vendorApi } from "@/services/vendorApi";
 import { useState, useEffect } from "react";
-import type { Venue } from "@/types";
+import type { Venue, Booking } from "@/types";
 
 export default function MyVenues() {
   const { user } = useAuth("vendor");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // -------------------------------------------------------------------
   // ------------------ GET LOGGED IN VENDOR VENUES --------------------
@@ -18,7 +18,7 @@ export default function MyVenues() {
   useEffect(() => {
     // useEffect runs when the component loads and whenever 'user' changes
     if (user) {
-      fetchVenues();
+      Promise.all([fetchVenues(), fetchBookings()]).then(() => setIsLoading(false));
     }
   }, [user]); // the [user] means "re-run this effect whenever user changes"
 
@@ -30,19 +30,25 @@ export default function MyVenues() {
       const data = await vendorApi.getVendorsVenues(user!.id);
       // store the returned array of venues in state so the page can display them
       setVenues(data);
-      setIsLoading(false);
     } catch (error) {
       console.log("Error fetching venues", error); //log any error
-      setIsLoading(false);
     }
   };
 
-  {
-    /*TODO: update getting venue bookings from database*/
-  }
+  const fetchBookings = async () => {
+    try {
+      const data = await vendorApi.getVendorBookings(user!.id);
+      setBookings(data);
+    } catch (error) {
+      console.log("Error fetching bookings", error); //log any error
+    }
+  };
+
   // Helper - get total completed bookings for a venue
-  function getTotalBookings(venueId: string) {
-    return DEFAULT_BOOKINGS.filter((b) => b.venueId === venueId && b.status === "Completed").length;
+  function totalBookings(venueID: number) {
+    return bookings.filter(
+      (b) => b.application.venue.venueID === venueID && b.status === "Completed",
+    ).length;
   }
 
   // Helper - availability badge colour
@@ -52,9 +58,14 @@ export default function MyVenues() {
     return "red";
   }
 
-  if (isLoading) return <Box>Loading...</Box>;
-  if (venues.length === 0) return <Box>No venues found.</Box>;
-
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
   return (
     <VendorDashboardLayout>
       {/* Page title */}
@@ -78,8 +89,6 @@ export default function MyVenues() {
       {/* Venue cards */}
       <Grid templateColumns="repeat(2, 1fr)" gap={4} alignItems="stretch">
         {venues.map((venue) => {
-          const totalBookings = getTotalBookings(venue.venueID);
-
           return (
             <Box
               key={venue.venueID}
@@ -93,6 +102,15 @@ export default function MyVenues() {
               borderRadius={8}
               h="100%"
             >
+              {/* if no venues  */}
+              {venues.length === 0 && (
+                <Box textAlign="center" color="gray.400">
+                  No venues yet, list a venue now!
+                  <Flex>
+                    <NextLink href={`/vendorDashboard/addVenue/{vendorID}`}></NextLink>
+                  </Flex>
+                </Box>
+              )}
               {/* Venue image */}
               <Image
                 src={venue.imageURL}
@@ -128,7 +146,8 @@ export default function MyVenues() {
 
                 {/* Total completed bookings */}
                 <Text fontSize="sm" color="gray.500" mb={3}>
-                  {totalBookings} completed {totalBookings === 1 ? "booking" : "bookings"}
+                  {totalBookings(venue.venueID)} completed{" "}
+                  {totalBookings(venue.venueID) === 1 ? "booking" : "bookings"}
                 </Text>
 
                 {/* Manage availability button */}

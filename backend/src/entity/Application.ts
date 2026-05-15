@@ -39,6 +39,9 @@ export class Application {
   @Column()
   eventDate: Date;
 
+  @Column({ nullable: true })
+  eventEndDate: Date;
+
   @Column()
   guestCount: number;
 
