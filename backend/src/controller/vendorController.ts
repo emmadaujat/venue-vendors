@@ -4,6 +4,7 @@ import { User } from "../entity/User";
 import { Application } from "../entity/Application";
 import { Venue } from "../entity/Venue";
 import { Booking } from "../entity/Booking";
+import { VendorComment } from "../entity/VendorComment";
 import { HirerReputationTag } from "../entity/HirerReputationTag";
 
 export class VendorController {
@@ -11,6 +12,7 @@ export class VendorController {
   private applicationRepository = AppDataSource.getRepository(Application);
   private venueRepository = AppDataSource.getRepository(Venue);
   private bookingRepository = AppDataSource.getRepository(Booking);
+  private commentRepository = AppDataSource.getRepository(VendorComment);
 
   /**
    * @param request - Express request object containing user details in body
@@ -50,5 +52,114 @@ export class VendorController {
 
     /** Return the applications */
     res.json(applications);
+  }
+
+  // -------------------------------------------------------------------
+  // ------------------ GET BOOKINGS FOR VENDORS VENUES --------------
+  // -------------------------------------------------------------------
+  async getVendorBookings(req: Request, res: Response) {
+    const vendor = await this.userRepository.findOneBy({
+      userID: parseInt(req.params.vendorID as string),
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    const bookings = await this.bookingRepository.find({
+      where: { application: { venue: { vendor: { userID: vendor.userID } } } },
+      relations: {
+        application: {
+          hirer: true,
+          venue: true,
+        },
+        vendorComments: true,
+      },
+      select: {
+        application: {
+          applicationID: true,
+          eventName: true,
+          eventType: true,
+          eventDate: true,
+          guestCount: true,
+          additionalNotes: true,
+          status: true,
+          submittedAt: true,
+          venue: {
+            venueID: true,
+            name: true,
+            location: true,
+            pricePerDay: true,
+          },
+          hirer: {
+            userID: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            joinedDate: true,
+          },
+        },
+      },
+    });
+
+    res.json(bookings);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // ------------------ GET COMMENTS ON ACCEPTED BOOKINGS FOR VENDORS APPLICANTS --------------
+  // ------------------------------------------------------------------------------------------
+  async getVendorComments(req: Request, res: Response) {
+    const vendor = await this.userRepository.findOneBy({
+      userID: parseInt(req.params.vendorID as string),
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    const comments = await this.commentRepository.find({
+      where: { booking: { application: { venue: { vendor: { userID: vendor.userID } } } } },
+      relations: {
+        booking: {
+          application: {
+            hirer: true,
+            venue: true,
+          },
+        },
+      },
+      select: {
+        booking: {
+          bookingID: true,
+          status: true,
+          createdAt: true,
+          application: {
+            applicationID: true,
+            eventName: true,
+            eventType: true,
+            eventDate: true,
+            guestCount: true,
+            additionalNotes: true,
+            status: true,
+            submittedAt: true,
+            venue: {
+              venueID: true,
+              name: true,
+              location: true,
+              pricePerDay: true,
+            },
+            hirer: {
+              userID: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phoneNumber: true,
+              joinedDate: true,
+            },
+          },
+        },
+      },
+    });
+    res.json(comments);
   }
 }

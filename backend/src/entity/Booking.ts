@@ -25,6 +25,9 @@ export class Booking {
   @Column({ nullable: true })
   vendorRating: number;
 
+  @Column({ nullable: true })
+  hirerReputationRating: number;
+
   @Column({ length: 20, default: "active" })
   status: string;
 

@@ -12,6 +12,7 @@ import {
   Td,
   Badge,
   Select,
+  Spinner,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
@@ -27,6 +28,9 @@ export default function VendorApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // -------------------------------------------------------------------
+  // ------------------ GET APPLICATIONS FOR VENDORS VENUES ------------
+  // -------------------------------------------------------------------
   useEffect(() => {
     if (user) {
       fetchApplications();
@@ -51,7 +55,7 @@ export default function VendorApplications() {
 
   // TODO: implement reputation sorting once reputation score  is built
   // Sort applications based on selected sort option
-  // const sortedApplications = [...vendorApplications].sort((a, b) => {
+  // const sortedApplications = [...applications].sort((a, b) => {
   //    (sortBy === "most-recent") {
   //     return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
   //   }
@@ -87,8 +91,14 @@ export default function VendorApplications() {
   //   return { label: "Unverified", color: "orange" };
   // }
 
-  if (isLoading) return <Box>Loading...</Box>;
-  if (applications.length === 0) return <Box>No applications yet!</Box>;
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
 
   return (
     <VendorDashboardLayout>
@@ -223,6 +233,13 @@ export default function VendorApplications() {
               {applications.map((app) => {
                 return (
                   <Tr key={app.applicationID}>
+                    {/* if no applications  */}
+                    {applications.length === 0 && (
+                      <Td colSpan={5} textAlign="center" color="gray.400">
+                        {" "}
+                        No applications yet{" "}
+                      </Td>
+                    )}
                     {/* Applicant name + email */}
                     <Td>
                       <Text fontWeight="semibold">
