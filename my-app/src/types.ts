@@ -33,6 +33,7 @@ export type Venue = {
 export type Booking = {
   bookingID: number;
   vendorRating: number; // 0 means not rated yet
+  hirerReputationRating: number;
   status: string;
   createdAt: string;
   application: {
@@ -64,6 +65,7 @@ export type Booking = {
     commentText: string;
     credibilityTag: string;
     dateAdded: string;
+    dateLastEdit: string;
   }[];
 };
 
@@ -75,7 +77,7 @@ export type Application = {
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    dateJoined: string;
+    joinedDate: string;
     email: string;
   };
   venue: { venueID: number; name: string; location: string };
@@ -84,7 +86,7 @@ export type Application = {
   eventDate: string;
   guestCount: number;
   additionalNotes: string;
-  reputationTags: { reputationID: number; reputationName: string }[];
+  reputationTags: { reputationTag: { reputationID: number; reputationName: string } }[];
   status: string;
   submittedAt: string;
 };
@@ -95,6 +97,7 @@ export type VendorComment = {
   commentText: string;
   credibilityTag: string;
   dateAdded: string;
+  dateLastEdit: string;
   booking: {
     bookingID: number;
     status: string;

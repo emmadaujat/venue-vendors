@@ -4,7 +4,7 @@ import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HirerSidebar from "@/components/hirerSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { getHirerStats } from "@/ratingCalculation";
+import { getHirerStats } from "@/hirerRatingCalculation";
 import { DEFAULT_BOOKINGS, DEFAULT_VENUES } from "@/dummyData";
 import { StarIcon } from "@chakra-ui/icons";
 import type { Venue, Booking, Application } from "@/types";
