@@ -11,6 +11,7 @@ import { VendorComment } from "./entity/VendorComment";
 import { ComplianceDocument } from "./entity/ComplianceDocument";
 import { HirerReputationTag } from "./entity/HirerReputationTag";
 import { SavedVenue } from "./entity/SavedVenue";
+import { ReputationTag } from "./entity/ReputationTag";
 
 export const AppDataSource = new DataSource({
   type: "mssql",
@@ -35,6 +36,7 @@ export const AppDataSource = new DataSource({
     ComplianceDocument,
     HirerReputationTag,
     SavedVenue,
+    ReputationTag,
   ],
   migrations: [],
   subscribers: [],
