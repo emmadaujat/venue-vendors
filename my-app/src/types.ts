@@ -33,6 +33,7 @@ export type Venue = {
 export type Booking = {
   bookingID: number;
   vendorRating: number; // 0 means not rated yet
+  hirerReputationRating: number;
   status: string;
   createdAt: string;
   application: {

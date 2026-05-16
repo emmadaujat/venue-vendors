@@ -1,11 +1,4 @@
 import {
-  DEFAULT_APPLICATIONS,
-  DEFAULT_VENUES,
-  DEFAULT_USERS,
-  Application,
-  DEFAULT_VENDOR_COMMENTS,
-} from "../../../dummyData";
-import {
   Text,
   Flex,
   Box,
@@ -19,6 +12,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   useDisclosure,
+  Spinner,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
@@ -27,119 +21,94 @@ import { useState, useEffect, useRef } from "react";
 import NextLink from "next/link";
 import { StarIcon, CheckIcon, CheckCircleIcon } from "@chakra-ui/icons";
 import { Textarea } from "@chakra-ui/react";
-import { getAllApplications } from "@/getApplications";
-
-// Hardcoded reputation scores per hirer (consistent with applications page)
-const HIRER_REPUTATION_SCORES: Record<string, number> = {
-  "1": 4.5, // Taylor Swift
-  "2": 4.2, // Beyonce
-  "3": 3.8, // Ariana Grande
-};
+import { getHirerAvgRating, getReputationBadge } from "@/hirerRatingCalculation";
+import { getStatusColor, renderStars } from "@/helpersUtil";
+import { vendorApi } from "@/services/vendorApi";
+import type { Application, Venue, Booking, VendorComment } from "@/types";
 
 export default function ApplicationReview() {
   const router = useRouter();
-  const { hirerId } = router.query;
+  const { applicationID } = router.query;
   const { user } = useAuth("vendor");
-
   // Action state - tracks whether vendor is accepting or declining application
   const [pendingAction, setPendingAction] = useState<"Approved" | "Declined" | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  // Application state - starts from dummyData but can be
-  // overridden by localStorage if vendor has already actioned application
   const [application, setApplication] = useState<Application | null>(null);
+  const [vendorComment, setVendorComment] = useState<VendorComment | null>(null);
   const [permitFileName, setPermitFileName] = useState<string>("");
   const [permitFile, setPermitFile] = useState<{ fileName: string; data: string } | null>(null);
-
-  // Vendor comment state - loads from localStorage first
-  const [vendorComment, setVendorComment] = useState("");
-  const [commentSaved, setCommentSaved] = useState(false);
-
-  // Vendor comment state - check if comment is being edited
   const [isEditingComment, setIsEditingComment] = useState(false);
-
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    if (user && applicationID) {
+      fetchApplications();
+      fetchComments();
+      fetchBookings();
+    }
+  }, [user, applicationID]);
+
+  const fetchApplications = async () => {
+    try {
+      const data = await vendorApi.getVendorApplications(user!.id);
+      let hirerApplication =
+        data.find(
+          (applications) => applications.applicationID === parseInt(applicationID as string),
+        ) ?? null;
+      setApplication(hirerApplication);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching applications", error);
+      setIsLoading(false);
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const data = await vendorApi.getVendorComments(user!.id);
+      let hirerApplicationComment =
+        data.find(
+          (comments) =>
+            comments.booking.application.applicationID === parseInt(applicationID as string),
+        ) ?? null;
+      setVendorComment(hirerApplicationComment);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching comments", error);
+      setIsLoading(false);
+    }
+  };
+
+  const fetchBookings = async () => {
+    try {
+      const data = await vendorApi.getVendorBookings(user!.id);
+      setBookings(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching bookings", error); //log any error
+      setIsLoading(false);
+    }
+  };
 
   {
     /*TODO: RETRIEVE applications from database*/
   }
   // On load - find the application, check localStorage for
   // any previously saved status updates
-  useEffect(() => {
-    if (!hirerId) return;
+  // useEffect(() => {
+  //   if (!hirerId) return;
 
-    // Find application from dummyData + any new localStorage submissions
-    const found = getAllApplications().find((a) => a.id === hirerId);
-    if (!found) return;
-    setApplication(found);
-
-    // display event permit
-    const savedPermit = localStorage.getItem("appDoc_permit");
-    if (savedPermit) {
-      const parsed = JSON.parse(savedPermit);
-      setPermitFileName(parsed.fileName);
-      setPermitFile(parsed);
-    }
-  }, [hirerId]);
-
-  {
-    /*TODO: RETRIEVE comments from database*/
-  }
-  // Load existing comment from localStorage on mount
-  useEffect(() => {
-    if (!hirerId || !application) return;
-    const savedComments = localStorage.getItem("vendorComments");
-    if (savedComments) {
-      const parsed = JSON.parse(savedComments);
-      if (parsed[application.hirerId as string]) {
-        setVendorComment(parsed[application.hirerId]);
-        return; // stop if new comment found in local storage
-      }
-    }
-
-    // Fall back to dummyData if no localStorage comment exists
-    const existingComment = DEFAULT_VENDOR_COMMENTS.find(
-      (c) => c.hirerId === application.hirerId && c.vendorId === user?.id,
-    );
-    if (existingComment) {
-      setVendorComment(existingComment.commentText);
-    }
-  }, [hirerId, user?.id, application]);
-
-  if (!application) {
-    return (
-      <VendorDashboardLayout>
-        <Text>Application not found.</Text>
-      </VendorDashboardLayout>
-    );
-  }
-
-  const reputation = getReputationBadge(application.hirerId);
-
-  {
-    /*TODO: update- getting data from database*/
-  }
-  // Cross reference helpers
-  const hirer = DEFAULT_USERS.find((u) => u.id === application.hirerId);
-  const venue = DEFAULT_VENUES.find((v) => v.id === application.venueId);
-  const reputationScore = HIRER_REPUTATION_SCORES[application.hirerId];
-
-  // Helper - reputation badge
-  function getReputationBadge(hirerId: string) {
-    const score = HIRER_REPUTATION_SCORES[hirerId];
-    if (!score) return { label: "No rating", color: "gray" };
-    if (score >= 4.3) return { label: "Verified", color: "green" };
-    if (score >= 4.0) return { label: "Good standing", color: "blue" };
-    return { label: "Unverified", color: "orange" };
-  }
-
-  // Helper to get badge colour based on application status
-  function getStatusColor(status: string) {
-    if (status === "Approved") return "green";
-    if (status === "Declined") return "red";
-    return "purple";
-  }
+  //   // display event permit
+  //   const savedPermit = localStorage.getItem("appDoc_permit");
+  //   if (savedPermit) {
+  //     const parsed = JSON.parse(savedPermit);
+  //     setPermitFileName(parsed.fileName);
+  //     setPermitFile(parsed);
+  //   }
+  // }, [hirerId]);
 
   // Handle accept or decline button click
   // Opens confirmation dialog
@@ -153,53 +122,66 @@ export default function ApplicationReview() {
   }
   // Confirm the action - saves to localStorage and shows
   // success message, then redirects back to applications list
-  function handleConfirm() {
-    if (!pendingAction || !application) return;
-    // Save updated status to localStorage
-    const savedStatuses = localStorage.getItem("applicationStatuses");
-    const parsed = savedStatuses ? JSON.parse(savedStatuses) : {};
-    parsed[application.id] = pendingAction;
-    localStorage.setItem("applicationStatuses", JSON.stringify(parsed));
+  // function handleConfirm() {
+  //   if (!pendingAction || !application) return;
+  //   // Save updated status to localStorage
+  //   const savedStatuses = localStorage.getItem("applicationStatuses");
+  //   const parsed = savedStatuses ? JSON.parse(savedStatuses) : {};
+  //   parsed[application.id] = pendingAction;
+  //   localStorage.setItem("applicationStatuses", JSON.stringify(parsed));
 
-    // Update local state
-    setApplication({ ...application, status: pendingAction });
-    setIsSuccess(true);
+  //   // Update local state
+  //   setApplication({ ...application, status: pendingAction });
+  //   setIsSuccess(true);
 
-    // Show success message for 1 second then redirect
-    setTimeout(() => {
-      onClose();
-      setIsSuccess(false);
-    }, 1000);
-  }
+  //   // Show success message for 1 second then redirect
+  //   setTimeout(() => {
+  //     onClose();
+  //     setIsSuccess(false);
+  //   }, 1000);
+  // }
 
   {
     /*TODO: CREATE- save comment for application in database*/
   }
   // Save comment to localStorage keyed by hirerId
   // Shows confirmation message for 1 second
-  function handleSaveComment() {
-    const savedComments = localStorage.getItem("vendorComments");
-    const parsed = savedComments ? JSON.parse(savedComments) : {};
-    parsed[application!.hirerId] = vendorComment;
-    localStorage.setItem("vendorComments", JSON.stringify(parsed));
-    setCommentSaved(true);
-    setIsEditingComment(false);
-    setTimeout(() => setCommentSaved(false), 1000);
-  }
+  // function handleSaveComment() {
+  //   const savedComments = localStorage.getItem("vendorComments");
+  //   const parsed = savedComments ? JSON.parse(savedComments) : {};
+  //   parsed[application!.hirerId] = vendorComment;
+  //   localStorage.setItem("vendorComments", JSON.stringify(parsed));
+  //   setCommentSaved(true);
+  //   setIsEditingComment(false);
+  //   setTimeout(() => setCommentSaved(false), 1000);
+  // }
 
   {
     /*TODO: REMOVE comment from database*/
   }
-  // Delete comment - clears from localStorage and resets state
-  function handleDeleteComment() {
-    const savedComments = localStorage.getItem("vendorComments");
-    const parsed = savedComments ? JSON.parse(savedComments) : {};
-    delete parsed[application!.hirerId];
-    localStorage.setItem("vendorComments", JSON.stringify(parsed));
-    setVendorComment("");
-    setCommentSaved(false);
-    setIsEditingComment(false);
-  }
+  // // Delete comment - clears from localStorage and resets state
+  // function handleDeleteComment() {
+  //   const savedComments = localStorage.getItem("vendorComments");
+  //   const parsed = savedComments ? JSON.parse(savedComments) : {};
+  //   delete parsed[application!.hirerId];
+  //   localStorage.setItem("vendorComments", JSON.stringify(parsed));
+  //   setVendorComment("");
+  //   setCommentSaved(false);
+  //   setIsEditingComment(false);
+  // }
+
+  const reputation = getReputationBadge(application?.hirer.userID, bookings);
+
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
+
+  if (!application) return null;
 
   return (
     <VendorDashboardLayout>
@@ -287,7 +269,7 @@ export default function ApplicationReview() {
                 <Text color="gray.500" fontSize="sm">
                   Venue Requested
                 </Text>
-                <Text fontWeight="semibold">{venue?.name ?? "Unknown"}</Text>
+                <Text fontWeight="semibold">{application.venue.name ?? "Unknown"}</Text>
               </Flex>
               <Flex justify="space-between">
                 <Text color="gray.500" fontSize="sm">
@@ -349,8 +331,14 @@ export default function ApplicationReview() {
             <Divider mb={4} />
             <Flex gap={2} wrap="wrap">
               {application.reputationTags.map((tag) => (
-                <Badge key={tag} colorScheme="purple" px={3} py={1} borderRadius="full">
-                  {tag}
+                <Badge
+                  key={tag.reputationName}
+                  colorScheme="purple"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                >
+                  {tag.reputationName}
                 </Badge>
               ))}
             </Flex>
@@ -461,7 +449,7 @@ export default function ApplicationReview() {
                   Name
                 </Text>
                 <Text fontWeight="semibold">
-                  {hirer?.firstName} {hirer?.lastName}
+                  {application.hirer.firstName} {application.hirer.lastName}
                 </Text>
               </Flex>
               <Flex justify="space-between">
@@ -469,14 +457,14 @@ export default function ApplicationReview() {
                   Email
                 </Text>
                 <Text fontWeight="semibold" fontSize="sm">
-                  {hirer?.email}
+                  {application.hirer.email}
                 </Text>
               </Flex>
               <Flex justify="space-between">
                 <Text color="gray.500" fontSize="sm">
                   Phone
                 </Text>
-                <Text fontWeight="semibold">{hirer?.phone}</Text>
+                <Text fontWeight="semibold">{application.hirer.phoneNumber}</Text>
               </Flex>
               <Flex justify="space-between" align="center">
                 <Text color="gray.500" fontSize="sm">
@@ -489,18 +477,16 @@ export default function ApplicationReview() {
                   Reputation Score
                 </Text>
                 <Flex align="center" gap={1}>
-                  {reputationScore ? (
+                  {getHirerAvgRating(application.hirer.userID, bookings) !== null ? (
                     <>
-                      {Array.from({ length: Math.round(reputationScore) }).map((_, i) => (
-                        <StarIcon key={i} color="yellow.400" boxSize={3} />
-                      ))}
-                      <Text fontSize="sm" ml={1}>
-                        {reputationScore} / 5
+                      {renderStars(getHirerAvgRating(application.hirer.userID, bookings)!)}
+                      <Text gap={4} fontSize="xs" color="gray.500">
+                        {getHirerAvgRating(application.hirer.userID, bookings)} / 5
                       </Text>
                     </>
                   ) : (
-                    <Text fontSize="sm" color="gray.400">
-                      No rating
+                    <Text fontSize={"sm"} color={"gray.400"}>
+                      No ratings yet
                     </Text>
                   )}
                 </Flex>
@@ -509,7 +495,7 @@ export default function ApplicationReview() {
 
             {/* View full hirer profile link */}
             <Divider my={4} />
-            <NextLink href={`/vendorDashboard/hirerProfiles/${application.hirerId}`}>
+            <NextLink href={`/vendorDashboard/hirerProfiles/${application.hirer.userID}`}>
               <Text
                 color="brand.primary"
                 fontSize="md"
@@ -591,7 +577,7 @@ export default function ApplicationReview() {
               ) : (
                 <Text>
                   Are you sure you want to {pendingAction === "Approved" ? "accept" : "decline"}{" "}
-                  this application from {hirer?.firstName} {hirer?.lastName}?
+                  this application from {application.hirer.firstName} {application.hirer.lastName}?
                 </Text>
               )}
             </AlertDialogBody>
@@ -616,7 +602,6 @@ export default function ApplicationReview() {
                       bg: pendingAction === "Approved" ? "brand.secondary" : "red.50",
                       color: pendingAction === "Approved" ? "brand.primary" : "red.400",
                     }}
-                    onClick={handleConfirm}
                   >
                     {pendingAction === "Approved" ? "Accept" : "Decline"}
                   </Button>

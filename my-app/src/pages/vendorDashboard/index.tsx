@@ -21,6 +21,8 @@ import { StarIcon } from "@chakra-ui/icons";
 import { useState, useEffect } from "react";
 import { vendorApi } from "@/services/vendorApi";
 import type { Application, Venue, Booking, VendorComment } from "@/types";
+import { getHirerAvgRating, getReputationBadge } from "@/hirerRatingCalculation";
+import { getStatusColor, renderStars } from "@/helpersUtil";
 
 export default function VendorDashboard() {
   const { user } = useAuth("vendor");
@@ -117,7 +119,7 @@ export default function VendorDashboard() {
       })
     : "None";
 
-  // Get avg rating
+  // Get avg vendor rating
   const avgRating =
     bookings.length > 0
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
@@ -139,33 +141,6 @@ export default function VendorDashboard() {
   //       DEFAULT_VENDOR_COMMENTS.find((c) => c.hirerId === a.hirerId && c.vendorId === user?.id)
   //         ?.commentText,
   //   }));
-
-  // Helper to render star icons based on rating
-  function renderStars(rating: number) {
-    return Array.from({ length: rating }).map((_, i) => (
-      <StarIcon key={i} color="yellow.400" boxSize={3} />
-    ));
-  }
-
-  // Helper to get badge colour based on application status
-  function getStatusColor(status: string) {
-    if (status === "approved") return "green";
-    if (status === "declined") return "red";
-    return "purple";
-  }
-
-  // Helper to get badge colour based on reputation tags
-  function getReputationColor(tags: string[]) {
-    if (tags.includes("Timely payer") && tags.includes("Good communicator")) return "green";
-    if (tags.length >= 2) return "blue";
-    return "orange";
-  }
-
-  function getReputationLabel(tags: string[]) {
-    if (tags.includes("Timely payer") && tags.includes("Good communicator")) return "Verified";
-    if (tags.length >= 2) return "Good standing";
-    return "Unverified";
-  }
 
   if (isLoading)
     return (
@@ -295,12 +270,13 @@ export default function VendorDashboard() {
           </Text>
         </Flex>
 
-        <Table size="md">
+        <Table size="sm">
           <Thead>
             <Tr>
               <Th>Hirer</Th>
               <Th>Venue</Th>
               <Th>Event Name</Th>
+              <Th>Event Type</Th>
               <Th>Date</Th>
               <Th>Rating from Hirer</Th>
             </Tr>
@@ -316,11 +292,14 @@ export default function VendorDashboard() {
                     </Td>
                   )}
 
+                  {/* TODO: add link to view hirer page */}
                   <Td>
                     {booking.application.hirer.firstName} {booking.application.hirer.lastName}
                   </Td>
+                  {/* TODO: add link to view venue page */}
                   <Td>{booking.application.venue.name}</Td>
                   <Td>{booking.application.eventName}</Td>
+                  <Td>{booking.application.eventType}</Td>
                   <Td>
                     {new Date(booking.application.eventDate).toLocaleDateString("en-AU", {
                       day: "2-digit",
@@ -333,7 +312,7 @@ export default function VendorDashboard() {
                       {booking.vendorRating > 0 ? (
                         <>
                           {renderStars(booking.vendorRating)}
-                          <Text fontSize="sm">{booking.vendorRating} / 5</Text>
+                          <Text fontSize="xs">{booking.vendorRating} / 5</Text>
                         </>
                       ) : (
                         <Text fontSize="sm" color="gray.400">
@@ -352,20 +331,24 @@ export default function VendorDashboard() {
       {/* Recent applications table */}
       <Box border="1px solid" borderColor="gray.200" borderRadius="md" mb={8}>
         <Flex bg="brand.primary" p={4} borderTopRadius="md" justify="space-between" align="center">
-          <Text color="white" fontWeight="semibold">
-            Recent Applications
-          </Text>
+          <NextLink href="/vendorDashboard/applications">
+            {" "}
+            <Text color="white" fontWeight="semibold" _hover={{ textDecoration: "underline" }}>
+              Recent Applications
+            </Text>
+          </NextLink>
           <NextLink href="/vendorDashboard/applications">
             <Text color="white" fontSize="md" _hover={{ textDecoration: "underline" }}>
               View all →
             </Text>
           </NextLink>
         </Flex>
-        <Table size="md">
+        <Table size="sm">
           <Thead>
             <Tr>
               <Th>Applicant</Th>
               <Th>Venue</Th>
+              <Th>Event Name</Th>
               <Th>Event Type</Th>
               <Th>Date</Th>
               <Th>Guests</Th>
@@ -376,61 +359,79 @@ export default function VendorDashboard() {
           </Thead>
 
           <Tbody fontSize={"sm"}>
-            {applications.slice(0, 4).map((app) => {
-              return (
-                <Tr key={app.applicationID}>
-                  {/* if no applications  */}
-                  {applications.length === 0 && (
-                    <Td colSpan={5} textAlign="center" color="gray.400">
-                      {" "}
-                      No applications yet{" "}
+            {applications
+              .filter((app) => app.status === "pending")
+              .slice(0, 4)
+              .map((app) => {
+                const reputation = getReputationBadge(app.hirer.userID, bookings);
+
+                return (
+                  <Tr key={app.applicationID}>
+                    {/* if no applications  */}
+                    {applications.length === 0 && (
+                      <Td colSpan={5} textAlign="center" color="gray.400">
+                        {" "}
+                        No applications yet{" "}
+                      </Td>
+                    )}
+                    <Td>
+                      <Box>
+                        <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>
+                          <Text _hover={{ textDecoration: "underline" }} fontWeight="semibold">
+                            {app.hirer.firstName} {app.hirer.lastName}
+                          </Text>
+                        </NextLink>
+                      </Box>
                     </Td>
-                  )}
-                  <Td>
-                    <Box>
+                    <Td>{app.venue.name}</Td>
+                    <Td>{app.eventName}</Td>
+                    <Td>{app.eventType}</Td>
+                    <Td>
+                      {new Date(app.eventDate).toLocaleDateString("en-AU", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                    </Td>
+                    <Td>{app.guestCount}</Td>
+                    <Td>
+                      <Flex align="center" gap={2}>
+                        <Badge colorScheme={reputation.color}>{reputation.label}</Badge>
+
+                        {getHirerAvgRating(app.hirer.userID, bookings) !== null ? (
+                          <>
+                            {renderStars(getHirerAvgRating(app.hirer.userID, bookings)!)}
+                            <Text gap={4} fontSize="xs" color="gray.500">
+                              {getHirerAvgRating(app.hirer.userID, bookings)} / 5
+                            </Text>
+                          </>
+                        ) : (
+                          <Text fontSize={"sm"} color={"gray.400"}>
+                            No ratings yet
+                          </Text>
+                        )}
+                      </Flex>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={getStatusColor(app.status)}>{app.status}</Badge>
+                    </Td>
+                    <Td>
+                      {/* Open application page and automatically open that application ID */}
                       <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>
-                        <Text _hover={{ textDecoration: "underline" }} fontWeight="semibold">
-                          {app.hirer.firstName} {app.hirer.lastName}
-                        </Text>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          borderColor="brand.primary"
+                          color="brand.primary"
+                          _hover={{ bg: "brand.secondary" }}
+                        >
+                          Review
+                        </Button>
                       </NextLink>
-                    </Box>
-                  </Td>
-                  <Td>{app.venue.name}</Td>
-                  <Td>{app.eventType}</Td>
-                  <Td>
-                    {new Date(app.eventDate).toLocaleDateString("en-AU", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
-                  </Td>
-                  <Td>{app.guestCount}</Td>
-                  <Td>
-                    {/* TODO:
-                    <Badge colorScheme={getReputationColor(app.reputationTags)}>
-                      {getReputationLabel(app.reputationTags)}
-                    </Badge> */}
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={getStatusColor(app.status)}>{app.status}</Badge>
-                  </Td>
-                  <Td>
-                    {/* Open application page and automatically open that application ID */}
-                    <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        borderColor="brand.primary"
-                        color="brand.primary"
-                        _hover={{ bg: "brand.secondary" }}
-                      >
-                        Review
-                      </Button>
-                    </NextLink>
-                  </Td>
-                </Tr>
-              );
-            })}
+                    </Td>
+                  </Tr>
+                );
+              })}
           </Tbody>
         </Table>
       </Box>
