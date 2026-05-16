@@ -224,7 +224,7 @@ export default function VendorApplications() {
                 >
                   Reputation{" "}
                   {sortBy === "reputation-high" ? "↓" : sortBy === "reputation-low" ? "↑" : "↕"}
-                </Th>{" "}
+                </Th>
                 <Th>Status</Th>
                 <Th>Actions</Th>
               </Tr>
@@ -251,10 +251,8 @@ export default function VendorApplications() {
                         {app.hirer.email}
                       </Text>
                     </Td>
-
                     <Td>{app.venue.name}</Td>
                     <Td>{app.eventType}</Td>
-
                     {/* Event date formatted */}
                     <Td>
                       {new Date(app.eventDate).toLocaleDateString("en-AU", {
@@ -289,12 +287,10 @@ export default function VendorApplications() {
                         </Flex>
                       </Flex>
                     </Td>
-
                     {/* Status badge */}
                     <Td>
                       <Badge colorScheme={getStatusColor(app.status)}>{app.status}</Badge>
                     </Td>
-
                     {/* Review button - links to individual application page */}
                     <Td>
                       <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>

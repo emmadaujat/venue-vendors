@@ -42,6 +42,10 @@ export default function ApplicationReview() {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaved, setCommentSaved] = useState(false);
+  const [newComment, setNewComment] = useState({ commentText: "" });
 
   useEffect(() => {
     if (user && applicationID) {
@@ -117,60 +121,87 @@ export default function ApplicationReview() {
     onOpen();
   }
 
-  {
-    /*TODO: UPDATE saving application status to database*/
-  }
-  // Confirm the action - saves to localStorage and shows
+  // Update application status
   // success message, then redirects back to applications list
-  // function handleConfirm() {
-  //   if (!pendingAction || !application) return;
-  //   // Save updated status to localStorage
-  //   const savedStatuses = localStorage.getItem("applicationStatuses");
-  //   const parsed = savedStatuses ? JSON.parse(savedStatuses) : {};
-  //   parsed[application.id] = pendingAction;
-  //   localStorage.setItem("applicationStatuses", JSON.stringify(parsed));
+  const handleConfirm = async () => {
+    if (!pendingAction || !application) return;
 
-  //   // Update local state
-  //   setApplication({ ...application, status: pendingAction });
-  //   setIsSuccess(true);
+    try {
+      const updatedApplication = await vendorApi.updateApplicationStatus(
+        user!.id,
+        application.applicationID,
+        pendingAction,
+      );
+      setApplication(updatedApplication);
+      setIsSuccess(true);
+      // Show success message for 1 second then redirect
+      setTimeout(() => {
+        onClose();
+        setIsSuccess(false);
+      }, 1000);
+    } catch (error) {
+      console.log("Error updating application status", error);
+    }
+  };
 
-  //   // Show success message for 1 second then redirect
-  //   setTimeout(() => {
-  //     onClose();
-  //     setIsSuccess(false);
-  //   }, 1000);
-  // }
-
-  {
-    /*TODO: CREATE- save comment for application in database*/
-  }
-  // Save comment to localStorage keyed by hirerId
+  // Save updated comment
   // Shows confirmation message for 1 second
-  // function handleSaveComment() {
-  //   const savedComments = localStorage.getItem("vendorComments");
-  //   const parsed = savedComments ? JSON.parse(savedComments) : {};
-  //   parsed[application!.hirerId] = vendorComment;
-  //   localStorage.setItem("vendorComments", JSON.stringify(parsed));
-  //   setCommentSaved(true);
-  //   setIsEditingComment(false);
-  //   setTimeout(() => setCommentSaved(false), 1000);
-  // }
+  const handleSaveComment = async () => {
+    console.log("handleSaveComment called");
+    if (!vendorComment) return;
 
-  {
-    /*TODO: REMOVE comment from database*/
-  }
-  // // Delete comment - clears from localStorage and resets state
-  // function handleDeleteComment() {
-  //   const savedComments = localStorage.getItem("vendorComments");
-  //   const parsed = savedComments ? JSON.parse(savedComments) : {};
-  //   delete parsed[application!.hirerId];
-  //   localStorage.setItem("vendorComments", JSON.stringify(parsed));
-  //   setVendorComment("");
-  //   setCommentSaved(false);
-  //   setIsEditingComment(false);
-  // }
+    try {
+      const updatedVendorComment = await vendorApi.editApplicationComment(
+        user!.id,
+        vendorComment.commentID,
+        commentText,
+      );
+      setVendorComment(updatedVendorComment);
+      setIsEditingComment(false);
+      setCommentSaved(true);
+      setTimeout(() => setCommentSaved(false), 1000);
+    } catch (error) {
+      console.log("error updating comment", error);
+    }
+  };
 
-  const reputation = getReputationBadge(application?.hirer.userID, bookings);
+  // add new comment
+  const handleCreateComment = async () => {
+    console.log("handleCreateComment called");
+    try {
+      let bookingComment =
+        bookings.find(
+          (booking) => booking.application.applicationID === parseInt(applicationID as string),
+        ) ?? null;
+      const createVendorComment = await vendorApi.createComment(
+        user!.id,
+        bookingComment!.bookingID,
+        commentText,
+      );
+      setVendorComment(createVendorComment);
+      setIsEditingComment(false);
+    } catch (error) {
+      console.error("Error creating comment: ", error);
+    }
+  };
+
+  // // Delete comment
+  const handleDeleteComment = async () => {
+    if (!vendorComment) return;
+    setIsDeleting(true);
+    setIsEditingComment(true);
+
+    try {
+      await vendorApi.deleteApplicationComment(user!.id, vendorComment!.commentID);
+      setVendorComment(null);
+      setIsEditingComment(false);
+      setIsDeleting(false);
+      setTimeout(() => setVendorComment(null), 1000);
+    } catch (error) {
+      console.log("error delete comment", error);
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading)
     return (
@@ -182,7 +213,9 @@ export default function ApplicationReview() {
     );
 
   if (!application) return null;
+  const reputation = getReputationBadge(application?.hirer.userID, bookings);
 
+  console.log("vendorComment:", vendorComment);
   return (
     <VendorDashboardLayout>
       {/* Back link */}
@@ -263,7 +296,7 @@ export default function ApplicationReview() {
                 <Text color="gray.500" fontSize="sm">
                   Guest Count
                 </Text>
-                <Text fontWeight="semibold">{application.guestCount}</Text>
+                <Text fontWeight="semibold">{application.guestCount}ppl</Text>
               </Flex>
               <Flex justify="space-between">
                 <Text color="gray.500" fontSize="sm">
@@ -332,20 +365,20 @@ export default function ApplicationReview() {
             <Flex gap={2} wrap="wrap">
               {application.reputationTags.map((tag) => (
                 <Badge
-                  key={tag.reputationName}
+                  key={tag.reputationTag.reputationName}
                   colorScheme="purple"
                   px={3}
                   py={1}
                   borderRadius="full"
                 >
-                  {tag.reputationName}
+                  {tag.reputationTag.reputationName}
                 </Badge>
               ))}
             </Flex>
           </Box>
           {/* Vendor comment on hirer */}
           {/* Only show comment box if application has been approved */}
-          {application.status === "Approved" && (
+          {application.status === "approved" && (
             <Box
               border="1px solid"
               borderColor="gray.200"
@@ -369,13 +402,16 @@ export default function ApplicationReview() {
               {!isEditingComment ? (
                 <Box p={4}>
                   <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
-                    {vendorComment || "No comment added yet."}
+                    {vendorComment?.commentText || "No comment added yet."}
                   </Text>
                   <Button
                     bg="brand.primary"
                     color="white"
                     _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                    onClick={() => setIsEditingComment(true)}
+                    onClick={() => {
+                      setIsEditingComment(true);
+                      setCommentText(vendorComment?.commentText ?? "");
+                    }}
                   >
                     {vendorComment ? "Edit Comment" : "Add Comment"}
                   </Button>
@@ -385,8 +421,8 @@ export default function ApplicationReview() {
                 <Box>
                   <Textarea
                     placeholder="Write your notes about this hirer here..."
-                    value={vendorComment}
-                    onChange={(e) => setVendorComment(e.target.value)}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
                     mb={3}
                     resize="vertical"
                     borderColor="gray.300"
@@ -405,7 +441,7 @@ export default function ApplicationReview() {
                       bg="brand.primary"
                       color="white"
                       _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                      onClick={handleSaveComment}
+                      onClick={() => (vendorComment ? handleSaveComment() : handleCreateComment())}
                     >
                       Save Comment
                     </Button>
@@ -416,7 +452,7 @@ export default function ApplicationReview() {
                     >
                       Cancel
                     </Button>
-                    {vendorComment && (
+                    {vendorComment?.commentText && (
                       <Button
                         variant="outline"
                         borderColor="red.400"
@@ -466,6 +502,18 @@ export default function ApplicationReview() {
                 </Text>
                 <Text fontWeight="semibold">{application.hirer.phoneNumber}</Text>
               </Flex>
+              <Flex justify="space-between">
+                <Text color="gray.500" fontSize="sm">
+                  Date Joined
+                </Text>
+                <Text fontWeight="semibold">
+                  {new Date(application.hirer.joinedDate).toLocaleDateString("en-AU", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </Text>
+              </Flex>
               <Flex justify="space-between" align="center">
                 <Text color="gray.500" fontSize="sm">
                   Reputation
@@ -508,7 +556,7 @@ export default function ApplicationReview() {
           </Box>
 
           {/* Accept / Decline actions - only show if still pending */}
-          {application.status === "Pending" && (
+          {application.status === "pending" && (
             <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={6}>
               <Text fontWeight="bold" fontSize="lg" mb={4} color="brand.primary">
                 Actions
@@ -537,7 +585,7 @@ export default function ApplicationReview() {
           )}
 
           {/* Show message if already actioned */}
-          {application.status !== "Pending" && (
+          {application.status !== "pending" && (
             <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={6} bg="gray.50">
               <Text fontSize="sm" color="gray.500" textAlign="center">
                 This application has already been {application.status.toLowerCase()}.
@@ -602,6 +650,7 @@ export default function ApplicationReview() {
                       bg: pendingAction === "Approved" ? "brand.secondary" : "red.50",
                       color: pendingAction === "Approved" ? "brand.primary" : "red.400",
                     }}
+                    onClick={handleConfirm}
                   >
                     {pendingAction === "Approved" ? "Accept" : "Decline"}
                   </Button>

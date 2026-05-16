@@ -37,7 +37,7 @@ export class VendorController {
     /** Retrieve all applications associated with the vendor from the database */
     const applications = await this.applicationRepository.find({
       where: { venue: { vendor: { userID: vendor.userID } } },
-      relations: { hirer: true, venue: true, reputationTags: true },
+      relations: { hirer: true, venue: true, reputationTags: { reputationTag: true } },
       select: {
         hirer: {
           userID: true,
@@ -52,6 +52,34 @@ export class VendorController {
 
     /** Return the applications */
     res.json(applications);
+  }
+
+  // ------------------------------------------------------------------------------
+  // ------------------ UPDATE APPLICATION STATUS FOR VENDORS VENUES --------------
+  // ------------------------------------------------------------------------------
+  async updateApplicationStatus(req: Request, res: Response) {
+    const applicationID = parseInt(req.params.applicationID as string);
+    const { status } = req.body;
+
+    let applicationToUpdate = await this.applicationRepository.findOne({
+      where: { applicationID },
+    });
+
+    if (!applicationToUpdate) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // only update the status in application
+    applicationToUpdate = Object.assign(applicationToUpdate, {
+      status,
+    });
+
+    try {
+      const updatedApplication = await this.applicationRepository.save(applicationToUpdate);
+      return res.json(updatedApplication);
+    } catch (error) {
+      return res.status(400).json({ message: "Error updating application status", error });
+    }
   }
 
   // -------------------------------------------------------------------
@@ -161,5 +189,69 @@ export class VendorController {
       },
     });
     res.json(comments);
+  }
+
+  async deleteVendorComment(req: Request, res: Response) {
+    const commentID = parseInt(req.params.commentID as string);
+
+    let commentToDelete = await this.commentRepository.findOne({
+      where: { commentID },
+    });
+
+    if (!commentToDelete) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    try {
+      await this.commentRepository.remove(commentToDelete);
+      return res.json({ message: "Comment deleted successfully" });
+    } catch (error) {
+      return res.status(400).json({ message: "Error deleting comment", error });
+    }
+  }
+
+  async updateVendorComment(req: Request, res: Response) {
+    const commentID = parseInt(req.params.commentID as string);
+    const { commentText, dateLastEdit } = req.body;
+
+    let commentToUpdate = await this.commentRepository.findOne({
+      where: { commentID },
+    });
+
+    if (!commentToUpdate) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    commentToUpdate = Object.assign(commentToUpdate, {
+      commentText,
+      dateLastEdit,
+    });
+
+    try {
+      const updatedComment = await this.commentRepository.save(commentToUpdate);
+      return res.json(updatedComment);
+    } catch (error) {
+      return res.status(400).json({ message: "Error updating comment ", error });
+    }
+  }
+
+  async createVendorComment(req: Request, res: Response) {
+    const vendorID = parseInt(req.params.vendorID as string);
+    const bookingID = parseInt(req.params.bookingID as string);
+    const { commentText } = req.body;
+
+    const newComment = this.commentRepository.create({
+      commentText,
+      credibilityTag: "",
+      vendor: { userID: vendorID },
+      booking: { bookingID },
+    });
+
+    try {
+      await this.commentRepository.save(newComment);
+    } catch (error) {
+      return res.status(500).json({ message: "Error saving comment ", error });
+    }
+    res.status(201).json(newComment);
   }
 }

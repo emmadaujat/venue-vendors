@@ -40,4 +40,7 @@ export class VendorComment {
 
   @CreateDateColumn()
   dateAdded: Date;
+
+  @CreateDateColumn()
+  dateLastEdit: Date;
 }
