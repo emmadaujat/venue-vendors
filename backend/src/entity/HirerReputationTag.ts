@@ -3,14 +3,18 @@
 // Tags a hirer selects about themselves when submitting an application
 // ===========================================================
 
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, ManyToOne, JoinColumn, PrimaryColumn } from "typeorm";
 import { Application } from "./Application";
+import { ReputationTag } from "./ReputationTag";
 
 @Entity()
 export class HirerReputationTag {
-  // Auto-incremented primary key
-  @PrimaryGeneratedColumn()
+  // Composite primary key — applicationID + reputationID together are unique
+  @PrimaryColumn({ nullable: false })
   reputationID: number;
+
+  @PrimaryColumn({ nullable: false })
+  applicationID: number;
 
   // Foreign key — references the application these tags belong to
   // Many tags can belong to one application
@@ -18,6 +22,8 @@ export class HirerReputationTag {
   @JoinColumn({ name: "applicationID" })
   application: Application;
 
-  @Column()
-  reputationName: string;
+  // Many HirerReputationTag rows can reference one ReputationTag
+  @ManyToOne(() => ReputationTag)
+  @JoinColumn({ name: "reputationID" })
+  reputationTag: ReputationTag;
 }
