@@ -2,17 +2,24 @@ import { useState, useEffect } from "react";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { StarIcon, EditIcon } from "@chakra-ui/icons";
-import type { Venue, Booking, User } from "@/types";
-import { authApi } from "@/services/authApi";
+import type { User } from "@/types";
 import { Box, Text, Flex, Avatar, Input, Button, Spinner } from "@chakra-ui/react";
 import { vendorApi } from "@/services/vendorApi";
+
+// Import custom hooks
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
 
 export default function VendorMyDetails() {
   // Only vendors can access this page
   const { user } = useAuth("vendor");
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [venues, setVenues] = useState<Venue[]>([]);
+  // Fetch vendor bookings and venues from custom hooks
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
+
+  // isLoading combines both loading states from custom hooks — page shows spinner until both are ready
+  const isLoading = bookingsLoading || venuesLoading;
 
   // Editable fields
   const [editableName, setEditableName] = useState("");
@@ -30,58 +37,14 @@ export default function VendorMyDetails() {
   // Success confirmation message
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-  const [profile, setProfile] = useState<User | null>(null);
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
   // Get profile from api/backend
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchVenues();
-      fetchBookings();
       setEditableName(user.firstName + " " + user.lastName);
       setEditablePhone(user.phoneNumber);
       setUserEmail(user.email);
     }
   }, [user]);
-
-  // async function to get this vendor's profile
-  const fetchProfile = async () => {
-    try {
-      const data = await authApi.getProfile(user!.id);
-      setProfile(data);
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    }
-  };
-
-  // async function to get this vendor's venues
-  const fetchVenues = async () => {
-    try {
-      // user!.id is the logged in vendor's ID — the ! tells TypeScript we know user is not null here
-      // we pass it to getVendorsVenues which sends GET /api/{vendorID}/venues to the backend
-      const data = await vendorApi.getVendorsVenues(user!.id);
-      // store the returned array of venues in state so the page can display them
-      setVenues(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching venues", error); //log any error
-      setIsLoading(false);
-    }
-  };
-
-  // async function to get this vendor's bookings
-  const fetchBookings = async () => {
-    try {
-      const data = await vendorApi.getVendorBookings(user!.id);
-      setBookings(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching bookings", error); //log any error
-      setIsLoading(false);
-    }
-  };
 
   // Stats - calculated for this vendor
   const totalVenues = venues.length;
@@ -93,7 +56,9 @@ export default function VendorMyDetails() {
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
 
-  // Validation - name must not be empty
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: NAME FIELD EMPTY --------------
+  // ------------------------------------------------------------
   function validateNameField(nameInput: string): boolean {
     if (nameInput.trim() === "") {
       setNameErrorMessage("Name cannot be empty");
@@ -106,15 +71,17 @@ export default function VendorMyDetails() {
   {
     /*TODO: backend validation and update details in database*/
   }
-  // Validation - Australian mobile: 10 digits starting with 04
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: AUSTRALIAN MOBILE --------------
+  // ------------------------------------------------------------
   function validatePhoneField(phoneInput: string): boolean {
     const cleanedPhone = phoneInput.replace(/[\s\-]/g, "");
     if (cleanedPhone.length !== 10) {
-      setPhoneErrorMessage("Phone number must be 10 digits");
+      setPhoneErrorMessage("Phone number must be 10 digits"); // 10 digits
       return false;
     }
     if (!cleanedPhone.startsWith("04")) {
-      setPhoneErrorMessage("Phone number must start with 04");
+      setPhoneErrorMessage("Phone number must start with 04"); // starting with 04
       return false;
     }
     if (!/^\d+$/.test(cleanedPhone)) {
@@ -126,12 +93,14 @@ export default function VendorMyDetails() {
   }
 
   // TODO: save to backend
-  // Save name - splits into firstName / lastName and saves to localStorage
+  // ------------------------------------------------------------
+  // --------------- SAVE UPDATED FIRST & LAST NAME --------------
+  // ------------------------------------------------------------
   function handleSaveName() {
     if (!validateNameField(editableName)) return;
     if (!user) return;
 
-    const nameParts = editableName.trim().split(" ");
+    const nameParts = editableName.trim().split(" "); // splits into firstName / lastName
     const updatedUser: User = {
       ...user,
       firstName: nameParts[0] || "",
@@ -146,7 +115,9 @@ export default function VendorMyDetails() {
   }
 
   // TODO: save to backend
-  // Save phone - saves updated user to localStorage
+  // ------------------------------------------------------------
+  // ----------------- SAVE UPDATED PHONE NUMBER ----------------
+  // ------------------------------------------------------------
   function handleSavePhone() {
     if (!validatePhoneField(editablePhone)) return;
     if (!user) return;

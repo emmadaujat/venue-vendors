@@ -2,47 +2,20 @@ import { Text, Flex, Box, Button, Grid, Image, Badge, Spinner } from "@chakra-ui
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { vendorApi } from "@/services/vendorApi";
-import { useState, useEffect } from "react";
-import type { Venue, Booking } from "@/types";
+
+// Import custom hooks
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 
 export default function MyVenues() {
   const { user } = useAuth("vendor");
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [bookings, setBookings] = useState<Booking[]>([]);
 
-  // -------------------------------------------------------------------
-  // ------------------ GET LOGGED IN VENDOR VENUES --------------------
-  // -------------------------------------------------------------------
-  useEffect(() => {
-    // useEffect runs when the component loads and whenever 'user' changes
-    if (user) {
-      Promise.all([fetchVenues(), fetchBookings()]).then(() => setIsLoading(false));
-    }
-  }, [user]); // the [user] means "re-run this effect whenever user changes"
+  // Fetch from custom hooks
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
 
-  // async function that calls the backend API to get this vendor's venues
-  const fetchVenues = async () => {
-    try {
-      // user!.id is the logged in vendor's ID — the ! tells TypeScript we know user is not null here
-      // we pass it to getVendorsVenues which sends GET /api/{vendorID}/venues to the backend
-      const data = await vendorApi.getVendorsVenues(user!.id);
-      // store the returned array of venues in state so the page can display them
-      setVenues(data);
-    } catch (error) {
-      console.log("Error fetching venues", error); //log any error
-    }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      const data = await vendorApi.getVendorBookings(user!.id);
-      setBookings(data);
-    } catch (error) {
-      console.log("Error fetching bookings", error); //log any error
-    }
-  };
+  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
+  const isLoading = venuesLoading || bookingsLoading;
 
   // Helper - get total completed bookings for a venue
   function totalBookings(venueID: number) {
@@ -66,6 +39,7 @@ export default function MyVenues() {
         </Flex>
       </VendorDashboardLayout>
     );
+
   return (
     <VendorDashboardLayout>
       {/* Page title */}
