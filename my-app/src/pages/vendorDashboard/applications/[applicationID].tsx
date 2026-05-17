@@ -39,13 +39,14 @@ export default function ApplicationReview() {
   const [permitFile, setPermitFile] = useState<{ fileName: string; data: string } | null>(null);
   const [isEditingComment, setIsEditingComment] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [commentDeleted, setCommentDeleted] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentSaved, setCommentSaved] = useState(false);
-  const [newComment, setNewComment] = useState({ commentText: "" });
 
   useEffect(() => {
     if (user && applicationID) {
@@ -118,7 +119,7 @@ export default function ApplicationReview() {
   // Opens confirmation dialog
   function handleActionClick(action: "Approved" | "Declined") {
     setPendingAction(action);
-    onOpen();
+    isOpen();
   }
 
   // Update application status
@@ -144,7 +145,7 @@ export default function ApplicationReview() {
     }
   };
 
-  // Save updated comment
+  // Save updated/ edited comment
   // Shows confirmation message for 1 second
   const handleSaveComment = async () => {
     console.log("handleSaveComment called");
@@ -179,6 +180,8 @@ export default function ApplicationReview() {
         commentText,
       );
       setVendorComment(createVendorComment);
+      setCommentSaved(true);
+      setTimeout(() => setCommentSaved(false), 1000);
       setIsEditingComment(false);
     } catch (error) {
       console.error("Error creating comment: ", error);
@@ -189,17 +192,18 @@ export default function ApplicationReview() {
   const handleDeleteComment = async () => {
     if (!vendorComment) return;
     setIsDeleting(true);
-    setIsEditingComment(true);
 
     try {
       await vendorApi.deleteApplicationComment(user!.id, vendorComment!.commentID);
-      setVendorComment(null);
-      setIsEditingComment(false);
       setIsDeleting(false);
-      setTimeout(() => setVendorComment(null), 1000);
+      setCommentDeleted(true);
+      setVendorComment(null);
+      setCommentText("");
+      setTimeout(() => {
+        setCommentDeleted(false);
+      }, 1000);
     } catch (error) {
       console.log("error delete comment", error);
-      setIsDeleting(false);
     }
   };
 
@@ -404,17 +408,41 @@ export default function ApplicationReview() {
                   <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
                     {vendorComment?.commentText || "No comment added yet."}
                   </Text>
+                  {commentDeleted && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment deleted successfully.
+                    </Text>
+                  )}
+                  {commentSaved && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment saved successfully.
+                    </Text>
+                  )}
+
                   <Button
                     bg="brand.primary"
                     color="white"
                     _hover={{ bg: "brand.secondary", color: "brand.primary" }}
                     onClick={() => {
                       setIsEditingComment(true);
+                      setCommentSaved(false);
                       setCommentText(vendorComment?.commentText ?? "");
                     }}
                   >
                     {vendorComment ? "Edit Comment" : "Add Comment"}
                   </Button>
+                  {vendorComment?.commentText && (
+                    <Button
+                      variant="outline"
+                      borderColor="red.400"
+                      color="red.400"
+                      _hover={{ bg: "red.50" }}
+                      onClick={onDeleteOpen}
+                      ml={4}
+                    >
+                      Delete Comment
+                    </Button>
+                  )}
                 </Box>
               ) : (
                 /* EDIT MODE - show textarea with Save and Cancel buttons */
@@ -452,23 +480,45 @@ export default function ApplicationReview() {
                     >
                       Cancel
                     </Button>
-                    {vendorComment?.commentText && (
-                      <Button
-                        variant="outline"
-                        borderColor="red.400"
-                        color="red.400"
-                        _hover={{ bg: "red.50" }}
-                        onClick={handleDeleteComment}
-                      >
-                        Delete Comment
-                      </Button>
-                    )}
                   </Flex>
                 </Box>
               )}
             </Box>
           )}
         </Box>
+
+        {/* Confirmation dialog */}
+        <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={onDeleteClose}>
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold" color="brand.primary">
+                Delete Comment
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                <Text>Are you sure you want to delete this comment?</Text>
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={onDeleteClose}>
+                  Cancel
+                </Button>
+                <Button
+                  ml={3}
+                  variant="outline"
+                  borderColor="red.400"
+                  color="red.400"
+                  _hover={{ bg: "red.50" }}
+                  onClick={() => {
+                    handleDeleteComment();
+                    onDeleteClose();
+                  }}
+                >
+                  Delete
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
 
         {/* Right column - hirer details + actions */}
         <Box flex="1">

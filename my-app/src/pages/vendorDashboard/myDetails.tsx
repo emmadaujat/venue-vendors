@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { DEFAULT_VENUES, DEFAULT_BOOKINGS } from "@/dummyData";
 import { StarIcon, EditIcon } from "@chakra-ui/icons";
-import type { User } from "@/types";
-
-import { Box, Text, Flex, Avatar, Input, Button } from "@chakra-ui/react";
+import type { Venue, Booking, User } from "@/types";
+import { authApi } from "@/services/authApi";
+import { Box, Text, Flex, Avatar, Input, Button, Spinner } from "@chakra-ui/react";
+import { vendorApi } from "@/services/vendorApi";
 
 export default function VendorMyDetails() {
   // Only vendors can access this page
   const { user } = useAuth("vendor");
+
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
 
   // Editable fields
   const [editableName, setEditableName] = useState("");
@@ -27,31 +30,67 @@ export default function VendorMyDetails() {
   // Success confirmation message
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-  // Load user details on page load
+  const [profile, setProfile] = useState<User | null>(null);
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Get profile from api/backend
   useEffect(() => {
-    if (!user) return;
-    setEditableName(user.firstName + " " + user.lastName);
-    setEditablePhone(user.phone);
-    setUserEmail(user.email);
+    if (user) {
+      fetchProfile();
+      fetchVenues();
+      fetchBookings();
+      setEditableName(user.firstName + " " + user.lastName);
+      setEditablePhone(user.phoneNumber);
+      setUserEmail(user.email);
+    }
   }, [user]);
 
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Stats - calculated from dummyData for this vendor
-  const vendorVenues = user ? DEFAULT_VENUES.filter((v) => v.vendorId === user.id) : [];
-  const totalVenues = vendorVenues.length;
+  // async function to get this vendor's profile
+  const fetchProfile = async () => {
+    try {
+      const data = await authApi.getProfile(user!.id);
+      setProfile(data);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
 
-  const vendorVenueIds = vendorVenues.map((v) => v.id);
-  const vendorBookings = DEFAULT_BOOKINGS.filter((b) => vendorVenueIds.includes(b.venueId));
-  const totalBookings = vendorBookings.length;
+  // async function to get this vendor's venues
+  const fetchVenues = async () => {
+    try {
+      // user!.id is the logged in vendor's ID — the ! tells TypeScript we know user is not null here
+      // we pass it to getVendorsVenues which sends GET /api/{vendorID}/venues to the backend
+      const data = await vendorApi.getVendorsVenues(user!.id);
+      // store the returned array of venues in state so the page can display them
+      setVenues(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching venues", error); //log any error
+      setIsLoading(false);
+    }
+  };
 
-  const ratedVenues = vendorVenues.filter((v) => v.rating > 0);
+  // async function to get this vendor's bookings
+  const fetchBookings = async () => {
+    try {
+      const data = await vendorApi.getVendorBookings(user!.id);
+      setBookings(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.log("Error fetching bookings", error); //log any error
+      setIsLoading(false);
+    }
+  };
+
+  // Stats - calculated for this vendor
+  const totalVenues = venues.length;
+  const totalBookings = bookings.length;
+
+  // Get avg vendor rating
   const avgRating =
-    ratedVenues.length > 0
-      ? parseFloat(
-          (ratedVenues.reduce((sum, v) => sum + v.rating, 0) / ratedVenues.length).toFixed(1),
-        )
+    bookings.length > 0
+      ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
 
   // Validation - name must not be empty
@@ -86,6 +125,7 @@ export default function VendorMyDetails() {
     return true;
   }
 
+  // TODO: save to backend
   // Save name - splits into firstName / lastName and saves to localStorage
   function handleSaveName() {
     if (!validateNameField(editableName)) return;
@@ -105,6 +145,7 @@ export default function VendorMyDetails() {
     setTimeout(() => window.location.reload(), 3000);
   }
 
+  // TODO: save to backend
   // Save phone - saves updated user to localStorage
   function handleSavePhone() {
     if (!validatePhoneField(editablePhone)) return;
@@ -112,7 +153,7 @@ export default function VendorMyDetails() {
 
     const updatedUser: User = {
       ...user,
-      phone: editablePhone,
+      phoneNumber: editablePhone,
     };
     localStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -121,6 +162,15 @@ export default function VendorMyDetails() {
     setTimeout(() => setShowSaveConfirmation(false), 3000);
     setTimeout(() => window.location.reload(), 3000);
   }
+
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
 
   if (!user) return null;
 
