@@ -17,85 +17,75 @@ import {
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import NextLink from "next/link";
-import { StarIcon, CheckIcon, CheckCircleIcon } from "@chakra-ui/icons";
+import { CheckIcon, CheckCircleIcon } from "@chakra-ui/icons";
 import { Textarea } from "@chakra-ui/react";
 import { getHirerAvgRating, getReputationBadge } from "@/hirerRatingCalculation";
 import { getStatusColor, renderStars } from "@/helpersUtil";
 import { vendorApi } from "@/services/vendorApi";
-import type { Application, Venue, Booking, VendorComment } from "@/types";
+
+// Import custom hooks
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorComments } from "@/hooks/vendor/useVendorComments";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 
 export default function ApplicationReview() {
   const router = useRouter();
-  const { applicationID } = router.query;
   const { user } = useAuth("vendor");
+
+  // get applicationID from URL
+  const { applicationID } = router.query;
+
+  // Fetch from custom hooks
+  const {
+    applications,
+    isLoading: applicationsLoading,
+    fetchApplications,
+  } = useVendorApplications();
+  const { bookings } = useVendorBookings();
+  const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
+
+  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
+  const isLoading = applicationsLoading || commentsLoading;
+
+  // for pop up confirmations
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   // Action state - tracks whether vendor is accepting or declining application
   const [pendingAction, setPendingAction] = useState<"Approved" | "Declined" | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [application, setApplication] = useState<Application | null>(null);
-  const [vendorComment, setVendorComment] = useState<VendorComment | null>(null);
+
+  // application action pop up confirmation
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const [permitFileName, setPermitFileName] = useState<string>("");
   const [permitFile, setPermitFile] = useState<{ fileName: string; data: string } | null>(null);
+
+  // Action state - tracks if commented is being added or edited
   const [isEditingComment, setIsEditingComment] = useState(false);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // delete comment pop up confirmation
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+
+  // Action state - tracks comment status
+  const [commentDeleted, setCommentDeleted] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentSaved, setCommentSaved] = useState(false);
-  const [newComment, setNewComment] = useState({ commentText: "" });
 
-  useEffect(() => {
-    if (user && applicationID) {
-      fetchApplications();
-      fetchComments();
-      fetchBookings();
-    }
-  }, [user, applicationID]);
+  // -------------------------------------------------------------------
+  // ---------- FIND APPLICATIONID IN APPLICATIONS ---------------------
+  // -------------------------------------------------------------------
+  const application =
+    applications.find((a) => a.applicationID === parseInt(applicationID as string)) ?? null;
 
-  const fetchApplications = async () => {
-    try {
-      const data = await vendorApi.getVendorApplications(user!.id);
-      let hirerApplication =
-        data.find(
-          (applications) => applications.applicationID === parseInt(applicationID as string),
-        ) ?? null;
-      setApplication(hirerApplication);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching applications", error);
-      setIsLoading(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      const data = await vendorApi.getVendorComments(user!.id);
-      let hirerApplicationComment =
-        data.find(
-          (comments) =>
-            comments.booking.application.applicationID === parseInt(applicationID as string),
-        ) ?? null;
-      setVendorComment(hirerApplicationComment);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching comments", error);
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      const data = await vendorApi.getVendorBookings(user!.id);
-      setBookings(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching bookings", error); //log any error
-      setIsLoading(false);
-    }
-  };
+  // ------------------------------------------------------------------
+  // ---------- FIND VENDOR COMMENTS FOR APPLICATIONID ----------------
+  // -------------------------------------------------------------------
+  const vendorComment =
+    vendorComments.find(
+      (c) => c.booking.application.applicationID === parseInt(applicationID as string),
+    ) ?? null;
 
   {
     /*TODO: RETRIEVE applications from database*/
@@ -114,27 +104,26 @@ export default function ApplicationReview() {
   //   }
   // }, [hirerId]);
 
+  // ------------------------------------------------------------
+  // --------- OPENS APPLICATION STATUS CONFIRMATION ------------
+  // ------------------------------------------------------------
   // Handle accept or decline button click
-  // Opens confirmation dialog
   function handleActionClick(action: "Approved" | "Declined") {
     setPendingAction(action);
     onOpen();
   }
 
-  // Update application status
-  // success message, then redirects back to applications list
+  // ------------------------------------------------
+  // --------- UPDATE APPLICATION STATUS ------------
+  // ------------------------------------------------
   const handleConfirm = async () => {
     if (!pendingAction || !application) return;
 
     try {
-      const updatedApplication = await vendorApi.updateApplicationStatus(
-        user!.id,
-        application.applicationID,
-        pendingAction,
-      );
-      setApplication(updatedApplication);
+      await vendorApi.updateApplicationStatus(user!.id, application.applicationID, pendingAction);
+      fetchApplications();
       setIsSuccess(true);
-      // Show success message for 1 second then redirect
+      // Show success message for 1 second
       setTimeout(() => {
         onClose();
         setIsSuccess(false);
@@ -144,28 +133,27 @@ export default function ApplicationReview() {
     }
   };
 
-  // Save updated comment
-  // Shows confirmation message for 1 second
+  // -------------------------------------------------
+  // --------- SAVE UPDATED / EDITED COMMENT ---------
+  // -------------------------------------------------
   const handleSaveComment = async () => {
     console.log("handleSaveComment called");
     if (!vendorComment) return;
 
     try {
-      const updatedVendorComment = await vendorApi.editApplicationComment(
-        user!.id,
-        vendorComment.commentID,
-        commentText,
-      );
-      setVendorComment(updatedVendorComment);
+      await vendorApi.editApplicationComment(user!.id, vendorComment.commentID, commentText);
+      fetchComments();
       setIsEditingComment(false);
       setCommentSaved(true);
-      setTimeout(() => setCommentSaved(false), 1000);
+      setTimeout(() => setCommentSaved(false), 1000); // Shows confirmation message for 1 second
     } catch (error) {
       console.log("error updating comment", error);
     }
   };
 
-  // add new comment
+  // -------------------------------------------------
+  // ---------------- ADD NEW COMMENT-----------------
+  // -------------------------------------------------
   const handleCreateComment = async () => {
     console.log("handleCreateComment called");
     try {
@@ -173,33 +161,31 @@ export default function ApplicationReview() {
         bookings.find(
           (booking) => booking.application.applicationID === parseInt(applicationID as string),
         ) ?? null;
-      const createVendorComment = await vendorApi.createComment(
-        user!.id,
-        bookingComment!.bookingID,
-        commentText,
-      );
-      setVendorComment(createVendorComment);
+      await vendorApi.createComment(user!.id, bookingComment!.bookingID, commentText);
+      fetchComments();
+      setCommentSaved(true);
+      setTimeout(() => setCommentSaved(false), 1000);
       setIsEditingComment(false);
     } catch (error) {
       console.error("Error creating comment: ", error);
     }
   };
 
-  // // Delete comment
+  // -------------------------------------------------
+  // ----------------- DELETE COMMENT ----------------
+  // -------------------------------------------------
   const handleDeleteComment = async () => {
     if (!vendorComment) return;
-    setIsDeleting(true);
-    setIsEditingComment(true);
-
     try {
       await vendorApi.deleteApplicationComment(user!.id, vendorComment!.commentID);
-      setVendorComment(null);
-      setIsEditingComment(false);
-      setIsDeleting(false);
-      setTimeout(() => setVendorComment(null), 1000);
+      setCommentDeleted(true);
+      fetchComments();
+      setCommentText("");
+      setTimeout(() => {
+        setCommentDeleted(false);
+      }, 1000);
     } catch (error) {
       console.log("error delete comment", error);
-      setIsDeleting(false);
     }
   };
 
@@ -213,6 +199,7 @@ export default function ApplicationReview() {
     );
 
   if (!application) return null;
+
   const reputation = getReputationBadge(application?.hirer.userID, bookings);
 
   console.log("vendorComment:", vendorComment);
@@ -404,17 +391,41 @@ export default function ApplicationReview() {
                   <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
                     {vendorComment?.commentText || "No comment added yet."}
                   </Text>
+                  {commentDeleted && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment deleted successfully.
+                    </Text>
+                  )}
+                  {commentSaved && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment saved successfully.
+                    </Text>
+                  )}
+
                   <Button
                     bg="brand.primary"
                     color="white"
                     _hover={{ bg: "brand.secondary", color: "brand.primary" }}
                     onClick={() => {
                       setIsEditingComment(true);
+                      setCommentSaved(false);
                       setCommentText(vendorComment?.commentText ?? "");
                     }}
                   >
                     {vendorComment ? "Edit Comment" : "Add Comment"}
                   </Button>
+                  {vendorComment?.commentText && (
+                    <Button
+                      variant="outline"
+                      borderColor="red.400"
+                      color="red.400"
+                      _hover={{ bg: "red.50" }}
+                      onClick={onDeleteOpen}
+                      ml={4}
+                    >
+                      Delete Comment
+                    </Button>
+                  )}
                 </Box>
               ) : (
                 /* EDIT MODE - show textarea with Save and Cancel buttons */
@@ -452,17 +463,6 @@ export default function ApplicationReview() {
                     >
                       Cancel
                     </Button>
-                    {vendorComment?.commentText && (
-                      <Button
-                        variant="outline"
-                        borderColor="red.400"
-                        color="red.400"
-                        _hover={{ bg: "red.50" }}
-                        onClick={handleDeleteComment}
-                      >
-                        Delete Comment
-                      </Button>
-                    )}
                   </Flex>
                 </Box>
               )}
@@ -594,6 +594,39 @@ export default function ApplicationReview() {
           )}
         </Box>
       </Flex>
+
+      {/* Confirmation dialog */}
+      <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={onDeleteClose}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="brand.primary">
+              Delete Comment
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <Text>Are you sure you want to delete this comment?</Text>
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Cancel
+              </Button>
+              <Button
+                ml={3}
+                variant="outline"
+                borderColor="red.400"
+                color="red.400"
+                _hover={{ bg: "red.50" }}
+                onClick={() => {
+                  handleDeleteComment();
+                  onDeleteClose();
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
       {/* Confirmation dialog */}
       <AlertDialog

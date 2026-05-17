@@ -18,56 +18,27 @@ import {
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
-import { vendorApi } from "@/services/vendorApi";
-import type { Application, Booking } from "@/types";
+import { useState } from "react";
 import { getHirerAvgRating, getReputationBadge } from "@/hirerRatingCalculation";
 import { getStatusColor, renderStars } from "@/helpersUtil";
+
+// Import custom hooks
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 
 export default function VendorApplications() {
   const { user } = useAuth("vendor");
   const [sortBy, setSortBy] = useState("most-recent");
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // -------------------------------------------------------------------
-  // ------------------ GET APPLICATIONS FOR VENDORS VENUES ------------
-  // -------------------------------------------------------------------
-  useEffect(() => {
-    if (user) {
-      fetchApplications();
-      fetchBookings();
-    }
-  }, [user]);
-
-  const fetchApplications = async () => {
-    try {
-      const data = await vendorApi.getVendorApplications(user!.id);
-      setApplications(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching applications", error);
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      const data = await vendorApi.getVendorBookings(user!.id);
-      setBookings(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching bookings", error); //log any error
-      setIsLoading(false);
-    }
-  };
+  // Fetch from custom hooks
+  const { applications, isLoading: applicationsLoading } = useVendorApplications();
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const isLoading = applicationsLoading || bookingsLoading;
 
   // Stats counts
   const pendingCount = applications.filter((a) => a.status === "pending").length;
   const approvedCount = applications.filter((a) => a.status === "approved").length;
-  const declinedCount = applications.filter((a) => a.status === "declined").length;
+  const declinedCount = applications.filter((a) => a.status === "Declined").length;
 
   if (isLoading)
     return (

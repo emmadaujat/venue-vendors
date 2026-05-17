@@ -1,15 +1,25 @@
 import { useState, useEffect } from "react";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { DEFAULT_VENUES, DEFAULT_BOOKINGS } from "@/dummyData";
 import { StarIcon, EditIcon } from "@chakra-ui/icons";
 import type { User } from "@/types";
+import { Box, Text, Flex, Avatar, Input, Button, Spinner } from "@chakra-ui/react";
+import { vendorApi } from "@/services/vendorApi";
 
-import { Box, Text, Flex, Avatar, Input, Button } from "@chakra-ui/react";
+// Import custom hooks
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
 
 export default function VendorMyDetails() {
   // Only vendors can access this page
   const { user } = useAuth("vendor");
+
+  // Fetch vendor bookings and venues from custom hooks
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
+
+  // isLoading combines both loading states from custom hooks — page shows spinner until both are ready
+  const isLoading = bookingsLoading || venuesLoading;
 
   // Editable fields
   const [editableName, setEditableName] = useState("");
@@ -27,34 +37,28 @@ export default function VendorMyDetails() {
   // Success confirmation message
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-  // Load user details on page load
+  // Get profile from api/backend
   useEffect(() => {
-    if (!user) return;
-    setEditableName(user.firstName + " " + user.lastName);
-    setEditablePhone(user.phone);
-    setUserEmail(user.email);
+    if (user) {
+      setEditableName(user.firstName + " " + user.lastName);
+      setEditablePhone(user.phoneNumber);
+      setUserEmail(user.email);
+    }
   }, [user]);
 
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Stats - calculated from dummyData for this vendor
-  const vendorVenues = user ? DEFAULT_VENUES.filter((v) => v.vendorId === user.id) : [];
-  const totalVenues = vendorVenues.length;
+  // Stats - calculated for this vendor
+  const totalVenues = venues.length;
+  const totalBookings = bookings.length;
 
-  const vendorVenueIds = vendorVenues.map((v) => v.id);
-  const vendorBookings = DEFAULT_BOOKINGS.filter((b) => vendorVenueIds.includes(b.venueId));
-  const totalBookings = vendorBookings.length;
-
-  const ratedVenues = vendorVenues.filter((v) => v.rating > 0);
+  // Get avg vendor rating
   const avgRating =
-    ratedVenues.length > 0
-      ? parseFloat(
-          (ratedVenues.reduce((sum, v) => sum + v.rating, 0) / ratedVenues.length).toFixed(1),
-        )
+    bookings.length > 0
+      ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
 
-  // Validation - name must not be empty
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: NAME FIELD EMPTY --------------
+  // ------------------------------------------------------------
   function validateNameField(nameInput: string): boolean {
     if (nameInput.trim() === "") {
       setNameErrorMessage("Name cannot be empty");
@@ -67,15 +71,17 @@ export default function VendorMyDetails() {
   {
     /*TODO: backend validation and update details in database*/
   }
-  // Validation - Australian mobile: 10 digits starting with 04
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: AUSTRALIAN MOBILE --------------
+  // ------------------------------------------------------------
   function validatePhoneField(phoneInput: string): boolean {
     const cleanedPhone = phoneInput.replace(/[\s\-]/g, "");
     if (cleanedPhone.length !== 10) {
-      setPhoneErrorMessage("Phone number must be 10 digits");
+      setPhoneErrorMessage("Phone number must be 10 digits"); // 10 digits
       return false;
     }
     if (!cleanedPhone.startsWith("04")) {
-      setPhoneErrorMessage("Phone number must start with 04");
+      setPhoneErrorMessage("Phone number must start with 04"); // starting with 04
       return false;
     }
     if (!/^\d+$/.test(cleanedPhone)) {
@@ -86,12 +92,15 @@ export default function VendorMyDetails() {
     return true;
   }
 
-  // Save name - splits into firstName / lastName and saves to localStorage
+  // TODO: save to backend
+  // ------------------------------------------------------------
+  // --------------- SAVE UPDATED FIRST & LAST NAME --------------
+  // ------------------------------------------------------------
   function handleSaveName() {
     if (!validateNameField(editableName)) return;
     if (!user) return;
 
-    const nameParts = editableName.trim().split(" ");
+    const nameParts = editableName.trim().split(" "); // splits into firstName / lastName
     const updatedUser: User = {
       ...user,
       firstName: nameParts[0] || "",
@@ -105,14 +114,17 @@ export default function VendorMyDetails() {
     setTimeout(() => window.location.reload(), 3000);
   }
 
-  // Save phone - saves updated user to localStorage
+  // TODO: save to backend
+  // ------------------------------------------------------------
+  // ----------------- SAVE UPDATED PHONE NUMBER ----------------
+  // ------------------------------------------------------------
   function handleSavePhone() {
     if (!validatePhoneField(editablePhone)) return;
     if (!user) return;
 
     const updatedUser: User = {
       ...user,
-      phone: editablePhone,
+      phoneNumber: editablePhone,
     };
     localStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -121,6 +133,15 @@ export default function VendorMyDetails() {
     setTimeout(() => setShowSaveConfirmation(false), 3000);
     setTimeout(() => window.location.reload(), 3000);
   }
+
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
 
   if (!user) return null;
 

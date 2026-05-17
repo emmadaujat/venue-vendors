@@ -18,83 +18,30 @@ import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { StarIcon } from "@chakra-ui/icons";
-import { useState, useEffect } from "react";
-import { vendorApi } from "@/services/vendorApi";
-import type { Application, Venue, Booking, VendorComment } from "@/types";
 import { getHirerAvgRating, getReputationBadge } from "@/hirerRatingCalculation";
 import { getStatusColor, renderStars } from "@/helpersUtil";
+
+// Import custom hooks
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
+import { useVendorComments } from "@/hooks/vendor/useVendorComments";
 
 export default function VendorDashboard() {
   const { user } = useAuth("vendor");
 
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Fetch from custom hooks
+  const { applications, isLoading: applicationsLoading } = useVendorApplications();
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const { vendorComments, isLoading: commentsLoading } = useVendorComments();
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
 
-  // TODO: CRUD vendor comments
-  const [vendorComments, setVendorComments] = useState<VendorComment[]>([]);
+  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
+  const isLoading = applicationsLoading || bookingsLoading || commentsLoading || venuesLoading;
 
-  useEffect(() => {
-    if (user) {
-      fetchApplications();
-      fetchVenues();
-      fetchBookings();
-      fetchComments();
-    }
-  }, [user]);
-
-  const fetchApplications = async () => {
-    try {
-      const data = await vendorApi.getVendorApplications(user!.id);
-      setApplications(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching applications", error);
-      setIsLoading(false);
-    }
-  };
-
-  // async function that calls the backend API to get this vendor's venues
-  const fetchVenues = async () => {
-    try {
-      // user!.id is the logged in vendor's ID — the ! tells TypeScript we know user is not null here
-      // we pass it to getVendorsVenues which sends GET /api/{vendorID}/venues to the backend
-      const data = await vendorApi.getVendorsVenues(user!.id);
-      // store the returned array of venues in state so the page can display them
-      setVenues(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching venues", error); //log any error
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      const data = await vendorApi.getVendorBookings(user!.id);
-      setBookings(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching bookings", error); //log any error
-      setIsLoading(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      const data = await vendorApi.getVendorComments(user!.id);
-      setVendorComments(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.log("Error fetching comments", error);
-      setIsLoading(false);
-    }
-  };
-
-  // ------------------------------------------------
-  // ---------- Stat card calculations --------------
-  // ------------------------------------------------
+  // ------------------------------------------------------------
+  // ---------- STAT CARD CALCULATIONS --------------
+  // ------------------------------------------------------------
 
   // TODO: add endDate in application entity
   // Total Revenue Calculations
