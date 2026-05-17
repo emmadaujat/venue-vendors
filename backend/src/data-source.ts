@@ -12,13 +12,14 @@ import { ComplianceDocument } from "./entity/ComplianceDocument";
 import { HirerReputationTag } from "./entity/HirerReputationTag";
 import { SavedVenue } from "./entity/SavedVenue";
 import { ReputationTag } from "./entity/ReputationTag";
+import "dotenv/config";
 
 export const AppDataSource = new DataSource({
   type: "mssql",
-  host: "dipto-database.cn2ems8y2mfe.ap-southeast-2.rds.amazonaws.com",
-  username: "s4151401",
-  password: "fsd/s1/2026",
-  database: "s4151401",
+  host: process.env.DB_HOST,
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   options: {
     encrypt: false,
   },

@@ -1,9 +1,6 @@
 // bridge between frontend and backend
-import axios from "axios";
+import api from "@/services/api";
 import { User } from "@/types";
-const api = axios.create({
-  baseURL: "http://localhost:3001/api",
-});
 
 // What we send to the backend for login
 export interface SignInCredentials {

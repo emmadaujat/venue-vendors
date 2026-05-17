@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
 import * as argon2 from "argon2";
-
+import { signToken } from "../utils/jwt";
 // sign up
 // get details from form
 // validate registration details
@@ -109,6 +109,8 @@ export class AuthController {
       return response.status(401).json({ message: "Invalid email or password" });
     }
 
+    const token = signToken({ id: user.userID, role: user.role, email: user.email });
+
     // send back user data to front end
     return response.status(200).json({
       message: "Sign in successful",
@@ -119,6 +121,7 @@ export class AuthController {
         lastName: user.lastName,
         role: user.role,
       },
+      token,
     });
   }
 

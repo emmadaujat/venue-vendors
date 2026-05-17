@@ -1,8 +1,5 @@
-import axios from "axios";
+import api from "@/services/api";
 import { Venue, Application, Booking, VendorComment } from "@/types";
-const api = axios.create({
-  baseURL: "http://localhost:3001/api",
-});
 
 export const vendorApi = {
   getVendorsVenues: async (vendorID: number): Promise<Venue[]> => {

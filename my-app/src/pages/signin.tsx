@@ -1,8 +1,7 @@
 import { isValidEmail, isValidPassword } from "@/validation";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { authApi } from "@/services/authApi";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import Logo from "@/components/logo";
@@ -65,12 +64,8 @@ export default function Signin() {
     } else {
       // check with backend
       try {
-        const result = await authApi.signIn({
-          email: formData.email,
-          password: formData.password,
-        });
-        login(result.user); // this triggers useAuth hook's login function to save logged in user to localstorage
-        const redirectPath = result.user.role === "hirer" ? "/hirer/dashboard" : "/vendorDashboard";
+        const user = await login(formData.email, formData.password);
+        const redirectPath = user.role === "hirer" ? "/hirer/dashboard" : "/vendorDashboard";
         setTimeout(() => router.push(redirectPath), 2000); // Display sign in success and redirect after 2seconds
         setSignInSuccess(true);
       } catch (err) {
