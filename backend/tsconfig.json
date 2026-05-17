@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots" : ["./src/types", "./node_modules/@types"], // tells typescript where to look for type declaration
     "target": "es6",
     "module": "commonjs",
     "lib": [
