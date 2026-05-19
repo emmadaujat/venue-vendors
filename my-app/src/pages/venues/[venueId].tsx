@@ -7,11 +7,22 @@ import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
-import { Box, Text, Flex, Button, Image, Badge } from "@chakra-ui/react";
+import { Box, Text, Flex, Button, Image, Badge, Select } from "@chakra-ui/react";
 import { StarIcon, ArrowBackIcon } from "@chakra-ui/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { hirerApi } from "@/services/hirerApi";
 import type { Venue } from "@/types";
+
+// CR CHANGE 2 - the pre-defined "recommended suitability"
+// keywords from the assignment spec.
+const SUITABILITY_KEYWORDS = [
+  "tennis",
+  "dinner",
+  "classical music",
+  "rock concert",
+  "birthday",
+  "wedding",
+];
 
 // Simple calendar helpers to build month grids
 function getDaysInMonth(year: number, month: number): number {
@@ -54,6 +65,32 @@ export default function VenueDetailPage() {
   const [blockedPeriods, setBlockedPeriods] = useState<
     { startDate: string; endDate: string }[]
   >([]);
+
+  // CR2: the keyword the hirer is checking suitability for, and
+  // the result from GET /api/venues/:id/suitability.
+  const [suitabilityKeyword, setSuitabilityKeyword] = useState("");
+  const [suitabilityResult, setSuitabilityResult] = useState<{
+    matched: string[];
+    score: number;
+  } | null>(null);
+
+  // Ask the backend how well this venue suits the chosen keyword.
+  async function checkSuitability(keyword: string) {
+    setSuitabilityKeyword(keyword);
+    if (!keyword) {
+      setSuitabilityResult(null);
+      return;
+    }
+    try {
+      const result = await hirerApi.getVenueSuitability(
+        parseInt(venueIdFromUrl),
+        keyword,
+      );
+      setSuitabilityResult({ matched: result.matched, score: result.score });
+    } catch (error) {
+      console.error("Failed to check suitability", error);
+    }
+  }
 
   // Fetch the venue + its blocked dates once the URL is ready.
   useEffect(() => {
@@ -384,6 +421,54 @@ export default function VenueDetailPage() {
               </Badge>
             ))}
           </Flex>
+        </Box>
+
+        {/* CR2: Check this venue's recommended suitability.
+            The hirer picks "I'm planning a..." and we ask the
+            backend (GET /api/venues/:id/suitability) how well
+            this venue's tags match that keyword. */}
+        <Box mb={6} p={4} bg="purple.50" borderRadius="md">
+          <Text fontWeight="bold" fontSize="lg" mb={2} color="brand.primary">
+            Check recommended suitability
+          </Text>
+          <Text fontSize="sm" color="gray.600" mb={3}>
+            Select what you are planning to see how well this venue suits it.
+          </Text>
+          <Select
+            placeholder="I'm planning a..."
+            maxW="280px"
+            size="sm"
+            bg="white"
+            value={suitabilityKeyword}
+            onChange={(e) => checkSuitability(e.target.value)}
+          >
+            {SUITABILITY_KEYWORDS.map((keyword) => (
+              <option key={keyword} value={keyword}>
+                {keyword}
+              </option>
+            ))}
+          </Select>
+
+          {suitabilityResult && (
+            <Box mt={3}>
+              {suitabilityResult.matched.length > 0 ? (
+                <Flex alignItems="center" gap={2} flexWrap="wrap">
+                  <Badge colorScheme="green" fontSize="sm" px={3} py={1} borderRadius="md">
+                    ★ Recommended for {suitabilityKeyword}
+                  </Badge>
+                  <Text fontSize="sm" color="gray.700">
+                    Match score: {Math.round(suitabilityResult.score * 100)}%
+                  </Text>
+                </Flex>
+              ) : (
+                <Text fontSize="sm" color="gray.600">
+                  This venue is not specifically recommended for{" "}
+                  <strong>{suitabilityKeyword}</strong>, but you can still
+                  apply.
+                </Text>
+              )}
+            </Box>
+          )}
         </Box>
 
         {/* Suitable for section (suitability tags) */}
