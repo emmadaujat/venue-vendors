@@ -61,7 +61,7 @@ export default function StepReview(props: StepReviewProps) {
                 <Box mb={4} p={4} bg="gray.50" borderRadius="md">
                     <Text fontSize="sm" fontWeight="bold" mb={1}>Account</Text>
                     <Text fontSize="sm">{props.user.firstName} {props.user.lastName}</Text>
-                    <Text fontSize="xs" color="gray.500">{props.user.email} · {props.user.phone}</Text>
+                    <Text fontSize="xs" color="gray.500">{props.user.email} · {props.user.phoneNumber}</Text>
                 </Box>
 
                 {/* Event details */}
