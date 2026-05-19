@@ -21,10 +21,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { hirerApi } from "@/services/hirerApi";
 import type { Venue } from "@/types";
 
-// All the event types pulled directly from venue data
-// "All types" means show everything with no filter
-// These match the suitabilityTags in dummyData.ts exactly
-const EVENT_TYPE_CHOICES = ["All types", "Corporate", "Wedding", "Conference", "Gala Dinner"];
+// CR - "Recommended suitability".
+// These are the pre-defined keywords from the assignment spec
+// (Section 2.7, CHANGE 2). The hirer picks "I'm planning a..."
+// and we recommend venues whose suitability tags match.
+// "Any" means do not filter by suitability.
+const SUITABILITY_KEYWORDS = [
+  "Any",
+  "tennis",
+  "dinner",
+  "classical music",
+  "rock concert",
+  "birthday",
+  "wedding",
+];
 
 // All Melbourne suburb locations that our venues are in
 // Pulled from the actual venue location fields in dummyData
@@ -111,6 +121,21 @@ function doesVenueMatchSearchTerm(venue: Venue, searchTerm: string): boolean {
   return false;
 }
 
+
+// CR - "Recommended suitability".
+// Returns true when the venue is recommended for the chosen
+// keyword, i.e. one of its suitability tags equals that keyword
+// (case-insensitive). This is the SAME rule the backend uses in
+// GET /api/venues/:id/suitability, kept here so the list can
+// filter/sort without one network call per venue.
+function venueMatchesSuitability(venue: Venue, keyword: string): boolean {
+  const lowerKeyword = keyword.toLowerCase().trim();
+  if (lowerKeyword === "" || lowerKeyword === "any") return true;
+  return venue.suitabilityTags.some(
+    (tag) => tag.toLowerCase() === lowerKeyword,
+  );
+}
+
 export default function BrowseVenues() {
   // useAuth() with no parameter means this is a public page - no redirect
   const { isLoggedIn, isHirer } = useAuth();
@@ -134,7 +159,8 @@ export default function BrowseVenues() {
   const [searchBarText, setSearchBarText] = useState("");
 
   // Filter state - what the user has picked in the sidebar
-  const [chosenEventType, setChosenEventType] = useState("All types");
+  // CR2: the "I'm planning a..." recommended-suitability keyword.
+  const [chosenEventType, setChosenEventType] = useState("Any");
   const [chosenLocation, setChosenLocation] = useState("All Melbourne");
   const [chosenCapacityRanges, setChosenCapacityRanges] = useState<string[]>([]);
   const [maximumDailyRate, setMaximumDailyRate] = useState(10000);
@@ -188,7 +214,7 @@ export default function BrowseVenues() {
   // "Clear all" button resets every filter back to default
   function handleClearAllFilters() {
     setSearchBarText("");
-    setChosenEventType("All types");
+    setChosenEventType("Any");
     setChosenLocation("All Melbourne");
     setChosenCapacityRanges([]);
     setMaximumDailyRate(10000);
@@ -209,17 +235,13 @@ export default function BrowseVenues() {
     );
   }
 
-  // --- Filter by event type dropdown ---
-  if (chosenEventType !== "All types") {
-    venuesToDisplay = venuesToDisplay.filter((venue) => {
-      // check if any of the venue suitability tags match the chosen event type
-      for (let i = 0; i < venue.suitabilityTags.length; i++) {
-        if (venue.suitabilityTags[i].toLowerCase() === chosenEventType.toLowerCase()) {
-          return true;
-        }
-      }
-      return false;
-    });
+  // --- CR2: Filter by "recommended suitability" keyword ---
+  // A venue is recommended for the chosen keyword if one of its
+  // suitability tags matches that keyword (case-insensitive).
+  if (chosenEventType !== "Any") {
+    venuesToDisplay = venuesToDisplay.filter((venue) =>
+      venueMatchesSuitability(venue, chosenEventType),
+    );
   }
 
   // --- Filter by location dropdown ---
@@ -271,10 +293,19 @@ export default function BrowseVenues() {
   } else if (chosenSortOption === "rating-low") {
     venuesToDisplay.sort((a, b) => a.rating - b.rating);
   } else if (chosenSortOption === "suitability") {
-    // sort by number of suitability tags (most versatile venues first)
-    venuesToDisplay.sort((a, b) => b.suitabilityTags.length - a.suitabilityTags.length);
+    // CR2: best match first. If the hirer picked a keyword,
+    // venues recommended for it come first; otherwise fall back
+    // to the most versatile venues (most suitability tags).
+    venuesToDisplay.sort((a, b) => {
+      if (chosenEventType !== "Any") {
+        const aMatch = venueMatchesSuitability(a, chosenEventType) ? 1 : 0;
+        const bMatch = venueMatchesSuitability(b, chosenEventType) ? 1 : 0;
+        if (aMatch !== bMatch) return bMatch - aMatch;
+      }
+      return b.suitabilityTags.length - a.suitabilityTags.length;
+    });
   }
-  // "relevance" keeps the default order from dummyData
+  // "relevance" keeps the default order from the database
 
   // Count how many venues passed all the filters
   const numberOfVenuesFound = venuesToDisplay.length;
@@ -325,9 +356,9 @@ export default function BrowseVenues() {
             Filters
           </Text>
 
-          {/* --- Event type dropdown --- */}
+          {/* --- CR2: "I'm planning a..." recommended suitability --- */}
           <Text fontSize="sm" fontWeight="semibold" mb={1}>
-            Event type
+            I&apos;m planning a...
           </Text>
           <Select
             size="sm"
@@ -336,9 +367,9 @@ export default function BrowseVenues() {
             onChange={(e) => setChosenEventType(e.target.value)}
             borderColor="gray.300"
           >
-            {EVENT_TYPE_CHOICES.map((eventType) => (
-              <option key={eventType} value={eventType}>
-                {eventType}
+            {SUITABILITY_KEYWORDS.map((keyword) => (
+              <option key={keyword} value={keyword}>
+                {keyword === "Any" ? "Any event" : keyword}
               </option>
             ))}
           </Select>
@@ -561,6 +592,66 @@ export default function BrowseVenues() {
                     >
                       {venue.availabilityStatus}
                     </Badge>
+                  </Flex>
+
+                  {/* CR2: Recommended-suitability chips. Each
+                      suitability tag is shown as a chip; if the
+                      hirer picked "I'm planning a..." the matching
+                      tag is highlighted green with a "Recommended"
+                      badge and a match score. */}
+                  <Flex gap={2} flexWrap="wrap" mt={2} alignItems="center">
+                    <Text fontSize="xs" color="gray.500" fontWeight="semibold">
+                      Suitable for:
+                    </Text>
+                    {venue.suitabilityTags.length === 0 && (
+                      <Text fontSize="xs" color="gray.400">
+                        Not specified
+                      </Text>
+                    )}
+                    {venue.suitabilityTags.map((tag) => {
+                      const isMatch =
+                        chosenEventType !== "Any" &&
+                        tag.toLowerCase() === chosenEventType.toLowerCase();
+                      return (
+                        <Badge
+                          key={tag}
+                          bg={isMatch ? "green.500" : "purple.50"}
+                          color={isMatch ? "white" : "brand.primary"}
+                          fontSize="xs"
+                          px={2}
+                          py={1}
+                          borderRadius="md"
+                          border="1px solid"
+                          borderColor={isMatch ? "green.500" : "brand.primary"}
+                        >
+                          {isMatch ? "★ " : ""}
+                          {tag}
+                        </Badge>
+                      );
+                    })}
+                    {venueMatchesSuitability(venue, chosenEventType) &&
+                      chosenEventType !== "Any" && (
+                        <Badge
+                          bg="green.100"
+                          color="green.800"
+                          fontSize="xs"
+                          px={2}
+                          py={1}
+                          borderRadius="md"
+                        >
+                          Recommended for {chosenEventType} · match{" "}
+                          {Math.round(
+                            (venue.suitabilityTags.filter(
+                              (t) =>
+                                t.toLowerCase() ===
+                                chosenEventType.toLowerCase(),
+                            ).length /
+                              venue.suitabilityTags.length) *
+                              100,
+                          )}
+                          %
+                        </Badge>
+                      )}
                   </Flex>
                 </Box>
 
