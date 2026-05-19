@@ -4,6 +4,10 @@ import cors from "cors";
 import { AppDataSource } from "./data-source";
 import authRoutes from "./routes/auth.routes";
 import vendorRoutes from "./routes/vendor.routes";
+// (hirer side)
+import venueRoutes from "./routes/venue.routes";
+import hirerRoutes from "./routes/hirer.routes";
+import bookingRoutes from "./routes/booking.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,6 +17,14 @@ app.use(express.json());
 
 // Register auth routes — handles /api/register and /api/signin and /api/getuserprofile
 app.use("/api", authRoutes);
+
+// Hirer-side routes. These use specific prefixes
+// (/api/venues, /api/hirer, /api/bookings) and are registered
+// BEFORE the generic vendor routes so Express matches them first.
+app.use("/api/venues", venueRoutes);
+app.use("/api/hirer", hirerRoutes);
+app.use("/api/bookings", bookingRoutes);
+
 app.use("/api", vendorRoutes);
 
 // Connect to the database then start the server
