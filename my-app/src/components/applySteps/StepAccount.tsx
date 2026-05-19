@@ -34,7 +34,7 @@ export default function StepAccount({ user }: StepAccountProps) {
                 </Box>
                 <Box flex="1">
                     <Text fontSize="sm" fontWeight="medium" mb={1}>Phone number</Text>
-                    <Input value={user.phone} isReadOnly bg="gray.50" />
+                    <Input value={user.phoneNumber} isReadOnly bg="gray.50" />
                 </Box>
             </Flex>
 
