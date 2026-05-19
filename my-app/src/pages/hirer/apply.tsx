@@ -189,9 +189,16 @@ export default function HirerApplyForVenue() {
                         </Flex>
                     )}
                     {form.currentStepNumber === 5 && (
-                        <Flex justifyContent="flex-start" mt={4}>
-                            <Button variant="outline" borderColor="brand.primary" color="brand.primary" onClick={form.handleGoBackToPreviousStep}>Back</Button>
-                        </Flex>
+                        <>
+                            {form.submitErrorText && (
+                                <Text color="red.500" fontSize="sm" mt={4}>
+                                    {form.submitErrorText}
+                                </Text>
+                            )}
+                            <Flex justifyContent="flex-start" mt={4}>
+                                <Button variant="outline" borderColor="brand.primary" color="brand.primary" onClick={form.handleGoBackToPreviousStep}>Back</Button>
+                            </Flex>
+                        </>
                     )}
                 </Box>
             </Flex>
