@@ -18,7 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { StarIcon } from "@chakra-ui/icons";
 import { useAuth } from "@/hooks/useAuth";
-import { DEFAULT_VENUES } from "@/dummyData";
+import { hirerApi } from "@/services/hirerApi";
 import type { Venue } from "@/types";
 
 // All the event types pulled directly from venue data
@@ -116,6 +116,19 @@ export default function BrowseVenues() {
   const { isLoggedIn, isHirer } = useAuth();
   const router = useRouter();
 
+  // All venues loaded from the backend database (no more dummyData).
+  const [allVenues, setAllVenues] = useState<Venue[]>([]);
+  const [isLoadingVenues, setIsLoadingVenues] = useState(true);
+
+  // Fetch every venue once when the page first loads.
+  useEffect(() => {
+    hirerApi
+      .getVenues()
+      .then((venues) => setAllVenues(venues))
+      .catch((error) => console.error("Failed to load venues", error))
+      .finally(() => setIsLoadingVenues(false));
+  }, []);
+
   // Search bar text that the user has typed
   // This filters by name, location, capacity, suitability as required by user story V2
   const [searchBarText, setSearchBarText] = useState("");
@@ -185,8 +198,8 @@ export default function BrowseVenues() {
 
   // Build the filtered list of venues to display
   // Filters apply in real time as the user changes them
-  // Start with all 9 venues then narrow down
-  let venuesToDisplay: Venue[] = [...DEFAULT_VENUES];
+  // Start with every venue from the database then narrow down
+  let venuesToDisplay: Venue[] = [...allVenues];
   // the ... creates a copy of the array so we don't mutate the original data
 
   // --- Filter by search bar text (V2: search by name, location, capacity, suitability) ---
@@ -268,36 +281,35 @@ export default function BrowseVenues() {
 
   // When user clicks a venue card or "View details" link
   // Takes them to the individual venue detail page
-  function handleGoToVenueDetail(venueId: string) {
+  function handleGoToVenueDetail(venueId: number) {
     router.push("/venues/" + venueId);
   }
 
-  // Save venue to localStorage for the saved venues page
-  // Used by the "+ Save" button on each venue card
-  function handleSaveVenueToList(venue: Venue) {
-    if (!isLoggedIn) {
+  // Save a venue to the hirer's saved list in the DATABASE.
+  // The new save goes to the bottom of the list (rank = current
+  // count + 1). Only hirers can save; visitors are sent to sign in.
+  async function handleSaveVenueToList(venue: Venue) {
+    if (!isLoggedIn || !isHirer) {
       router.push("/signin");
       return;
     }
 
-    // get the current saved venues from localStorage
-    const savedVenuesString = localStorage.getItem("savedVenues");
-    let currentSavedVenues: Venue[] = [];
-    if (savedVenuesString) {
-      currentSavedVenues = JSON.parse(savedVenuesString);
+    try {
+      // Ask the backend how many venues are already saved so the
+      // new one gets the next rank number.
+      const saved = await hirerApi.getSavedVenues();
+      const nextRank = saved.length + 1;
+      await hirerApi.saveVenue(venue.venueID, nextRank);
+      alert("Venue saved to your preferred list!");
+    } catch (error: unknown) {
+      // The backend returns 409 if it is already saved.
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 409) {
+        alert("This venue is already in your saved list!");
+      } else {
+        alert("Could not save venue. Please try again.");
+      }
     }
-
-    // check if this venue is already in the saved list
-    const venueAlreadySaved = currentSavedVenues.find((v) => v.id === venue.id);
-    if (venueAlreadySaved) {
-      alert("This venue is already in your saved list!");
-      return;
-    }
-
-    // add it to the list and save back
-    currentSavedVenues.push(venue);
-    localStorage.setItem("savedVenues", JSON.stringify(currentSavedVenues));
-    alert("Venue saved to your preferred list!");
   }
 
   return (
@@ -467,8 +479,15 @@ export default function BrowseVenues() {
             </Select>
           </Flex>
 
+          {/* --- Loading message while venues are fetched --- */}
+          {isLoadingVenues && (
+            <Box textAlign="center" py={10} color="gray.500">
+              <Text>Loading venues…</Text>
+            </Box>
+          )}
+
           {/* --- "No venues found" message (V1 acceptance criteria 3) --- */}
-          {numberOfVenuesFound === 0 && (
+          {!isLoadingVenues && numberOfVenuesFound === 0 && (
             <Box
               textAlign="center"
               py={10}
@@ -489,7 +508,7 @@ export default function BrowseVenues() {
           {/* --- Venue cards in a vertical list --- */}
           {venuesToDisplay.map((venue) => (
             <Box
-              key={venue.id}
+              key={venue.venueID}
               border="1px solid"
               borderColor="gray.200"
               borderRadius="lg"
@@ -498,13 +517,13 @@ export default function BrowseVenues() {
               bg="white"
               boxShadow="sm"
               cursor="pointer"
-              onClick={() => handleGoToVenueDetail(venue.id)}
+              onClick={() => handleGoToVenueDetail(venue.venueID)}
               _hover={{ boxShadow: "md" }}
             >
               <Flex gap={5}>
                 {/* Venue image on the left */}
                 <Image
-                  src={venue.imageUrl}
+                  src={venue.imageURL}
                   alt={venue.name}
                   width="180px"
                   height="140px"
