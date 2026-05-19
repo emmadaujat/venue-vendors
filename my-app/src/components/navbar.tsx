@@ -1,7 +1,6 @@
 import SignOutButton from "@/components/signout";
 import Logo from "@/components/logo";
 import { useAuth } from "@/hooks/useAuth";
-import { getVendorStats, getHirerStats } from "@/hirerRatingCalculation";
 import { useState, useEffect } from "react";
 import { vendorApi } from "@/services/vendorApi";
 import type { Application, Venue, Booking, VendorComment } from "@/types";
