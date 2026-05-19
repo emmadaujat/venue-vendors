@@ -3,6 +3,7 @@ import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HirerSidebar from "@/components/hirerSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { hirerApi } from "@/services/hirerApi";
 import { savePDFtoDB, getPDFfromDB, deletePDFfromDB } from "@/pdfStorage";
 import { CheckCircleIcon, WarningIcon, AttachmentIcon } from "@chakra-ui/icons";
 
@@ -97,41 +98,44 @@ export default function HirerComplianceDocuments() {
             setBusinessAbnText(savedAbn);
         }
 
-        // Load credibility score
-        const savedCredibility = localStorage.getItem("credibilityScore");
-        if (savedCredibility) {
-            setCredibilityPercentage(Number(savedCredibility));
-        }
+        // Load the credibility score from the backend (it is based
+        // on how many compliance documents are saved in the DB).
+        refreshComplianceScore();
     }, [user]);
 
-
-    // Recalculate credibility score whenever uploads change
-    useEffect(() => {
-        calculateAndSaveCredibilityScore();
-    }, [insuranceUpload.isUploaded, driversLicenseUpload.isUploaded, businessCertUpload.isUploaded, isApplyingAsBusiness]);
-
-    function calculateAndSaveCredibilityScore() {
-        let uploadedDocsCount = 0;
-        let totalPossibleDocs = 2; // insurance + drivers license always count
-
-        if (insuranceUpload.isUploaded) uploadedDocsCount++;
-        if (driversLicenseUpload.isUploaded) uploadedDocsCount++;
-
-        // If user is applying as a business, there are 3 possible docs
-        if (isApplyingAsBusiness) {
-            totalPossibleDocs = 3;
-            if (businessCertUpload.isUploaded) uploadedDocsCount++;
+    // Ask the backend for the current compliance score (0–5) and
+    // turn it into the percentage the page shows.
+    async function refreshComplianceScore() {
+        try {
+            const data = await hirerApi.getCompliance();
+            setCredibilityPercentage(
+                Math.round((data.complianceScore / 5) * 100),
+            );
+        } catch (error) {
+            console.error("Failed to load compliance score", error);
         }
-
-        // Calculate percentage
-        let newPercentage = 0;
-        if (totalPossibleDocs > 0) {
-            newPercentage = Math.round((uploadedDocsCount / totalPossibleDocs) * 100);
-        }
-
-        setCredibilityPercentage(newPercentage);
-        localStorage.setItem("credibilityScore", String(newPercentage));
     }
+
+    // Save one document's metadata to the database, then refresh
+    // the score so the percentage updates immediately.
+    async function persistComplianceDoc(documentType: string, fileName: string) {
+        try {
+            await hirerApi.addCompliance({
+                documentType,
+                fileName,
+                isBusiness: isApplyingAsBusiness,
+                abnNumber: businessAbnText || undefined,
+            });
+            await refreshComplianceScore();
+        } catch (error) {
+            console.error("Failed to save compliance document", error);
+        }
+    }
+
+
+    // The credibility percentage now comes from the backend (it is
+    // based on how many compliance documents are stored in the DB).
+    // refreshComplianceScore() above keeps it up to date.
 
 
     // Handle file upload for insurance (must be PDF, stored in IndexedDB per assignment spec)
@@ -153,6 +157,7 @@ export default function HirerComplianceDocuments() {
             // PDFs are stored in IndexedDB (not localStorage) as required by the assignment
             savePDFtoDB("complianceDoc_insurance", selectedFile.name, fileReader.result as string);
             setInsuranceUpload({ fileName: selectedFile.name, isUploaded: true, errorMessage: "" });
+            persistComplianceDoc("Public Liability Insurance", selectedFile.name);
         };
         fileReader.readAsDataURL(selectedFile);
     }
@@ -196,6 +201,7 @@ export default function HirerComplianceDocuments() {
                 isUploaded: true,
                 errorMessage: "",
             });
+            persistComplianceDoc("Drivers License", selectedFile.name);
         };
         fileReader.readAsDataURL(selectedFile);
     }
@@ -220,6 +226,7 @@ export default function HirerComplianceDocuments() {
             // PDFs are stored in IndexedDB (not localStorage) as required by the assignment
             savePDFtoDB("complianceDoc_businessCert", selectedFile.name, fileReader.result as string);
             setBusinessCertUpload({ fileName: selectedFile.name, isUploaded: true, errorMessage: "" });
+            persistComplianceDoc("Business Registration Certificate", selectedFile.name);
         };
         fileReader.readAsDataURL(selectedFile);
     }
