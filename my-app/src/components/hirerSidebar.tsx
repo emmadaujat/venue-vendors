@@ -10,6 +10,7 @@ const SIDEBAR_LINKS = [
   { label: "My Profile", pagePath: "/hirer/userProfile" },
   { label: "Saved Venues", pagePath: "/hirer/savedVenues" },
   { label: "Booking History", pagePath: "/hirer/bookingHistory" },
+  { label: "Reputation", pagePath: "/hirer/reputation" },
   { label: "Compliance Documents", pagePath: "/hirer/complianceDocuments" },
   { label: "My Details", pagePath: "/hirer/myDetails" },
 ];
