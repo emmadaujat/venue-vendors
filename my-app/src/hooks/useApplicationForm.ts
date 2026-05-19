@@ -3,9 +3,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import { DEFAULT_VENUES, DEFAULT_BOOKINGS } from "@/dummyData";
+import { hirerApi } from "@/services/hirerApi";
 
 import type { Venue, User } from "@/types";
+
+// Turn a "DD/MM/YYYY" string (what the form uses) into the
+// "YYYY-MM-DD" the backend DTO expects (IsDateString).
+function toIsoDate(ddmmyyyy: string): string {
+  const parts = ddmmyyyy.trim().split("/");
+  if (parts.length !== 3) return ddmmyyyy; // already ISO or empty
+  const [dd, mm, yyyy] = parts;
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 // Max file size for uploads (2MB)
 const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
@@ -71,15 +80,18 @@ export default function useApplicationForm(user: User | null) {
     const venueIdFromUrl = router.query.venueId as string;
 
     if (venueIdFromUrl) {
-      const foundVenue = DEFAULT_VENUES.find((v) => v.id === venueIdFromUrl);
-      if (foundVenue) setSelectedVenue(foundVenue);
+      // Load the venue we are applying for from the database.
+      hirerApi
+        .getVenueById(parseInt(venueIdFromUrl))
+        .then((venue) => setSelectedVenue(venue))
+        .catch((error) => console.error("Failed to load venue", error));
     }
 
     // Load draft if it matches this venue
     const savedDraftString = localStorage.getItem("applicationDraft");
     if (savedDraftString) {
       const draft = JSON.parse(savedDraftString);
-      if (draft.venueId === venueIdFromUrl) {
+      if (String(draft.venueId) === venueIdFromUrl) {
         setEventNameText(draft.eventNameText || "");
         setEventTypeChoice(draft.eventTypeChoice || "");
         setEventStartDateText(draft.eventStartDateText || "");
@@ -203,11 +215,13 @@ export default function useApplicationForm(user: User | null) {
     }
   }
 
-  // save draft to localStorage
+  // Save the half-finished form to localStorage so the hirer can
+  // come back later. This is just a browser convenience — the real
+  // application is only created in the database on submit.
   function handleSaveDraft() {
     if (!user || !selectedVenue) return;
     const draftData = {
-      venueId: selectedVenue.id,
+      venueId: selectedVenue.venueID,
       eventNameText,
       eventTypeChoice,
       eventStartDateText,
@@ -223,102 +237,53 @@ export default function useApplicationForm(user: User | null) {
     };
     localStorage.setItem("applicationDraft", JSON.stringify(draftData));
 
-    const draftBookingId = "draft_" + selectedVenue.id;
-    const newDraftBooking = {
-      id: draftBookingId,
-      hirerId: user.id,
-      venueId: selectedVenue.id,
-      venueName: selectedVenue.name,
-      venueLocation: selectedVenue.location,
-      eventName: eventNameText.trim() || "(Untitled draft)",
-      eventDate: eventStartDateText.trim() || "",
-      vendorRating: 0,
-      status: "Saved Draft",
-    };
-    const existingBookingsString = localStorage.getItem("hirerBookings");
-    let allBookings = existingBookingsString
-      ? JSON.parse(existingBookingsString)
-      : DEFAULT_BOOKINGS.filter((b: any) => b.hirerId === user.id);
-    allBookings = allBookings.filter((b: { id: string }) => b.id !== draftBookingId);
-    allBookings.push(newDraftBooking);
-    localStorage.setItem("hirerBookings", JSON.stringify(allBookings));
-
     setShowDraftSavedMessage(true);
     setTimeout(() => setShowDraftSavedMessage(false), 3000);
   }
 
-  // delete draft
+  // Throw the saved draft away and go back to booking history.
   function handleDeleteDraft() {
-    if (!selectedVenue) return;
     localStorage.removeItem("applicationDraft");
-    const draftBookingId = "draft_" + selectedVenue.id;
-    const existingBookingsString = localStorage.getItem("hirerBookings");
-    if (existingBookingsString) {
-      const allBookings = JSON.parse(existingBookingsString).filter(
-        (b: { id: string }) => b.id !== draftBookingId,
-      );
-      localStorage.setItem("hirerBookings", JSON.stringify(allBookings));
-    }
     router.push("/hirer/bookingHistory");
   }
 
-  // submit the application
-  function handleSubmitApplication() {
+  // Submit the application — this creates a real Application row
+  // in the database via POST /api/bookings. The backend also
+  // re-checks guest count, past dates and blocked dates and will
+  // return an error message we show to the hirer.
+  const [submitErrorText, setSubmitErrorText] = useState("");
+
+  async function handleSubmitApplication() {
     if (!user || !selectedVenue) return;
-    const newApplication = {
-      id: "app_" + Date.now(),
-      hirerId: user.id,
-      venueId: selectedVenue.id,
-      venueName: selectedVenue.name,
-      venueLocation: selectedVenue.location,
-      eventName: eventNameText.trim(),
-      eventType: eventTypeChoice,
-      eventDate: eventStartDateText.trim(),
-      endDate: eventEndDateText.trim(),
-      guestCount: Number(expectedGuestCountText),
-      setupTime: setupTimeText.trim(),
-      eventDescription: eventDescriptionText.trim(),
-      previousVenuesHired: previousVenuesHiredText.trim(),
-      yearsOfExperience: yearsOfExperienceText.trim(),
-      reputationTags: selectedReputationTags,
-      credibilityScore: calculateCredibilityStarRating(),
-      isApplyingForBusiness,
-      businessAbn: businessAbnNumberText.trim(),
-      insuranceUploaded,
-      licenseUploaded,
-      permitUploaded,
-      businessCertUploaded,
-      status: "Pending",
-      submittedAt: new Date().toISOString().split("T")[0],
-    };
-    const existingAppsString = localStorage.getItem("hirerApplications");
-    const allApps = existingAppsString ? JSON.parse(existingAppsString) : [];
-    allApps.push(newApplication);
-    localStorage.setItem("hirerApplications", JSON.stringify(allApps));
+    setSubmitErrorText("");
 
-    // Also add a booking entry so it shows up in Booking History
-    const newBookingEntry = {
-      id: "booking_" + Date.now(),
-      hirerId: user.id,
-      venueId: selectedVenue.id,
-      venueName: selectedVenue.name,
-      venueLocation: selectedVenue.location,
-      eventName: eventNameText.trim(),
-      eventDate: eventStartDateText.trim(),
-      vendorRating: 0,
-      status: "Pending",
-    };
-    const existingBookingsString = localStorage.getItem("hirerBookings");
-    const allBookings = existingBookingsString ? JSON.parse(existingBookingsString) : [];
-    allBookings.push(newBookingEntry);
-    localStorage.setItem("hirerBookings", JSON.stringify(allBookings));
+    try {
+      await hirerApi.createBooking({
+        venueID: selectedVenue.venueID,
+        eventName: eventNameText.trim(),
+        eventType: eventTypeChoice,
+        eventDate: toIsoDate(eventStartDateText),
+        eventEndDate: eventEndDateText.trim()
+          ? toIsoDate(eventEndDateText)
+          : undefined,
+        guestCount: Number(expectedGuestCountText),
+        additionalNotes: eventDescriptionText.trim() || undefined,
+      });
 
-    localStorage.setItem(
-      "credibilityScore",
-      String(Math.round((calculateCredibilityStarRating() / 5) * 100)),
-    );
-    localStorage.removeItem("applicationDraft");
-    setApplicationSubmittedSuccessfully(true);
+      // Success — clear the local draft and show the success page.
+      localStorage.removeItem("applicationDraft");
+      setApplicationSubmittedSuccessfully(true);
+    } catch (error: unknown) {
+      // Show the backend's message (e.g. "timeslot blocked",
+      // "Event date must be today or later").
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      setSubmitErrorText(
+        axiosError.response?.data?.message ||
+          "Could not submit application. Please try again.",
+      );
+    }
   }
 
   // file upload handlers
@@ -536,5 +501,6 @@ export default function useApplicationForm(user: User | null) {
     // Status
     applicationSubmittedSuccessfully,
     showDraftSavedMessage,
+    submitErrorText,
   };
 }
