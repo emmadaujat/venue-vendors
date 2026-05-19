@@ -1,94 +1,76 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import HirerSidebar from "@/components/hirerSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { getHirerStats } from "@/hirerRatingCalculation";
-import { DEFAULT_BOOKINGS, DEFAULT_VENUES } from "@/dummyData";
+import { hirerApi } from "@/services/hirerApi";
 import { StarIcon } from "@chakra-ui/icons";
-import type { Venue, Booking, Application } from "@/types";
+import type { Venue } from "@/types";
 
 import { Box, Text, Flex, Avatar, Table, Thead, Tbody, Tr, Th, Td, Badge } from "@chakra-ui/react";
 import Link from "next/link";
 
+// Shapes returned by the backend endpoints we call here.
+type DashboardSummary = {
+  totalApplications: number;
+  savedVenues: number;
+  averageRating: number;
+  totalRatings: number;
+};
+
+type SavedVenueRow = { savedVenueID: number; venue: Venue };
+
+type BookingRow = {
+  applicationID: number;
+  eventName: string;
+  eventDate: string;
+  status: string;
+  venue?: { name: string; location: string };
+  booking?: { vendorRating: number } | null;
+};
+
 export default function HirerDashboard() {
   // This page is only for hirers - redirect if not logged in as hirer
   const { user } = useAuth("hirer");
-  const router = useRouter();
 
-  // State for saved venues loaded from localStorage
-  const [savedVenuesList, setSavedVenuesList] = useState<Venue[]>([]);
-  const [hirerBookings, setHirerBookings] = useState<Booking[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary>({
+    totalApplications: 0,
+    savedVenues: 0,
+    averageRating: 0,
+    totalRatings: 0,
+  });
+  const [savedPreview, setSavedPreview] = useState<SavedVenueRow[]>([]);
+  const [bookingsPreview, setBookingsPreview] = useState<BookingRow[]>([]);
   const [credibilityPercentage, setCredibilityPercentage] = useState(0);
 
-  // Load saved venues and bookings from localStorage on page load
+  // Load everything the dashboard needs from the database.
   useEffect(() => {
     if (!user) return;
 
-    // Load saved venues from localStorage
-    const savedVenuesFromStorage = localStorage.getItem("savedVenues");
-    if (savedVenuesFromStorage) {
-      setSavedVenuesList(JSON.parse(savedVenuesFromStorage));
-    }
+    hirerApi
+      .getDashboard()
+      .then((data: DashboardSummary) => setSummary(data))
+      .catch((error) => console.error("Failed to load dashboard", error));
 
-    // Load bookings - use localStorage if available, otherwise use default data
-    const bookingsFromStorage = localStorage.getItem("hirerBookings");
-    let loadedBookings: Booking[] = [];
-    if (bookingsFromStorage) {
-      loadedBookings = JSON.parse(bookingsFromStorage);
-    } else {
-      loadedBookings = DEFAULT_BOOKINGS.filter((booking) => booking.hirerId === user.id);
-    }
+    hirerApi
+      .getSavedVenues()
+      .then((rows) => setSavedPreview(rows.slice(0, 4)))
+      .catch((error) => console.error("Failed to load saved venues", error));
 
-    // Merge in vendor Approved/Declined status updates from applicationStatuses
-    const storedApps = localStorage.getItem("hirerApplications");
-    const storedStatuses = localStorage.getItem("applicationStatuses");
-    if (storedApps && storedStatuses) {
-      const apps: Application[] = JSON.parse(storedApps);
-      const statuses: Record<string, string> = JSON.parse(storedStatuses);
-      loadedBookings = loadedBookings.map((booking) => {
-        const matchingApp = apps.find(
-          (a) =>
-            a.hirerId === booking.hirerId &&
-            a.venueId === booking.venueId &&
-            a.eventName === booking.eventName,
-        );
-        if (matchingApp && statuses[matchingApp.id]) {
-          return { ...booking, status: statuses[matchingApp.id] };
-        }
-        return booking;
-      });
-    }
-    setHirerBookings(loadedBookings);
+    hirerApi
+      .getMyBookings()
+      .then((data: BookingRow[]) => setBookingsPreview(data.slice(0, 4)))
+      .catch((error) => console.error("Failed to load bookings", error));
 
-    // Load credibility score from localStorage
-    const savedCredibility = localStorage.getItem("credibilityScore");
-    if (savedCredibility) {
-      setCredibilityPercentage(Number(savedCredibility));
-    }
+    hirerApi
+      .getCompliance()
+      .then((data: { complianceScore: number }) =>
+        setCredibilityPercentage(Math.round((data.complianceScore / 5) * 100)),
+      )
+      .catch((error) => console.error("Failed to load compliance", error));
   }, [user]);
 
-  // Calculate stats from bookings
-  const totalBookingsCount = hirerBookings.length;
-  const savedVenuesCount = savedVenuesList.length;
-
-  // Only count bookings that have been rated (vendorRating > 0)
-  const ratedBookings = hirerBookings.filter((b) => b.vendorRating > 0);
-  const totalRatingsCount = ratedBookings.length;
-
-  // Calculate average rating from vendor ratings on bookings
-  let averageRatingValue = 0;
-  if (ratedBookings.length > 0) {
-    const ratingSum = ratedBookings.reduce((sum, b) => sum + b.vendorRating, 0);
-    averageRatingValue = parseFloat((ratingSum / ratedBookings.length).toFixed(1));
-  }
-
-  // Show max 4 saved venues and max 4 bookings in the preview tables
-  const savedVenuesPreview = savedVenuesList.slice(0, 4);
-  const bookingsPreview = hirerBookings.slice(0, 4);
-
-  // Helper to render star icons for a given rating out of 5
+  // Star icons for a rating out of 5
   function renderStarRating(rating: number) {
     const stars = [];
     for (let i = 0; i < 5; i++) {
@@ -97,6 +79,12 @@ export default function HirerDashboard() {
       );
     }
     return <Flex gap={0.5}>{stars}</Flex>;
+  }
+
+  function statusColor(status: string) {
+    if (status === "approved") return "green";
+    if (status === "rejected") return "red";
+    return "orange";
   }
 
   // Don't render anything until we know who the user is
@@ -139,11 +127,7 @@ export default function HirerDashboard() {
                   {user.firstName} {user.lastName}
                 </Text>
                 <Link href="/hirer/myDetails">
-                  <Text
-                    fontSize="sm"
-                    color="brand.primary"
-                    _hover={{ textDecoration: "underline" }}
-                  >
+                  <Text fontSize="sm" color="brand.primary" _hover={{ textDecoration: "underline" }}>
                     View your profile →
                   </Text>
                 </Link>
@@ -172,44 +156,20 @@ export default function HirerDashboard() {
               My Dashboard
             </Text>
             <Text fontSize="sm" color="gray.500">
-              Review and manage incoming hire requests
+              Review and manage your venue applications
             </Text>
           </Box>
 
           {/* Stats cards row */}
           <Flex gap={4} mb={6}>
-            {/* Total bookings card */}
-            <Box
-              flex="1"
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={4}
-              textAlign="center"
-            >
-              <Text fontSize="sm" color="gray.500">
-                Total bookings
-              </Text>
-              <Text fontSize="2xl" fontWeight="bold">
-                {totalBookingsCount}
-              </Text>
+            <Box flex="1" border="1px solid" borderColor="gray.200" borderRadius="md" p={4} textAlign="center">
+              <Text fontSize="sm" color="gray.500">Total bookings</Text>
+              <Text fontSize="2xl" fontWeight="bold">{summary.totalApplications}</Text>
             </Box>
 
-            {/* Saved venues card */}
-            <Box
-              flex="1"
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={4}
-              textAlign="center"
-            >
-              <Text fontSize="sm" color="gray.500">
-                Saved Venues
-              </Text>
-              <Text fontSize="2xl" fontWeight="bold">
-                {savedVenuesCount}
-              </Text>
+            <Box flex="1" border="1px solid" borderColor="gray.200" borderRadius="md" p={4} textAlign="center">
+              <Text fontSize="sm" color="gray.500">Saved Venues</Text>
+              <Text fontSize="2xl" fontWeight="bold">{summary.savedVenues}</Text>
               <Link href="/hirer/savedVenues">
                 <Text fontSize="xs" color="brand.primary" _hover={{ textDecoration: "underline" }}>
                   View saved →
@@ -217,54 +177,23 @@ export default function HirerDashboard() {
               </Link>
             </Box>
 
-            {/* Average rating card */}
-            <Box
-              flex="1"
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={4}
-              textAlign="center"
-            >
-              <Text fontSize="sm" color="gray.500">
-                Avg Rating
-              </Text>
+            <Box flex="1" border="1px solid" borderColor="gray.200" borderRadius="md" p={4} textAlign="center">
+              <Text fontSize="sm" color="gray.500">Avg Rating</Text>
               <Flex justifyContent="center" alignItems="center" gap={1}>
                 <StarIcon color="yellow.500" boxSize={4} />
-                <Text fontSize="2xl" fontWeight="bold">
-                  {averageRatingValue}
-                </Text>
+                <Text fontSize="2xl" fontWeight="bold">{summary.averageRating}</Text>
               </Flex>
             </Box>
 
-            {/* Total ratings card */}
-            <Box
-              flex="1"
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={4}
-              textAlign="center"
-            >
-              <Text fontSize="sm" color="gray.500">
-                Total Ratings
-              </Text>
-              <Text fontSize="2xl" fontWeight="bold">
-                {totalRatingsCount}
-              </Text>
+            <Box flex="1" border="1px solid" borderColor="gray.200" borderRadius="md" p={4} textAlign="center">
+              <Text fontSize="sm" color="gray.500">Total Ratings</Text>
+              <Text fontSize="2xl" fontWeight="bold">{summary.totalRatings}</Text>
             </Box>
           </Flex>
 
           {/* Saved venues preview table */}
           <Box mb={6} border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
-            <Flex
-              bg="brand.primary"
-              color="white"
-              px={4}
-              py={3}
-              justifyContent="space-between"
-              alignItems="center"
-            >
+            <Flex bg="brand.primary" color="white" px={4} py={3} justifyContent="space-between" alignItems="center">
               <Text fontWeight="semibold">Saved Venues</Text>
               <Link href="/hirer/savedVenues">
                 <Text fontSize="sm" _hover={{ textDecoration: "underline" }} color="white">
@@ -273,7 +202,7 @@ export default function HirerDashboard() {
               </Link>
             </Flex>
 
-            {savedVenuesPreview.length === 0 ? (
+            {savedPreview.length === 0 ? (
               <Box p={4}>
                 <Text color="gray.500">No preferred venues have been saved.</Text>
               </Box>
@@ -288,12 +217,12 @@ export default function HirerDashboard() {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {savedVenuesPreview.map((venue) => (
-                    <Tr key={venue.id}>
-                      <Td>{venue.name}</Td>
-                      <Td>{venue.location}</Td>
-                      <Td>Max {venue.capacity}</Td>
-                      <Td>${venue.pricePerDay.toLocaleString()}</Td>
+                  {savedPreview.map((row) => (
+                    <Tr key={row.savedVenueID}>
+                      <Td>{row.venue.name}</Td>
+                      <Td>{row.venue.location}</Td>
+                      <Td>Max {row.venue.capacity}</Td>
+                      <Td>${row.venue.pricePerDay.toLocaleString()}</Td>
                     </Tr>
                   ))}
                 </Tbody>
@@ -303,17 +232,10 @@ export default function HirerDashboard() {
 
           {/* Booking history preview table */}
           <Box mb={6} border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
-            <Flex
-              bg="brand.primary"
-              color="white"
-              px={4}
-              py={3}
-              justifyContent="space-between"
-              alignItems="center"
-            >
+            <Flex bg="brand.primary" color="white" px={4} py={3} justifyContent="space-between" alignItems="center">
               <Text fontWeight="semibold">Your Booking History</Text>
               <Flex gap={4} alignItems="center">
-                <Text fontSize="sm">Total: {totalBookingsCount}</Text>
+                <Text fontSize="sm">Total: {summary.totalApplications}</Text>
                 <Link href="/hirer/bookingHistory">
                   <Text fontSize="sm" _hover={{ textDecoration: "underline" }} color="white">
                     View all →
@@ -335,55 +257,32 @@ export default function HirerDashboard() {
                     <Th>Date</Th>
                     <Th>Status</Th>
                     <Th>Rating from Vendor</Th>
-                    <Th></Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {bookingsPreview.map((booking) => (
-                    <Tr key={booking.id}>
-                      <Td>{booking.venueName}</Td>
-                      <Td>{booking.venueLocation}</Td>
-                      <Td>{new Date(booking.eventDate).toLocaleDateString("en-AU")}</Td>
+                  {bookingsPreview.map((b) => (
+                    <Tr key={b.applicationID}>
+                      <Td>{b.venue?.name ?? "-"}</Td>
+                      <Td>{b.venue?.location ?? "-"}</Td>
                       <Td>
-                        <Badge
-                          colorScheme={
-                            booking.status === "Approved"
-                              ? "green"
-                              : booking.status === "Declined"
-                                ? "red"
-                                : booking.status === "Pending"
-                                  ? "orange"
-                                  : booking.status === "Saved Draft"
-                                    ? "purple"
-                                    : "gray"
-                          }
-                          fontSize="xs"
-                        >
-                          {booking.status}
+                        {b.eventDate
+                          ? new Date(b.eventDate).toLocaleDateString("en-AU")
+                          : "-"}
+                      </Td>
+                      <Td>
+                        <Badge colorScheme={statusColor(b.status)} fontSize="xs">
+                          {b.status}
                         </Badge>
                       </Td>
                       <Td>
-                        {booking.vendorRating > 0 ? (
+                        {b.booking && b.booking.vendorRating > 0 ? (
                           <Flex alignItems="center" gap={2}>
-                            {renderStarRating(booking.vendorRating)}
-                            <Text fontSize="sm">{booking.vendorRating} / 5</Text>
+                            {renderStarRating(b.booking.vendorRating)}
+                            <Text fontSize="sm">{b.booking.vendorRating} / 5</Text>
                           </Flex>
                         ) : (
-                          <Text fontSize="sm" color="gray.400">
-                            N/A
-                          </Text>
+                          <Text fontSize="sm" color="gray.400">N/A</Text>
                         )}
-                      </Td>
-                      <Td>
-                        <Link href="/hirer/bookingHistory">
-                          <Text
-                            fontSize="sm"
-                            color="brand.primary"
-                            _hover={{ textDecoration: "underline" }}
-                          >
-                            View details →
-                          </Text>
-                        </Link>
                       </Td>
                     </Tr>
                   ))}
