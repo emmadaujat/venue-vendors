@@ -10,7 +10,7 @@ import Footer from "@/components/footer";
 import { Box, Text, Flex, Button, Image, Badge } from "@chakra-ui/react";
 import { StarIcon, ArrowBackIcon } from "@chakra-ui/icons";
 import { useAuth } from "@/hooks/useAuth";
-import { DEFAULT_VENUES } from "@/dummyData";
+import { hirerApi } from "@/services/hirerApi";
 import type { Venue } from "@/types";
 
 // Simple calendar helpers to build month grids
@@ -39,79 +39,33 @@ const MONTH_NAMES = [
 
 const DAY_HEADERS = ["S", "M", "T", "W", "T", "F", "S"];
 
-// Sample available date ranges for each venue
-// These show which days are open for booking
-const VENUE_AVAILABLE_DATES: Record<string, { startDay: number; endDay: number }[]> = {
-  v1: [
-    { startDay: 5, endDay: 12 },
-    { startDay: 20, endDay: 26 },
-  ],
-  v2: [
-    { startDay: 1, endDay: 8 },
-    { startDay: 15, endDay: 22 },
-  ],
-  v3: [
-    { startDay: 10, endDay: 18 },
-    { startDay: 24, endDay: 30 },
-  ],
-  v4: [
-    { startDay: 3, endDay: 9 },
-    { startDay: 17, endDay: 25 },
-  ],
-  v5: [
-    { startDay: 7, endDay: 14 },
-    { startDay: 21, endDay: 28 },
-  ],
-  v6: [
-    { startDay: 2, endDay: 10 },
-    { startDay: 16, endDay: 23 },
-  ],
-  v7: [
-    { startDay: 6, endDay: 15 },
-    { startDay: 22, endDay: 29 },
-  ],
-  v8: [
-    { startDay: 1, endDay: 7 },
-    { startDay: 13, endDay: 20 },
-  ],
-  v9: [
-    { startDay: 4, endDay: 11 },
-    { startDay: 18, endDay: 27 },
-  ],
-};
 
 export default function VenueDetailPage() {
   const router = useRouter();
   const { isLoggedIn, isHirer } = useAuth();
 
-  // Read the venue ID from the URL
+  // Read the venue ID from the URL (e.g. /venues/3 -> 3)
   const venueIdFromUrl = router.query.venueId as string;
 
-  // Find the matching venue from our dummy data
+  // The venue we are showing, loaded from the backend.
   const [thisVenue, setThisVenue] = useState<Venue | null>(null);
 
-  useEffect(() => {
-    if (venueIdFromUrl) {
-      const foundVenue = DEFAULT_VENUES.find((venue) => venue.id === venueIdFromUrl);
-      if (foundVenue) {
-        setThisVenue(foundVenue);
-      }
-    }
-  }, [venueIdFromUrl]);
+  // The vendor's blocked date ranges for this venue, from the DB.
+  const [blockedPeriods, setBlockedPeriods] = useState<
+    { startDate: string; endDate: string }[]
+  >([]);
 
-  // UPDATED
-  // Check local storage for blocked dates
-  const [blockedPeriods, setBlockedPeriods] = useState<{ startDate: string; endDate: string }[]>(
-    [],
-  );
-
+  // Fetch the venue + its blocked dates once the URL is ready.
   useEffect(() => {
     if (!venueIdFromUrl) return;
-    const blockedCalendarDates = localStorage.getItem("blockedDates");
-    if (blockedCalendarDates) {
-      const parsed = JSON.parse(blockedCalendarDates);
-      setBlockedPeriods(parsed[venueIdFromUrl] ?? []);
-    }
+    const venueID = parseInt(venueIdFromUrl);
+    hirerApi
+      .getVenueDetail(venueID)
+      .then((data) => {
+        setThisVenue(data.venue);
+        setBlockedPeriods(data.blockedDates);
+      })
+      .catch((error) => console.error("Failed to load venue", error));
   }, [venueIdFromUrl]);
 
   // Calendar state - which month we are showing
@@ -122,27 +76,26 @@ export default function VenueDetailPage() {
   const totalDaysInMonth = getDaysInMonth(calendarYear, calendarMonth);
   const firstDayOfWeek = getFirstDayOfMonth(calendarYear, calendarMonth);
 
-  // Check if a specific day is within an available range
+  // A day is "available" if it is today or later AND it does not
+  // fall inside any blocked range the vendor set in the database.
   function isDayAvailable(day: number): boolean {
     if (!thisVenue) return false;
 
-    // UPDATED
-    // Check if day falls within vendor blocked period
     const currentDate = new Date(calendarYear, calendarMonth, day);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (currentDate < today) return false; // past dates are not bookable
+
+    // Blocked by the vendor?
     for (const period of blockedPeriods) {
       const start = new Date(period.startDate);
       const end = new Date(period.endDate);
       if (currentDate >= start && currentDate <= end) {
-        return false; // blocked by vendor
+        return false;
       }
     }
-    const ranges = VENUE_AVAILABLE_DATES[thisVenue.id] || [];
-    for (let i = 0; i < ranges.length; i++) {
-      if (day >= ranges[i].startDay && day <= ranges[i].endDay) {
-        return true;
-      }
-    }
-    return false;
+    return true;
   }
 
   // Navigate calendar months
@@ -164,30 +117,27 @@ export default function VenueDetailPage() {
     }
   }
 
-  // Save venue to localStorage for the saved venues page
-  // If user is not signed in, redirect to sign in first
-  function handleSaveVenue() {
-    if (!isLoggedIn) {
+  // Save this venue to the hirer's saved list in the DATABASE.
+  // Visitors are sent to sign in first.
+  async function handleSaveVenue() {
+    if (!isLoggedIn || !isHirer) {
       router.push("/signin");
       return;
     }
     if (!thisVenue) return;
 
-    const savedVenuesString = localStorage.getItem("savedVenues");
-    let savedVenuesList: Venue[] = [];
-    if (savedVenuesString) {
-      savedVenuesList = JSON.parse(savedVenuesString);
+    try {
+      const saved = await hirerApi.getSavedVenues();
+      await hirerApi.saveVenue(thisVenue.venueID, saved.length + 1);
+      alert("Venue saved to your preferred list!");
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 409) {
+        alert("This venue is already in your saved list!");
+      } else {
+        alert("Could not save venue. Please try again.");
+      }
     }
-
-    const alreadySaved = savedVenuesList.find((v) => v.id === thisVenue.id);
-    if (alreadySaved) {
-      alert("This venue is already in your saved list!");
-      return;
-    }
-
-    savedVenuesList.push(thisVenue);
-    localStorage.setItem("savedVenues", JSON.stringify(savedVenuesList));
-    alert("Venue saved to your preferred list!");
   }
 
   // If venue not found yet, show loading message
@@ -259,7 +209,7 @@ export default function VenueDetailPage() {
         <Flex gap={6} mb={6}>
           {/* Large venue image */}
           <Image
-            src={thisVenue.imageUrl}
+            src={thisVenue.imageURL}
             alt={thisVenue.name}
             width="340px"
             height="260px"
@@ -347,7 +297,7 @@ export default function VenueDetailPage() {
               size="sm"
               mb={4}
               width="100%"
-              onClick={() => router.push("/hirer/apply?venueId=" + thisVenue.id)}
+              onClick={() => router.push("/hirer/apply?venueId=" + thisVenue.venueID)}
               _hover={{
                 bg: "transparent",
                 border: "2px solid",
