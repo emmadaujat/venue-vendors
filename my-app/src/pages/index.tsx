@@ -9,17 +9,28 @@ import {
 import NavBar from "../components/navbar";
 import Footer from "../components/footer";
 import NextLink from "next/link";
-import { DEFAULT_VENUES } from "../dummyData";
+import { useState, useEffect } from "react";
+import { hirerApi } from "@/services/hirerApi";
+import type { Venue } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
-
-// grab a couple venues with limited availability for the sidebar
-// TODO: Update getting venues with limited availability from database
-const limitedVenues = DEFAULT_VENUES.filter(
-  (v) => v.availabilityStatus === "Limited Availability",
-).slice(0, 2); // show max 2
 
 export default function Home() {
   const { isLoggedIn, isHirer, isVendor } = useAuth();
+
+  // All venues, loaded from the backend database.
+  const [venues, setVenues] = useState<Venue[]>([]);
+
+  useEffect(() => {
+    hirerApi
+      .getVenues()
+      .then((data) => setVenues(data))
+      .catch((error) => console.error("Failed to load venues", error));
+  }, []);
+
+  // A couple of "limited availability" venues for the side panel.
+  const limitedVenues = venues
+    .filter((v) => v.availabilityStatus === "Limited Availability")
+    .slice(0, 2);
 
   return (
     <Flex flexDirection="column" minHeight="100vh">
@@ -196,9 +207,9 @@ export default function Home() {
           {/* venue cards 2x2 grid */}
           <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4} mb="10%" alignItems={"stretch"}>
             {/*TODO: update getting venues from database*/}
-            {DEFAULT_VENUES.map((venue) => (
+            {venues.map((venue) => (
               <Box
-                key={venue.id}
+                key={venue.venueID}
                 display="flex"
                 flexDirection="column"
                 p={10}
@@ -209,7 +220,7 @@ export default function Home() {
                 borderRadius={8}
                 h="100%"
               >
-                <Image src={venue.imageUrl} alt={venue.name} objectFit="cover"></Image>
+                <Image src={venue.imageURL} alt={venue.name} objectFit="cover"></Image>
                 <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
                   {venue.name}
                 </Text>
@@ -231,7 +242,7 @@ export default function Home() {
                       ${venue.pricePerDay}/day
                     </Text>
                   </Flex>
-                  <NextLink href={`/venues/${venue.id}`}>
+                  <NextLink href={`/venues/${venue.venueID}`}>
                     <Button
                       bg="brand.primary"
                       color="white"
@@ -275,7 +286,7 @@ export default function Home() {
                 <Box flex="1" textAlign="center">
                   <Text fontSize={"large"} fontWeight={"semibold"}>
                     {/*TODO: update getting venues from database*/}
-                    {DEFAULT_VENUES.length} +
+                    {venues.length} +
                   </Text>
                   <Text fontSize={"md"} fontWeight={"regular"} color={"gray.500"}>
                     Venues listed
@@ -314,7 +325,7 @@ export default function Home() {
             <Box p={4}>
               {/*TODO: update getting venues from database*/}
               {limitedVenues.map((venue) => (
-                <Box key={venue.id} mb={2}>
+                <Box key={venue.venueID} mb={2}>
                   <Flex align={"center"} gap={4}>
                     <Text fontSize={"small"}>{venue.name}</Text>
                     <Flex align={"baseline"} gap={1}>
