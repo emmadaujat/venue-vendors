@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { StarIcon, EditIcon } from "@chakra-ui/icons";
-import type { User } from "@/types";
 import { Box, Text, Flex, Avatar, Input, Button, Spinner } from "@chakra-ui/react";
 import { vendorApi } from "@/services/vendorApi";
 
@@ -39,11 +38,10 @@ export default function VendorMyDetails() {
 
   // Get profile from api/backend
   useEffect(() => {
-    if (user) {
-      setEditableName(user.firstName + " " + user.lastName);
-      setEditablePhone(user.phoneNumber);
-      setUserEmail(user.email);
-    }
+    if (!user) return;
+    setEditableName(user.firstName + " " + user.lastName);
+    setEditablePhone(user.phoneNumber);
+    setUserEmail(user.email);
   }, [user]);
 
   // Stats - calculated for this vendor
@@ -68,9 +66,6 @@ export default function VendorMyDetails() {
     return true;
   }
 
-  {
-    /*TODO: backend validation and update details in database*/
-  }
   // ------------------------------------------------------------
   // --------------- VALIDATION: AUSTRALIAN MOBILE --------------
   // ------------------------------------------------------------
@@ -92,46 +87,61 @@ export default function VendorMyDetails() {
     return true;
   }
 
-  // TODO: save to backend
+  // Split "First Last" into first + last name parts.
+  function splitName(fullName: string) {
+    const parts = fullName.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts.slice(1).join(" ") || "";
+    return { firstName, lastName };
+  }
+
+  // Send the updated details to the backend, then update the copy
+  // of the user in localStorage so the navbar/other pages refresh.
+  async function saveProfile(firstName: string, lastName: string, phoneNumber: string) {
+    await vendorApi.updateProfile({ firstName, lastName, phoneNumber });
+
+    const saved = localStorage.getItem("user");
+    if (saved) {
+      const current = JSON.parse(saved);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ ...current, firstName, lastName, phoneNumber }),
+      );
+    }
+
+    setShowSaveConfirmation(true);
+    setTimeout(() => setShowSaveConfirmation(false), 3000);
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
   // ------------------------------------------------------------
   // --------------- SAVE UPDATED FIRST & LAST NAME --------------
   // ------------------------------------------------------------
-  function handleSaveName() {
-    if (!validateNameField(editableName)) return;
-    if (!user) return;
+  async function handleSaveName() {
+    if (!validateNameField(editableName) || !user) return;
 
-    const nameParts = editableName.trim().split(" "); // splits into firstName / lastName
-    const updatedUser: User = {
-      ...user,
-      firstName: nameParts[0] || "",
-      lastName: nameParts.slice(1).join(" ") || "",
-    };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-
-    setIsEditingName(false);
-    setShowSaveConfirmation(true);
-    setTimeout(() => setShowSaveConfirmation(false), 3000);
-    setTimeout(() => window.location.reload(), 3000);
+    const { firstName, lastName } = splitName(editableName); // splits into firstName / lastName(
+    try {
+      await saveProfile(firstName, lastName, user.phoneNumber);
+      setIsEditingName(false);
+    } catch {
+      setNameErrorMessage("Could not save. Please try again.");
+    }
   }
 
-  // TODO: save to backend
   // ------------------------------------------------------------
   // ----------------- SAVE UPDATED PHONE NUMBER ----------------
   // ------------------------------------------------------------
-  function handleSavePhone() {
-    if (!validatePhoneField(editablePhone)) return;
-    if (!user) return;
+  async function handleSavePhone() {
+    if (!validatePhoneField(editablePhone) || !user) return;
+    const { firstName, lastName } = splitName(user.firstName + " " + user.lastName); // splits into firstName / lastName(
 
-    const updatedUser: User = {
-      ...user,
-      phoneNumber: editablePhone,
-    };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-
-    setIsEditingPhone(false);
-    setShowSaveConfirmation(true);
-    setTimeout(() => setShowSaveConfirmation(false), 3000);
-    setTimeout(() => window.location.reload(), 3000);
+    try {
+      await saveProfile(firstName, lastName, editablePhone);
+      setIsEditingPhone(false);
+    } catch {
+      setPhoneErrorMessage("Could not save. Please try again.");
+    }
   }
 
   if (isLoading)

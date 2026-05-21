@@ -20,23 +20,22 @@ export class VendorController {
    * @returns JSON response containing the created user or error message
    */
 
+  // Helper: get the logged-in vendor's ID from the verified JWT.
+  private vendorID(req: Request): number {
+    return req.user!.id;
+  }
+
   // -------------------------------------------------------------------
   // ------------------ GET APPLICANTS FOR VENDORS VENUES --------------
   // -------------------------------------------------------------------
+  // GET /api/vendor/applicants
   async getVendorApplicants(req: Request, res: Response) {
     // find the vendor
-    const vendor = await this.userRepository.findOneBy({
-      userID: parseInt(req.params.vendorID as string),
-    });
-
-    /** Check if the vendor exists, if not, return a 404 error */
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    const vendorID = this.vendorID(req);
 
     /** Retrieve all applications associated with the vendor from the database */
     const applications = await this.applicationRepository.find({
-      where: { venue: { vendor: { userID: vendor.userID } } },
+      where: { venue: { vendor: { userID: vendorID } } },
       relations: { hirer: true, venue: true, reputationTags: { reputationTag: true } },
       select: {
         hirer: {
@@ -57,16 +56,24 @@ export class VendorController {
   // ------------------------------------------------------------------------------
   // ------------------ UPDATE APPLICATION STATUS FOR VENDORS VENUES --------------
   // ------------------------------------------------------------------------------
+  // PUT /api/vendor/applications/:applicationID/status
+  // Update the status (Pending/Approved/Declined) of an application.
   async updateApplicationStatus(req: Request, res: Response) {
+    const vendorID = this.vendorID(req); // get from JWT
     const applicationID = parseInt(req.params.applicationID as string);
     const { status } = req.body;
 
     let applicationToUpdate = await this.applicationRepository.findOne({
       where: { applicationID },
+      relations: { venue: { vendor: true } },
     });
 
     if (!applicationToUpdate) {
       return res.status(404).json({ message: "Application not found" });
+    }
+
+    if (applicationToUpdate.venue.vendor.userID !== vendorID) {
+      return res.status(403).json({ message: "Not authorised to update this application" });
     }
 
     // only update the status in application
@@ -83,19 +90,15 @@ export class VendorController {
   }
 
   // -------------------------------------------------------------------
-  // ------------------ GET BOOKINGS FOR VENDORS VENUES --------------
+  // ------------------ GET BOOKINGS FOR THIS VENDORS VENUES --------------
   // -------------------------------------------------------------------
+  // GET /api/vendor/bookings
   async getVendorBookings(req: Request, res: Response) {
-    const vendor = await this.userRepository.findOneBy({
-      userID: parseInt(req.params.vendorID as string),
-    });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    // find the vendor
+    const vendorID = this.vendorID(req);
 
     const bookings = await this.bookingRepository.find({
-      where: { application: { venue: { vendor: { userID: vendor.userID } } } },
+      where: { application: { venue: { vendor: { userID: vendorID } } } },
       relations: {
         application: {
           hirer: true,
@@ -137,17 +140,14 @@ export class VendorController {
   // ------------------------------------------------------------------------------------------
   // ------------------ GET COMMENTS ON ACCEPTED BOOKINGS FOR VENDORS APPLICANTS --------------
   // ------------------------------------------------------------------------------------------
+  // GET /api/vendor/comments
+  // Retrieve all comments this vendor has left on bookings.
   async getVendorComments(req: Request, res: Response) {
-    const vendor = await this.userRepository.findOneBy({
-      userID: parseInt(req.params.vendorID as string),
-    });
-
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    // find the vendor
+    const vendorID = this.vendorID(req);
 
     const comments = await this.commentRepository.find({
-      where: { booking: { application: { venue: { vendor: { userID: vendor.userID } } } } },
+      where: { booking: { application: { venue: { vendor: { userID: vendorID } } } } },
       relations: {
         booking: {
           application: {
@@ -191,15 +191,26 @@ export class VendorController {
     res.json(comments);
   }
 
+  // ------------------------------------------------------------------------------------------
+  // ------------------ DELETE A COMMENT ON ACCEPTED BOOKINGS FOR THIS VENDORS APPLICANTS --------------
+  // ------------------------------------------------------------------------------------------
+  // DELETE /api/vendor/comments/:commentID
   async deleteVendorComment(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
     const commentID = parseInt(req.params.commentID as string);
 
     let commentToDelete = await this.commentRepository.findOne({
       where: { commentID },
+      relations: { vendor: true },
     });
 
     if (!commentToDelete) {
       return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Ownership check: only the vendor who wrote the comment can delete it
+    if (commentToDelete.vendor.userID !== vendorID) {
+      return res.status(403).json({ message: "Not authorised to delete this comment" });
     }
 
     try {
@@ -210,16 +221,26 @@ export class VendorController {
     }
   }
 
+  // ------------------------------------------------------------------------------------------
+  // ------------------ EDIT COMMENT ON ACCEPTED BOOKINGS FOR THIS VENDORS APPLICANTS --------------
+  // ------------------------------------------------------------------------------------------
   async updateVendorComment(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
     const commentID = parseInt(req.params.commentID as string);
     const { commentText, dateLastEdit } = req.body;
 
     let commentToUpdate = await this.commentRepository.findOne({
       where: { commentID },
+      relations: { vendor: true },
     });
 
     if (!commentToUpdate) {
       return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Ownership check: only the vendor who wrote the comment can edit it
+    if (commentToUpdate.vendor.userID !== vendorID) {
+      return res.status(403).json({ message: "Not authorised to edit this comment" });
     }
 
     commentToUpdate = Object.assign(commentToUpdate, {
@@ -235,10 +256,28 @@ export class VendorController {
     }
   }
 
+  // ------------------------------------------------------------------------------------------
+  // ------------------ ADD A NEW COMMENT TO A BOOKINGS FOR THIS VENDORS VENUE ----------------
+  // ------------------------------------------------------------------------------------------
   async createVendorComment(req: Request, res: Response) {
-    const vendorID = parseInt(req.params.vendorID as string);
+    const vendorID = this.vendorID(req);
     const bookingID = parseInt(req.params.bookingID as string);
     const { commentText } = req.body;
+
+    // Load the booking with relations to verify it belongs to this vendor
+    const booking = await this.bookingRepository.findOne({
+      where: { bookingID },
+      relations: { application: { venue: { vendor: true } } },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Ownership check: only the venue's vendor can comment on its bookings
+    if (booking.application.venue.vendor.userID !== vendorID) {
+      return res.status(403).json({ message: "Not authorised to comment on this booking" });
+    }
 
     const newComment = this.commentRepository.create({
       commentText,
@@ -253,5 +292,41 @@ export class VendorController {
       return res.status(500).json({ message: "Error saving comment ", error });
     }
     res.status(201).json(newComment);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // ------------------ EDIT LOGGED IN VENDORS NAME / PHONE -----------------------------------
+  // ------------------------------------------------------------------------------------------
+  // edit logged in vendors name / phone number
+  async updateProfile(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
+
+    const user = await this.userRepository.findOneBy({ userID: vendorID });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { firstName, lastName, phoneNumber, displayName } = req.body;
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.phoneNumber = phoneNumber;
+    if (displayName !== undefined) user.displayName = displayName;
+
+    try {
+      await this.userRepository.save(user);
+    } catch (error) {
+      return res.status(500).json({ message: "Error updating profile", error });
+    }
+
+    // Send back the safe fields only (never the password hash).
+    res.json({
+      userID: user.userID,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      joinedDate: user.joinedDate,
+    });
   }
 }

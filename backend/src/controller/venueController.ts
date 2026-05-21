@@ -13,25 +13,20 @@ export class VenueController {
    * @returns JSON response containing the created user or error message
    */
 
+  // get the logged-in vendor's ID from the verified JWT.
+  private vendorID(req: Request): number {
+    return req.user!.id;
+  }
+
   // -------------------------------------------------------------------
   // ------------------ GET A VENDORS VENUES -----------------------------
   // -------------------------------------------------------------------
   async getVendorVenues(req: Request, res: Response) {
-    console.log(req.params.vendorID);
-
-    /** Retrieve the profile from the database */
-    const vendor = await this.userRepository.findOneBy({
-      userID: parseInt(req.params.vendorID as string),
-    });
-
-    /** Check if the vendor exists, if not, return a 404 error */
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor not found" });
-    }
+    const vendorID = this.vendorID(req);
 
     /** Retrieve all venues associated with the profile from the database */
     const venues = await this.venueRepository.find({
-      where: { vendor: { userID: vendor.userID } },
+      where: { vendor: { userID: vendorID } },
     });
 
     /** Return the venues */
