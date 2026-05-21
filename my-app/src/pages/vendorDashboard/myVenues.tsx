@@ -52,14 +52,30 @@ export default function MyVenues() {
             Manage your listed venues and availability
           </Text>
         </Box>
-        <Button
-          bg="brand.primary"
-          color={"white"}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          + Add Venue
-        </Button>
+
+        {/* Add Venue button — navigates to the add venue form */}
+        <NextLink href="/vendorDashboard/addVenue">
+          <Button
+            bg="brand.primary"
+            color={"white"}
+            _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          >
+            + Add Venue
+          </Button>
+        </NextLink>
       </Flex>
+
+      {/* =========================== EMPTY STATE =========================== */}
+      {/* if no venues  */}
+      {venues.length === 0 && (
+        <Box textAlign="center" color="gray.400" mt={10}>
+          <Text>No venues yet — list your first venue now!</Text>
+          <Flex>
+            <NextLink href={`/vendorDashboard/addVenue/{vendorID}`}></NextLink>
+          </Flex>
+        </Box>
+      )}
+
       {/* Venue cards */}
       <Grid templateColumns="repeat(2, 1fr)" gap={4} alignItems="stretch">
         {venues.map((venue) => {
@@ -76,15 +92,6 @@ export default function MyVenues() {
               borderRadius={8}
               h="100%"
             >
-              {/* if no venues  */}
-              {venues.length === 0 && (
-                <Box textAlign="center" color="gray.400">
-                  No venues yet, list a venue now!
-                  <Flex>
-                    <NextLink href={`/vendorDashboard/addVenue/{vendorID}`}></NextLink>
-                  </Flex>
-                </Box>
-              )}
               {/* Venue image */}
               <Image
                 src={venue.imageURL}
@@ -124,7 +131,7 @@ export default function MyVenues() {
                   {totalBookings(venue.venueID) === 1 ? "booking" : "bookings"}
                 </Text>
 
-                {/* Manage availability button */}
+                {/* Manage availability button -- links to calendar page */}
                 <NextLink href={`/vendorDashboard/calendar/${venue.venueID}`}>
                   <Button
                     bg="brand.primary"
@@ -139,6 +146,20 @@ export default function MyVenues() {
                     }}
                   >
                     Manage Availability
+                  </Button>
+                </NextLink>
+
+                {/* Manage Venue button — links to edit venue form */}
+                <NextLink href={`/vendorDashboard/editVenue/${venue.venueID}`}>
+                  <Button
+                    variant="outline"
+                    borderColor="brand.primary"
+                    color="brand.primary"
+                    width="100%"
+                    mt={4}
+                    _hover={{ bg: "brand.primary", color: "white" }}
+                  >
+                    Manage Venue
                   </Button>
                 </NextLink>
               </Box>

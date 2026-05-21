@@ -22,45 +22,16 @@ export class AuthController {
   // ------------------ REGISTER NEW USER -----------------------------
   // -------------------------------------------------------------------
   async register(request: Request, response: Response) {
-    // get details from submitted form
+    // get details from submitted form, validation check handled in DTO
     const { firstName, lastName, email, phoneNumber, role, password } = request.body;
 
-    // validate all required fields have been entered
-    if (!firstName || !lastName || !email || !phoneNumber || !role || !password) {
-      return response.status(400).json({ message: "All fields are required" });
-    }
-
-    // validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return response.status(400).json({ message: "Invalid email format" });
-    }
-
-    // validate password requirements
-    if (password.length < 6) {
-      return response.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-    if (!/[A-Z]/.test(password)) {
-      return response.status(400).json({ message: "Must contain an uppercase letter" });
-    }
-    if (!/\d/.test(password)) {
-      return response.status(400).json({ message: "Must contain a number" });
-    }
-
-    if (!/[a-z]/.test(password)) {
-      return response.status(400).json({ message: "Must contain a lowercase letter" });
-    }
-
-    if (!/[^a-zA-Z0-9]/.test(password)) {
-      return response.status(400).json({ message: "Must contain a special character" });
-    }
-
     // check if email address is already taken
-    let userEmail = await this.userRepository.findOne({
+    let existingUser = await this.userRepository.findOne({
       where: { email },
     });
 
     // if email address is already used return error message
-    if (userEmail) {
+    if (existingUser) {
       return response.status(400).json({ message: "Email already taken" });
     }
 
@@ -88,11 +59,12 @@ export class AuthController {
   // -------------------------------------------------------------------
   // ------------------ SIGN IN ----------------------------------------
   // -------------------------------------------------------------------
+  // Returns user data and a signed JWT token on success.
   async signIn(request: Request, response: Response) {
     const { email, password } = request.body;
 
     // check if email address is valid in database
-    let user = await this.userRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: { email },
     });
 
@@ -109,9 +81,10 @@ export class AuthController {
       return response.status(401).json({ message: "Invalid email or password" });
     }
 
+    // Sign a JWT with the user's id, role and email
     const token = signToken({ id: user.userID, role: user.role, email: user.email });
 
-    // send back user data to front end
+    // send back user data with token to front end
     return response.status(200).json({
       message: "Sign in successful",
       user: {
@@ -128,9 +101,16 @@ export class AuthController {
   // -------------------------------------------------------------------
   // ------------------ GET USER PROFILE -------------------------------
   // -------------------------------------------------------------------
+  // Requires a valid JWT
   async getUserProfile(request: Request, response: Response) {
     // get userID from the URL and convert to int
     const userID = parseInt(request.params.id as string); //matches name in route file
+    const loggedInID = request.user!.id;
+
+    // check if profile trying to view matches logged in user
+    if (userID !== loggedInID) {
+      return response.status(403).json({ message: "Not authorised to view this profile" });
+    }
 
     // find user in database
     const user = await this.userRepository.findOne({

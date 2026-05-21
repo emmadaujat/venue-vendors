@@ -1,56 +1,95 @@
 import api from "@/services/api";
 import { Venue, Application, Booking, VendorComment } from "@/types";
 
+// Input type for updating the vendor's profile
+export interface UpdateProfileInput {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
 export const vendorApi = {
-  getVendorsVenues: async (vendorID: number): Promise<Venue[]> => {
-    const response = await api.get(`/${vendorID}/venues`);
+  // -------------------------------------------------------------------
+  // GET /venues
+  // Fetch all venues belonging to the logged-in vendor
+  // -------------------------------------------------------------------
+  getVendorsVenues: async (): Promise<Venue[]> => {
+    const response = await api.get(`/venues`);
     return response.data;
   },
 
-  getVendorApplications: async (vendorID: number): Promise<Application[]> => {
-    const response = await api.get(`/${vendorID}/applications`);
+  // -------------------------------------------------------------------
+  // GET /applications
+  // Fetch all applications submitted to the logged-in vendor's venues
+  // -------------------------------------------------------------------
+  getVendorApplications: async (): Promise<Application[]> => {
+    const response = await api.get(`/applications`);
     return response.data;
   },
 
-  getVendorBookings: async (vendorID: number): Promise<Booking[]> => {
-    const response = await api.get(`/${vendorID}/bookings`);
+  // -------------------------------------------------------------------
+  // GET /bookings
+  // Fetch all bookings across the logged-in vendor's venues
+  // -------------------------------------------------------------------
+  getVendorBookings: async (): Promise<Booking[]> => {
+    const response = await api.get(`/bookings`);
     return response.data;
   },
 
-  getVendorComments: async (vendorID: number): Promise<VendorComment[]> => {
-    const response = await api.get(`/${vendorID}/comments`);
+  // -------------------------------------------------------------------
+  // GET /comments
+  // Fetch all comments the logged-in vendor has left on bookings
+  // -------------------------------------------------------------------
+  getVendorComments: async (): Promise<VendorComment[]> => {
+    const response = await api.get(`/comments`);
     return response.data;
   },
 
-  updateApplicationStatus: async (
-    vendorID: number,
-    applicationID: number,
-    status: string,
-  ): Promise<Application> => {
-    const response = await api.put(`/${vendorID}/applications/${applicationID}`, { status });
+  // -------------------------------------------------------------------
+  // PUT /applications/:applicationID
+  // Update the status (Pending/Approved/Declined) of an application
+  // -------------------------------------------------------------------
+  updateApplicationStatus: async (applicationID: number, status: string): Promise<Application> => {
+    const response = await api.put(`/applications/${applicationID}`, { status });
     return response.data;
   },
 
-  deleteApplicationComment: async (vendorID: number, commentID: number): Promise<boolean> => {
-    const response = await api.delete(`/${vendorID}/comments/${commentID}`, {});
+  // -------------------------------------------------------------------
+  // DELETE /comments/:commentID
+  // Delete a comment the logged-in vendor has left on a booking
+  // -------------------------------------------------------------------
+  deleteApplicationComment: async (commentID: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/comments/${commentID}`);
     return response.data;
   },
 
+  // -------------------------------------------------------------------
+  // PUT /comments/:commentID
+  // Edit the text of an existing comment left by the logged-in vendor
+  // -------------------------------------------------------------------
   editApplicationComment: async (
-    vendorID: number,
     commentID: number,
     commentText: string,
   ): Promise<VendorComment> => {
-    const response = await api.put(`/${vendorID}/comments/${commentID}`, { commentText });
+    const response = await api.put(`/comments/${commentID}`, { commentText });
     return response.data;
   },
 
-  createComment: async (
-    vendorID: number,
-    bookingID: number,
-    commentText: string,
-  ): Promise<VendorComment> => {
-    const response = await api.post(`/${vendorID}/comments/${bookingID}`, { commentText });
+  // -------------------------------------------------------------------
+  // POST /bookings/:bookingID/comments
+  // Add a new comment to a booking under the logged-in vendor's venue
+  // -------------------------------------------------------------------
+  createComment: async (bookingID: number, commentText: string): Promise<VendorComment> => {
+    const response = await api.post(`/bookings/${bookingID}/comments`, { commentText });
+    return response.data;
+  },
+
+  // -------------------------------------------------------------------
+  // PUT /profile
+  // Update the logged-in vendor's name and phone number
+  // -------------------------------------------------------------------
+  updateProfile: async (input: UpdateProfileInput) => {
+    const response = await api.put("/profile", input);
     return response.data;
   },
 };
