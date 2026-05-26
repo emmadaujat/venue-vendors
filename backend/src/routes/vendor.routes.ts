@@ -6,6 +6,7 @@ import { UpdateApplicationStatusDTO } from "../dtos/update-application-status.dt
 import { validateDto } from "../middlewares/validate";
 import { VendorCommentDTO } from "../dtos/vendor-comment.dto";
 import { UpdateProfileDTO } from "../dtos/update-profile.dto";
+import { ManageVenueDTO } from "../dtos/manage-venue.dto";
 
 const router = Router();
 const venueController = new VenueController();
@@ -66,5 +67,20 @@ router.post("/bookings/comments/:bookingID", validateDto(VendorCommentDTO), asyn
 router.put("/profile", validateDto(UpdateProfileDTO), (req, res) =>
   vendorController.updateProfile(req, res),
 );
+
+// Update a venue's details, amenities and suitability tags
+router.put("/venues/:venueID", validateDto(ManageVenueDTO), async (req, res) => {
+  await venueController.updateVenue(req, res);
+});
+
+// Delete a venue and all its related data
+router.delete("/venues/:venueID", async (req, res) => {
+  await venueController.deleteVenue(req, res);
+});
+
+// Create a new venue for the logged-in vendor
+router.post("/venues", validateDto(ManageVenueDTO), async (req, res) => {
+  await venueController.createVenue(req, res);
+});
 
 export default router;

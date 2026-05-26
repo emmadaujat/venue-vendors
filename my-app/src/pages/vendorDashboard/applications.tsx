@@ -49,6 +49,7 @@ export default function VendorApplications() {
       </VendorDashboardLayout>
     );
 
+  // TODO: sorting most - least recent is doing opposite way
   // TODO: implement reputation sorting once reputation score  is built
   // Sort applications based on selected sort option
   const sortedApplications = [...applications].sort((a, b) => {
@@ -92,13 +93,15 @@ export default function VendorApplications() {
             </Text>
           </Box>
         </Flex>
-        <Button
-          bg="brand.primary"
-          color={"white"}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          + Add Venue
-        </Button>
+        <NextLink href={`/vendorDashboard/addVenue/`}>
+          <Button
+            bg="brand.primary"
+            color={"white"}
+            _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          >
+            + Add Venue
+          </Button>
+        </NextLink>
       </Flex>
 
       {/* Dashboard title */}

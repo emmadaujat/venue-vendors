@@ -18,6 +18,7 @@ import {
   Td,
   Badge,
 } from "@chakra-ui/react";
+import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -118,13 +119,15 @@ export default function InfographicReport() {
             </Text>
           </Box>
         </Flex>
-        <Button
-          bg="brand.primary"
-          color={"white"}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          + Add Venue
-        </Button>
+        <NextLink href={`/vendorDashboard/addVenue/`}>
+          <Button
+            bg="brand.primary"
+            color={"white"}
+            _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          >
+            + Add Venue
+          </Button>
+        </NextLink>
       </Flex>
 
       {/* Dashboard title */}

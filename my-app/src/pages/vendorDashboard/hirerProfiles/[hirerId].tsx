@@ -1,11 +1,4 @@
 import {
-  DEFAULT_USERS,
-  DEFAULT_BOOKINGS,
-  DEFAULT_VENUES,
-  DEFAULT_APPLICATIONS,
-  DEFAULT_VENDOR_COMMENTS,
-} from "../../../dummyData";
-import {
   Text,
   Flex,
   Box,
@@ -27,6 +20,10 @@ import { useState, useEffect } from "react";
 import NextLink from "next/link";
 import { StarIcon, CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
 import { getPDFfromDB } from "@/pdfStorage";
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { getReputationBadge, getHirerAvgRating } from "@/hirerRatingCalculation";
+import { useVendorComments } from "@/hooks/vendor/useVendorComments";
 
 // Hardcoded reputation scores per hirer
 const HIRER_REPUTATION_SCORES: Record<string, number> = {
@@ -40,7 +37,19 @@ export default function HirerProfileDetail() {
   const { hirerId } = router.query;
   const { user } = useAuth("vendor");
 
-  // State - localStorage comment and document data
+  // Fetch from custom hooks
+  const {
+    applications,
+    isLoading: applicationsLoading,
+    fetchApplications,
+  } = useVendorApplications();
+  const { bookings } = useVendorBookings();
+  const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
+
+  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
+  const isLoading = applicationsLoading || commentsLoading;
+
+  // States
   const [vendorComment, setVendorComment] = useState<string>("");
   const [licenseFileName, setLicenseFileName] = useState<string>("");
   const [insuranceFileName, setInsuranceFileName] = useState<string>("");

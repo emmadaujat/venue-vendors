@@ -12,6 +12,10 @@ import bookingRoutes from "./routes/booking.routes";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.get("/api/test", (req, res) => {
+  res.json({ message: "test works" });
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -25,7 +29,7 @@ app.use("/api/venues", venueRoutes);
 app.use("/api/hirer", hirerRoutes);
 app.use("/api/bookings", bookingRoutes);
 
-app.use("/api", vendorRoutes);
+app.use("/api/vendor", vendorRoutes);
 
 // Connect to the database then start the server
 AppDataSource.initialize()

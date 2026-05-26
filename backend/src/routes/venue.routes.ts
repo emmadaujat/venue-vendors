@@ -1,5 +1,5 @@
 // ===========================================================
-// venue.routes.ts - public venue browsing 
+// venue.routes.ts - public venue browsing
 // ===========================================================
 // Browsing venues is public (a visitor can look before signing
 // up), so these routes do NOT use requireAuth. Mounted at
@@ -17,9 +17,7 @@ const venueBrowseController = new VenueBrowseController();
 
 router.get("/", (req, res) => venueBrowseController.getAllVenues(req, res));
 
-router.get("/:id/suitability", (req, res) =>
-  venueBrowseController.getVenueSuitability(req, res),
-);
+router.get("/:id/suitability", (req, res) => venueBrowseController.getVenueSuitability(req, res));
 
 router.get("/:id", (req, res) => venueBrowseController.getVenueById(req, res));
 

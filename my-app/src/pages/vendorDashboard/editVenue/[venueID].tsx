@@ -15,9 +15,16 @@ import {
   FormControl,
   FormLabel,
   FormErrorMessage,
+  Spinner,
   Image,
   Badge,
   Divider,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -31,6 +38,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
 import { vendorApi } from "@/services/vendorApi";
 
 import {
@@ -51,7 +59,14 @@ const AVAILABILITY_OPTIONS = ["Available", "Limited Availability", "Not Availabl
 
 export default function EditVenue() {
   const router = useRouter();
+  const { venueID } = router.query;
   const { user } = useAuth("vendor");
+
+  // Fetch all vendor venues from hook
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
+
+  // Find the specific venue by ID from the URL
+  const venue = venues.find((v) => v.venueID === parseInt(venueID as string));
 
   // ===========================================================
   // Form state — all pre-populated from the venue once it loads
@@ -88,27 +103,31 @@ export default function EditVenue() {
   // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
+  // ===========================================================
+  // Delete confirmation dialog
+  // ===========================================================
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   // -------------------------------------------------------------------
-  // Retrieve draft from localStorage
+  // Pre-populate form fields once venue data is loaded from venue details
   // -------------------------------------------------------------------
-  // Load draft on page load if there is one
   useEffect(() => {
-    const saved = localStorage.getItem("createVenueDraft");
-    if (saved) {
-      const draft = JSON.parse(saved);
-      setName(draft.name ?? "");
-      setLocation(draft.location ?? "");
-      setCapacity(draft.capacity ?? "");
-      setPricePerDay(draft.pricePerDay ?? "");
-      setShortDescription(draft.shortDescription ?? "");
-      setImageURL(draft.imageURL ?? "");
-      setAvailabilityStatus(draft.availabilityStatus ?? "Available");
-      setAmenities(draft.amenities ?? []);
-      setSuitabilityTags(draft.suitabilityTags ?? []);
+    if (venue) {
+      setName(venue.name);
+      setLocation(venue.location);
+      setCapacity(String(venue.capacity));
+      setPricePerDay(String(venue.pricePerDay));
+      setShortDescription(venue.shortDescription);
+      setImageURL(venue.imageURL);
+      setAvailabilityStatus(venue.availabilityStatus);
+      setSuitabilityTags(venue.suitabilityTags ?? []);
+      setAmenities(venue.amenities ?? []);
     }
-  }, []);
+  }, [venue]);
 
   // -------------------------------------------------------------------
   // Amenity helpers
@@ -161,12 +180,13 @@ export default function EditVenue() {
   }
 
   // ===========================================================
-  // Confirm create — called when vendor clicks create in the preview modal
+  // Confirm save — called when vendor clicks Save in the preview modal
   // ===========================================================
   async function handleConfirmSave() {
+    if (!venue) return;
     setIsSubmitting(true);
     try {
-      await vendorApi.createVenue({
+      await vendorApi.updateVenue(venue.venueID, {
         name,
         location,
         capacity: Number(capacity),
@@ -178,58 +198,36 @@ export default function EditVenue() {
         suitabilityTags,
       });
       setSaveSuccess(true);
-      localStorage.removeItem("createVenueDraft");
       // Show success message for 1.5 seconds then redirect
       setTimeout(() => {
         onPreviewClose();
         setSaveSuccess(false);
         router.push("/vendorDashboard/myVenues");
       }, 1500);
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        setSubmitError("You already have a venue with this name and location.");
-      } else {
-        setSubmitError("Something went wrong saving the venue. Please try again.");
-      }
+    } catch (error) {
+      setSubmitError("Something went wrong saving the venue. Please try again.");
       onPreviewClose();
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 300); // wait for modal close animation to finish // scroll to top if error
+    } finally {
       setIsSubmitting(false);
     }
   }
 
-  function handleSaveDraft() {
-    localStorage.setItem(
-      "createVenueDraft",
-      JSON.stringify({
-        name,
-        location,
-        capacity,
-        pricePerDay,
-        shortDescription,
-        imageURL,
-        availabilityStatus,
-        amenities,
-        suitabilityTags,
-      }),
-    );
-  }
-
   // ===========================================================
-  // Cancel form — reset all form fields to empty, clear saved draft from localStorage
+  // Confirm delete — called when vendor confirms in the delete dialog
   // ===========================================================
-  function handleCancel() {
-    setName("");
-    setLocation("");
-    setCapacity("");
-    setPricePerDay("");
-    setShortDescription("");
-    setImageURL("");
-    setAvailabilityStatus("Available");
-    setSuitabilityTags([]);
-    setAmenities([]);
-    localStorage.removeItem("createVenueDraft");
+  async function handleConfirmDelete() {
+    if (!venue) return;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      await vendorApi.deleteVenue(venue.venueID);
+      onDeleteClose();
+      router.push("/vendorDashboard/myVenues");
+    } catch (error) {
+      setDeleteError("Something went wrong deleting the venue. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   // ===========================================================
@@ -239,6 +237,30 @@ export default function EditVenue() {
     if (status === "Available") return "green";
     if (status === "Limited Availability") return "orange";
     return "red";
+  }
+
+  // ===========================================================
+  // Loading state — show spinner while venues are being fetched
+  // ===========================================================
+  if (venuesLoading) {
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
+  }
+
+  // ===========================================================
+  // if venue not found or doesn't belong to this vendor
+  // ===========================================================
+  if (!venue) {
+    return (
+      <VendorDashboardLayout>
+        <Text color="gray.500">Venue not found or you do not have permission to edit it.</Text>
+      </VendorDashboardLayout>
+    );
   }
 
   return (
@@ -259,31 +281,27 @@ export default function EditVenue() {
       <Flex justify="space-between" mt={8} mb={4} maxW="80%">
         <Box mt={8} mb={4}>
           <Text fontSize="lg" fontWeight="bold">
-            Add a new Venue
+            Edit Venue - {venue.name}
           </Text>
           <Text fontSize="sm" color="gray.500">
-            Create new venues you manage
+            Update your venue details below
           </Text>
         </Box>
 
         <Flex gap={3}>
           <NextLink href="/vendorDashboard/myVenues">
-            <Button
-              variant="outline"
-              borderColor="brand.primary"
-              color="brand.primary"
-              onClick={handleCancel}
-            >
+            <Button variant="outline" borderColor="brand.primary" color="brand.primary">
               Cancel
             </Button>
           </NextLink>
           <Button
             bg="brand.primary"
             color="white"
-            onClick={handleSaveDraft}
+            onClick={handleSaveClick}
+            isLoading={isSubmitting}
             _hover={{ bg: "brand.secondary", color: "brand.primary" }}
           >
-            Save Draft
+            Save
           </Button>
         </Flex>
       </Flex>
@@ -312,23 +330,6 @@ export default function EditVenue() {
           {availabilityStatus}
         </Badge>
       </Flex>
-
-      {/* ===================== SUBMIT ERROR ===================== */}
-      {submitError && (
-        <Box
-          bg="red.50"
-          border="1px solid"
-          borderColor="red.300"
-          borderRadius="md"
-          p={3}
-          mb={4}
-          maxW="80%"
-        >
-          <Text color="red.600" fontSize="sm" fontWeight="semibold">
-            {submitError}
-          </Text>
-        </Box>
-      )}
 
       {/* ===================== VENUE DETAILS FORM CARD ===================== */}
       <Box border="1px solid" borderColor="gray.200" borderRadius="md" mb={8} maxW="80%">
@@ -572,17 +573,26 @@ export default function EditVenue() {
           )}
         </Box>
       </Box>
-      <Flex mt={10} justify={"flex-end"} maxW={"80%"}>
+
+      {/* ===================== DELETE VENUE BUTTON ===================== */}
+      <Flex justify="flex-start" mb={8} mt={20}>
         <Button
-          bg="brand.primary"
+          bg="red.500"
           color="white"
-          onClick={handleSaveClick}
-          isLoading={isSubmitting}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          onClick={onDeleteOpen}
+          _hover={{ bg: "red.600" }}
+          leftIcon={<span>🗑</span>}
         >
-          Add Venue
+          DELETE VENUE
         </Button>
       </Flex>
+
+      {/* ===================== SUBMIT ERROR ===================== */}
+      {submitError && (
+        <Text color="red.500" fontSize="sm" mb={4}>
+          {submitError}
+        </Text>
+      )}
 
       {/* ===========================================================
           SAVE PREVIEW MODAL
@@ -593,7 +603,7 @@ export default function EditVenue() {
         <ModalContent>
           <ModalHeader color="brand.primary">
             {" "}
-            {saveSuccess ? "Venue successfully created!" : "Create Venue Confirmation Preview"}
+            {saveSuccess ? "Venue Updated!" : "Update Venue Confirmation Preview"}
           </ModalHeader>
 
           <ModalBody>
@@ -601,7 +611,7 @@ export default function EditVenue() {
               // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
-                  ✓ Venue Created Successfully!
+                  ✓ Venue Updated Successfully!
                 </Text>
                 <Text fontSize="sm" color="gray.500">
                   Redirecting you back to My Venues...
@@ -681,13 +691,60 @@ export default function EditVenue() {
                   isLoading={isSubmitting}
                   _hover={{ bg: "brand.secondary", color: "brand.primary" }}
                 >
-                  Create
+                  Save
                 </Button>
               </>
             )}
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* ===========================================================
+          DELETE CONFIRMATION DIALOG
+      =========================================================== */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="brand.primary">
+              Delete Venue
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <Text>
+                Are you sure you want to delete <strong>{venue.name}</strong> from VenueVendors?
+              </Text>
+              <Text fontSize="sm" color="gray.500" mt={2}>
+                Deleting a venue cannot be undone.
+              </Text>
+              {deleteError && (
+                <Text color="red.500" fontSize="sm" mt={2}>
+                  {deleteError}
+                </Text>
+              )}
+            </AlertDialogBody>
+
+            <AlertDialogFooter gap={3}>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Cancel
+              </Button>
+              <Button
+                bg="red.500"
+                color="white"
+                onClick={handleConfirmDelete}
+                isLoading={isDeleting}
+                _hover={{ bg: "red.600" }}
+              >
+                DELETE VENUE
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </VendorDashboardLayout>
   );
 }

@@ -22,7 +22,7 @@ export class Application {
   @PrimaryGeneratedColumn()
   applicationID: number;
 
-  @ManyToOne(() => Venue, (venue) => venue.applications)
+  @ManyToOne(() => Venue, (venue) => venue.applications, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "venueID" })
   venue: Venue;
 
