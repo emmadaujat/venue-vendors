@@ -1,4 +1,3 @@
-import { DEFAULT_USERS, DEFAULT_APPLICATIONS, DEFAULT_VENUES } from "../../dummyData";
 import {
   Text,
   Avatar,
@@ -12,23 +11,21 @@ import {
   Th,
   Td,
   Badge,
+  Spinner,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
-import { getAllApplications } from "@/getApplications";
-
-// Hardcoded reputation scores
-const HIRER_REPUTATION_SCORES: Record<string, number> = {
-  "1": 4.5, // Taylor Swift
-  "2": 4.2, // Beyonce
-  "3": 3.8, // Ariana Grande
-};
+import { useState } from "react";
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { getReputationBadge, getHirerAvgRating } from "@/hirerRatingCalculation";
 
 export default function HirerProfiles() {
   const { user } = useAuth("vendor");
-  const [applications, setApplications] = useState(DEFAULT_APPLICATIONS);
+  const { applications, isLoading: applicationsLoading } = useVendorApplications();
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+  const isLoading = applicationsLoading || bookingsLoading;
 
   // Credibility score from localStorage
   // Saved by the hirer when they submit their application
@@ -37,22 +34,14 @@ export default function HirerProfiles() {
   const [credibilityScore, setCredibilityScore] = useState<number>(0);
 
   // Helper - check local storage and dummy data for status and comment updates
-  useEffect(() => {
-    if (!user?.id) return;
-    // Load all applications from dummyData + localStorage (new submissions + status updates)
-    setApplications(getAllApplications());
-    // Credibility score saved on application submit
-    const storedScore = localStorage.getItem("credibilityScore");
-    if (storedScore) setCredibilityScore(Number(storedScore));
-  }, [user?.id]);
-
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Filter data to only show this vendor's data
-  const vendorVenues = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id);
-  const vendorVenueIds = vendorVenues.map((v) => v.id);
-  const vendorApplications = applications.filter((a) => vendorVenueIds.includes(a.venueId));
+  // useEffect(() => {
+  //   if (!user?.id) return;
+  //   // Load all applications from dummyData + localStorage (new submissions + status updates)
+  //   setApplications(getAllApplications());
+  //   // Credibility score saved on application submit
+  //   const storedScore = localStorage.getItem("credibilityScore");
+  //   if (storedScore) setCredibilityScore(Number(storedScore));
+  // }, [user?.id]);
 
   {
     /*TODO: update getting data from database*/
@@ -60,45 +49,26 @@ export default function HirerProfiles() {
   // Deduplicate hirers - one row per unique hirerId
   // A hirer may have applied to multiple venues so we only
   // want to show them once in the list
-  const uniqueHirerIds = vendorApplications
-    .map((a) => a.hirerId)
-    .filter((id, index, self) => self.indexOf(id) === index);
+  const uniqueHirerIds = [...new Map(applications.map((a) => [a.hirer.userID, a.hirer])).values()];
 
   {
     /*TODO: update getting data from database*/
   }
   // Build hirer rows with all display data pre-calculated
-  const hirerRows = uniqueHirerIds.map((hirerId) => {
-    const hirer = DEFAULT_USERS.find((u) => u.id === hirerId);
-
-    {
-      /*TODO: update getting data from database*/
-    }
-    // All applications this hirer has made to this vendor's venues
-    const hirerApplications = vendorApplications.filter((a) => a.hirerId === hirerId);
-
-    // Reputation score and badge from hardcoded scores
-    const score = HIRER_REPUTATION_SCORES[hirerId];
-    const reputationBadge = !score
-      ? { label: "No rating", color: "gray" }
-      : score >= 4.3
-        ? { label: "Verified", color: "green" }
-        : score >= 4.0
-          ? { label: "Good standing", color: "blue" }
-          : { label: "Unverified", color: "orange" };
-
-    // Application status summary
-    const approvedCount = hirerApplications.filter((a) => a.status === "Approved").length;
-    const pendingCount = hirerApplications.filter((a) => a.status === "Pending").length;
+  const hirerRows = uniqueHirerIds.map((hirer) => {
+    const hirerApplications = applications.filter((a) => a.hirer.userID === hirer.userID);
+    const reputation = getReputationBadge(hirer.userID, bookings);
+    const avgRating = getHirerAvgRating(hirer.userID, bookings);
+    const pendingCount = hirerApplications.filter((a) => a.status === "pending").length;
+    const approvedCount = hirerApplications.filter((a) => a.status === "approved").length;
     const declinedCount = hirerApplications.filter((a) => a.status === "Declined").length;
 
     return {
-      hirerId,
       hirer,
-      score,
-      reputationBadge,
-      approvedCount,
+      reputation,
+      avgRating,
       pendingCount,
+      approvedCount,
       declinedCount,
       totalApplications: hirerApplications.length,
     };
@@ -126,13 +96,15 @@ export default function HirerProfiles() {
             </Text>
           </Box>
         </Flex>
-        <Button
-          bg="brand.primary"
-          color={"white"}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          + Add Venue
-        </Button>
+        <NextLink href={`/vendorDashboard/addVenue/`}>
+          <Button
+            bg="brand.primary"
+            color={"white"}
+            _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          >
+            + Add Venue
+          </Button>
+        </NextLink>
       </Flex>
 
       {/* Page title */}
@@ -167,7 +139,7 @@ export default function HirerProfiles() {
             <Thead>
               <Tr>
                 <Th>Hirer</Th>
-                <Th>Reputation</Th>
+                <Th textAlign="left">Reputation</Th>
                 <Th>Credibility Score</Th>
                 <Th>Applications</Th>
                 <Th>Actions</Th>
@@ -176,7 +148,7 @@ export default function HirerProfiles() {
 
             <Tbody>
               {hirerRows.map((row) => (
-                <Tr key={row.hirerId}>
+                <Tr key={row.hirer.userID}>
                   {/* Hirer name and email */}
                   <Td>
                     <Text fontWeight="semibold">
@@ -188,21 +160,23 @@ export default function HirerProfiles() {
                   </Td>
 
                   {/* Reputation badge and numeric score */}
-                  <Td>
-                    <Flex direction="column" gap={1} align={"center"}>
-                      <Badge colorScheme={row.reputationBadge.color}>
-                        {row.reputationBadge.label}
-                      </Badge>
-                      {row.score && (
-                        <Text fontSize="xs" color="gray.500">
-                          {row.score} / 5
-                        </Text>
+                  <Td textAlign="left">
+                    <Flex gap={1} align={"center"}>
+                      <Box>
+                        <Badge colorScheme={row.reputation.color}>{row.reputation.label}</Badge>
+                      </Box>
+                      {row.avgRating !== null && (
+                        <Box>
+                          <Text fontSize="xs" color="gray.500">
+                            {row.avgRating} / 5
+                          </Text>
+                        </Box>
                       )}
                     </Flex>
                   </Td>
-                  {/* Credibility score from localStorage */}
+                  {/* TODO: Credibility score — N/A until compliance endpoint is available */}
                   <Td>
-                    <Text fontWeight="semibold">{credibilityScore}%</Text>
+                    <Text fontWeight="semibold">NA%</Text>
                   </Td>
 
                   {/* Application status breakdown for this vendor */}
@@ -227,7 +201,7 @@ export default function HirerProfiles() {
 
                   {/* Link to individual hirer profile page */}
                   <Td>
-                    <NextLink href={`/vendorDashboard/hirerProfiles/${row.hirerId}`}>
+                    <NextLink href={`/vendorDashboard/hirerProfiles/${row.hirer.userID}`}>
                       <Button
                         size="sm"
                         variant="outline"

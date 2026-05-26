@@ -93,13 +93,15 @@ export default function VendorApplications() {
             </Text>
           </Box>
         </Flex>
-        <Button
-          bg="brand.primary"
-          color={"white"}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          + Add Venue
-        </Button>
+        <NextLink href={`/vendorDashboard/addVenue/`}>
+          <Button
+            bg="brand.primary"
+            color={"white"}
+            _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+          >
+            + Add Venue
+          </Button>
+        </NextLink>
       </Flex>
 
       {/* Dashboard title */}

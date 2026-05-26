@@ -47,7 +47,11 @@ export default function Home() {
         </Box>
         <Flex justify="flex-start" ml="20px" gap={10} mt={4}>
           {(!isLoggedIn || isVendor) && (
-            <Button gap={2} as={NextLink} href={isVendor ? "/vendorDashboard" : "/signin"}>
+            <Button
+              gap={2}
+              as={NextLink}
+              href={isVendor ? `/vendorDashboard/addVenue/` : "/signin"}
+            >
               {" "}
               <span>
                 {" "}
@@ -207,60 +211,62 @@ export default function Home() {
           {/* venue cards 2x2 grid */}
           <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4} mb="10%" alignItems={"stretch"}>
             {/*TODO: update getting venues from database*/}
-            {venues.map((venue) => (
-              <Box
-                key={venue.venueID}
-                display="flex"
-                flexDirection="column"
-                p={10}
-                flex="1"
-                borderColor="grey"
-                boxShadow="lg"
-                bg="white"
-                borderRadius={8}
-                h="100%"
-              >
-                <Image src={venue.imageURL} alt={venue.name} objectFit="cover"></Image>
-                <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
-                  {venue.name}
-                </Text>
-                <Text fontSize="sm" fontWeight="semibold">
-                  {venue.location}
-                </Text>
-                <Text mt={2} fontSize="sm" fontWeight="regular">
-                  {venue.shortDescription}
-                </Text>
-                <Box mt="auto">
-                  <Flex justify="space-between" mb={2}>
-                    <Text mt={4} color="brand.primary" fontWeight="semibold">
-                      {venue.rating}{" "}
-                      <span>
-                        <StarIcon color="yellow.600"></StarIcon>
-                      </span>
-                    </Text>
-                    <Text mt={4} color="brand.primary" fontWeight="semibold">
-                      ${venue.pricePerDay}/day
-                    </Text>
-                  </Flex>
-                  <NextLink href={`/venues/${venue.venueID}`}>
-                    <Button
-                      bg="brand.primary"
-                      color="white"
-                      width="100%"
-                      mt={"auto"}
-                      _hover={{
-                        bg: "transparent",
-                        border: "2px solid",
-                        borderColor: "brand.primary",
-                        color: "brand.primary",
-                      }}
-                    >
-                      View Venue <ArrowForwardIcon />
-                    </Button>
-                  </NextLink>
+            {venues
+              .map((venue) => (
+                <Box
+                  key={venue.venueID}
+                  display="flex"
+                  flexDirection="column"
+                  p={10}
+                  flex="1"
+                  borderColor="grey"
+                  boxShadow="lg"
+                  bg="white"
+                  borderRadius={8}
+                  h="100%"
+                >
+                  <Image src={venue.imageURL} alt={venue.name} objectFit="cover"></Image>
+                  <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
+                    {venue.name}
+                  </Text>
+                  <Text fontSize="sm" fontWeight="semibold">
+                    {venue.location}
+                  </Text>
+                  <Text mt={2} fontSize="sm" fontWeight="regular">
+                    {venue.shortDescription}
+                  </Text>
+                  <Box mt="auto">
+                    <Flex justify="space-between" mb={2}>
+                      <Text mt={4} color="brand.primary" fontWeight="semibold">
+                        {venue.rating}{" "}
+                        <span>
+                          <StarIcon color="yellow.600"></StarIcon>
+                        </span>
+                      </Text>
+                      <Text mt={4} color="brand.primary" fontWeight="semibold">
+                        ${venue.pricePerDay}/day
+                      </Text>
+                    </Flex>
+                    <NextLink href={`/venues/${venue.venueID}`}>
+                      <Button
+                        bg="brand.primary"
+                        color="white"
+                        width="100%"
+                        mt={"auto"}
+                        _hover={{
+                          bg: "transparent",
+                          border: "2px solid",
+                          borderColor: "brand.primary",
+                          color: "brand.primary",
+                        }}
+                      >
+                        View Venue <ArrowForwardIcon />
+                      </Button>
+                    </NextLink>
+                  </Box>
                 </Box>
-              </Box>
-            )).slice(0, 4)}
+              ))
+              .slice(0, 4)}
           </Grid>
         </Box>
 
