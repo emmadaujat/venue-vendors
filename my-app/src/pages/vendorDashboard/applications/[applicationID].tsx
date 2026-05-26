@@ -120,7 +120,7 @@ export default function ApplicationReview() {
     if (!pendingAction || !application) return;
 
     try {
-      await vendorApi.updateApplicationStatus(user!.id, application.applicationID, pendingAction);
+      await vendorApi.updateApplicationStatus(application.applicationID, pendingAction);
       fetchApplications();
       setIsSuccess(true);
       // Show success message for 1 second
@@ -141,7 +141,7 @@ export default function ApplicationReview() {
     if (!vendorComment) return;
 
     try {
-      await vendorApi.editApplicationComment(user!.id, vendorComment.commentID, commentText);
+      await vendorApi.editApplicationComment(vendorComment.commentID, commentText);
       fetchComments();
       setIsEditingComment(false);
       setCommentSaved(true);
@@ -161,7 +161,7 @@ export default function ApplicationReview() {
         bookings.find(
           (booking) => booking.application.applicationID === parseInt(applicationID as string),
         ) ?? null;
-      await vendorApi.createComment(user!.id, bookingComment!.bookingID, commentText);
+      await vendorApi.createComment(bookingComment!.bookingID, commentText);
       fetchComments();
       setCommentSaved(true);
       setTimeout(() => setCommentSaved(false), 1000);
@@ -177,7 +177,7 @@ export default function ApplicationReview() {
   const handleDeleteComment = async () => {
     if (!vendorComment) return;
     try {
-      await vendorApi.deleteApplicationComment(user!.id, vendorComment!.commentID);
+      await vendorApi.deleteApplicationComment(vendorComment!.commentID);
       setCommentDeleted(true);
       fetchComments();
       setCommentText("");

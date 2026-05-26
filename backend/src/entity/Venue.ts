@@ -51,16 +51,19 @@ export class Venue {
   @Column({ length: 50 })
   availabilityStatus: string;
 
+  // onDelete: "CASCADE" to the amenities, suitability tags and blocked dates relations
+  // those child records delete automatically with the venue
+
   // A venue can have many amenities
-  @OneToMany(() => VenueAmenities, (amenity) => amenity.venue)
+  @OneToMany(() => VenueAmenities, (amenity) => amenity.venue, { cascade: true })
   amenities: VenueAmenities[];
 
   // A venue can have many suitability tags
-  @OneToMany(() => VenueSuitabilityTag, (tag) => tag.venue)
+  @OneToMany(() => VenueSuitabilityTag, (tag) => tag.venue, { cascade: true })
   suitabilityTags: VenueSuitabilityTag[];
 
   // A venue can have many blocked date ranges
-  @OneToMany(() => VenueBlockedDates, (blocked) => blocked.venue)
+  @OneToMany(() => VenueBlockedDates, (blocked) => blocked.venue, { cascade: true })
   blockedDates: VenueBlockedDates[];
 
   // A venue can have many applications
