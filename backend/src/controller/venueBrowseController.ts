@@ -19,9 +19,11 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { Venue } from "../entity/Venue";
+import { Booking } from "../entity/Booking";
 
 export class VenueBrowseController {
   private venueRepository = AppDataSource.getRepository(Venue);
+  private bookingRepository = AppDataSource.getRepository(Booking);
 
   // -------------------------------------------------------------------
   // GET /api/venues?search=&location=&capacity=&keyword=
@@ -66,9 +68,7 @@ export class VenueBrowseController {
       // (e.g. keyword "Wedding" -> a tag whose name is "Wedding")
       if (keyword) {
         const tags = venue.suitabilityTags || [];
-        const hasTag = tags.some(
-          (t) => t.suitabilityName.toLowerCase() === keyword.toLowerCase(),
-        );
+        const hasTag = tags.some((t) => t.suitabilityName.toLowerCase() === keyword.toLowerCase());
         if (!hasTag) return false;
       }
 
@@ -126,9 +126,7 @@ export class VenueBrowseController {
     const tagNames = (venue.suitabilityTags || []).map((t) => t.suitabilityName);
 
     // Which tags match the chosen event type (case-insensitive)?
-    const matched = tagNames.filter(
-      (name) => name.toLowerCase() === eventType.toLowerCase(),
-    );
+    const matched = tagNames.filter((name) => name.toLowerCase() === eventType.toLowerCase());
 
     // Score = matched tags / total tags. Guard against divide-by-zero
     // when a venue has no tags yet.
@@ -138,5 +136,16 @@ export class VenueBrowseController {
     }
 
     res.json({ matched, score, allTags: tagNames });
+  }
+
+  // -------------------------------------------------------------------
+  // GET /api/venues/stats
+  // Returns platform-wide stats for the public landing page.
+  // No auth required — this is public data.
+  // -------------------------------------------------------------------
+  async getPlatformStats(req: Request, res: Response) {
+    // Count all bookings in the database for the "Events hosted" stat
+    const totalBookings = await this.bookingRepository.count();
+    res.json({ totalBookings });
   }
 }

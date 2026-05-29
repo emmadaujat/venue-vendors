@@ -196,4 +196,11 @@ export const hirerApi = {
     const response = await api.put("/hirer/profile", input);
     return response.data;
   },
+
+  // GET /api/venues/stats
+  // Fetches platform-wide stats for the landing page (no auth required)
+  getPlatformStats: async (): Promise<{ totalBookings: number }> => {
+    const response = await api.get("/venues/stats");
+    return response.data;
+  },
 };
