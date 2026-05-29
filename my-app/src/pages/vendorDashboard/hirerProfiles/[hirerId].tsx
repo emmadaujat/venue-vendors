@@ -16,7 +16,6 @@ import {
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
 import NextLink from "next/link";
 import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
 import { getReputationBadge, getHirerAvgRating } from "@/hirerRatingCalculation";
@@ -27,6 +26,7 @@ import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
 import { useVendorComments } from "@/hooks/vendor/useVendorComments";
 import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 import { useHirerBookingHistory } from "@/hooks/vendor/useHirerBookingHistory";
+import { useHirerCompliance } from "@/hooks/vendor/useHirerCompliance";
 
 export default function HirerProfileDetail() {
   const router = useRouter();
@@ -35,34 +35,27 @@ export default function HirerProfileDetail() {
   const hirerID = parseInt(hirerId as string);
 
   // Fetch from custom hooks
-  const {
-    applications,
-    isLoading: applicationsLoading,
-    fetchApplications,
-  } = useVendorApplications();
-
-  // This vendor's bookings — used for reputation and rating calculations
+  const { applications, isLoading: applicationsLoading } = useVendorApplications();
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
-
   // This hirer's full booking history across all venues — used for the table
   const { bookings: hirerBookings, isLoading: historyLoading } = useHirerBookingHistory(hirerID);
-
   // get vendor comments for hirer
-  const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
+  const { vendorComments, isLoading: commentsLoading } = useVendorComments();
+  // Compliance documents and credibility score for this hirer
+  const { documents, credibilityScore, isLoading: complianceLoading } = useHirerCompliance(hirerID);
 
   // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
-  const isLoading = applicationsLoading || bookingsLoading || commentsLoading || historyLoading;
-  const [credibilityScore, setCredibilityScore] = useState<number>(0);
+  const isLoading =
+    applicationsLoading ||
+    bookingsLoading ||
+    commentsLoading ||
+    historyLoading ||
+    complianceLoading;
 
   // -------------------------------------------------------------------
   // ---------- FIND HIRER DETAILS FROM APPLICATIONS ---------------------
   // -------------------------------------------------------------------
   const hirer = applications.find((a) => a.hirer.userID === hirerID)?.hirer;
-
-  // -------------------------------------------------------------------
-  // ---------- FIND BOOKINGS FOR THIS HIRER ---------------------------
-  // -------------------------------------------------------------------
-  // TODO:
 
   // ------------------------------------------------------------------
   // ---------- FIND VENDOR COMMENTS FOR HIRERID ----------------
@@ -87,11 +80,12 @@ export default function HirerProfileDetail() {
   function DocumentRow({
     label,
     fileName,
-    file,
+    fileURL,
   }: {
     label: string;
     fileName: string;
-    file: { fileName: string; data: string } | null;
+    fileURL?: string;
+    // file: { fileName: string; data: string } | null;
   }) {
     return (
       <Flex justify="space-between" align="center" py={2}>
@@ -105,8 +99,8 @@ export default function HirerProfileDetail() {
               <Text fontSize="sm" color="gray.700">
                 {fileName}
               </Text>
-              {file && (
-                <a href={file.data} download={file.fileName}>
+              {fileURL && (
+                <a href={fileURL} download={fileName}>
                   <Text
                     fontSize="sm"
                     fontWeight="semibold"
@@ -148,6 +142,12 @@ export default function HirerProfileDetail() {
       </VendorDashboardLayout>
     );
   }
+
+  // Find each compliance document type from the fetched documents
+  const licenseDoc = documents.find((d) => d.documentType === "Drivers License");
+  const insuranceDoc = documents.find((d) => d.documentType === "Public Liability Insurance");
+  const bizCertDoc = documents.find((d) => d.documentType === "Business Registration Certificate");
+  const isBusiness = documents.some((d) => d.isBusiness);
 
   return (
     <VendorDashboardLayout>
@@ -263,33 +263,32 @@ export default function HirerProfileDetail() {
             Compliance documents coming soon.
           </Text>
 
-          {/*  <DocumentRow
+          <DocumentRow
             label="Driver's License (JPG)"
-            fileName={licenseFileName}
-            file={licenseFile}
+            fileName={licenseDoc?.fileName ?? ""}
+            fileURL={licenseDoc?.fileURL}
           />
           <Divider />
           <DocumentRow
             label="Public Liability Insurance (PDF)"
-            fileName={insuranceFileName}
-            file={insuranceFile}
+            fileName={insuranceDoc?.fileName ?? ""}
+            fileURL={insuranceDoc?.fileURL}
           />
           <Divider />
- 
-          {/* Business cert only shows if hirer is applying as a business 
+
+          {/* Business cert only shows if hirer is applying as a business */}
           {isBusiness && (
             <>
               <Divider />
               <DocumentRow
                 label="Certificate of Business Registration (PDF)"
-                fileName={businessCertFileName}
-                file={businessCertFile}
+                fileName={bizCertDoc?.fileName ?? ""}
+                fileURL={bizCertDoc?.fileURL}
               />
             </>
           )}
 
           <Divider mt={2} mb={3} />
-          */}
 
           {/* Credibility score calculated */}
           <Flex justify="space-between" align="center">

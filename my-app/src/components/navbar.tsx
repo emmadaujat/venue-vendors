@@ -3,7 +3,7 @@ import Logo from "@/components/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { vendorApi } from "@/services/vendorApi";
-import type { Application, Venue, Booking, VendorComment } from "@/types";
+import type { Booking } from "@/types";
 
 import {
   Box,
@@ -24,6 +24,7 @@ import React from "react";
 import { SearchIcon, StarIcon } from "@chakra-ui/icons";
 import { useRouter } from "next/router";
 import NextLink from "next/link";
+import { hirerApi } from "@/services/hirerApi";
 
 // single nav link with hover style
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -51,6 +52,8 @@ function NavBar() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchText, setSearchText] = useState("");
+  const [hirerAvgRating, setHirerAvgRating] = useState<number>(0);
+  const [hirerTotalBookings, setHirerTotalBookings] = useState<number>(0);
 
   // pressing Enter in search bar goes to browseVenues with the query
   function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -69,10 +72,14 @@ function NavBar() {
   const fetchBookings = async () => {
     try {
       if (isVendor) {
-        const data = await vendorApi.getVendorBookings(user!.id);
+        const data = await vendorApi.getVendorBookings();
         setBookings(data);
+      } else if (isHirer) {
+        const reputation = await hirerApi.getReputation();
+        const bookingData = await hirerApi.getMyBookings();
+        setHirerAvgRating(reputation.avgRating ?? 0);
+        setHirerTotalBookings(bookingData.length);
       }
-      // TODO: add hirer bookings when built
     } catch (error) {
       console.log("Error fetching bookings", error); //log any error
     }
@@ -152,7 +159,9 @@ function NavBar() {
                     <Box display="flex" alignItems={"center"} gap={1}>
                       <StarIcon color="yellow.600" boxSize={3} />
                       <Text color="yellow.600" fontSize="sm">
-                        {avgRating.toFixed(1)} ({bookings.length})
+                        {isVendor
+                          ? `${avgRating.toFixed(1)} (${bookings.length})`
+                          : `${hirerAvgRating.toFixed(1)} (${hirerTotalBookings})`}
                       </Text>
                     </Box>
                     <NextLink href={isHirer ? "/hirer/dashboard" : "/vendorDashboard"}>

@@ -1,5 +1,5 @@
 import api from "@/services/api";
-import { Venue, Application, Booking, VendorComment } from "@/types";
+import { Venue, Application, Booking, VendorComment, ComplianceDocument } from "@/types";
 
 // Input type for updating the vendor's profile
 export interface UpdateProfileInput {
@@ -126,6 +126,17 @@ export const vendorApi = {
   // -------------------------------------------------------------------
   getHirerBookingHistory: async (hirerID: number): Promise<Booking[]> => {
     const response = await api.get(`/vendor/hirers/${hirerID}/bookings`);
+    return response.data;
+  },
+
+  // -------------------------------------------------------------------
+  // GET /vendor/hirers/:hirerID/compliance
+  // Fetch compliance documents and credibility score for a specific hirer
+  // -------------------------------------------------------------------
+  getHirerCompliance: async (
+    hirerID: number,
+  ): Promise<{ documents: ComplianceDocument[]; credibilityScore: number }> => {
+    const response = await api.get(`/vendor/hirers/${hirerID}/compliance`);
     return response.data;
   },
 };

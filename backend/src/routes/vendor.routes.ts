@@ -88,4 +88,9 @@ router.get("/hirers/:hirerID/bookings", async (req, res) => {
   await vendorController.getHirerBookingHistory(req, res);
 });
 
+// Fetch compliance documents and credibility score for a specific hirer
+router.get("/hirers/:hirerID/compliance", async (req, res) => {
+  await vendorController.getHirerCompliance(req, res);
+});
+
 export default router;

@@ -87,22 +87,7 @@ export default function ApplicationReview() {
       (c) => c.booking.application.applicationID === parseInt(applicationID as string),
     ) ?? null;
 
-  {
-    /*TODO: RETRIEVE applications from database*/
-  }
-  // On load - find the application, check localStorage for
-  // any previously saved status updates
-  // useEffect(() => {
-  //   if (!hirerId) return;
-
-  //   // display event permit
-  //   const savedPermit = localStorage.getItem("appDoc_permit");
-  //   if (savedPermit) {
-  //     const parsed = JSON.parse(savedPermit);
-  //     setPermitFileName(parsed.fileName);
-  //     setPermitFile(parsed);
-  //   }
-  // }, [hirerId]);
+  //TODO: load event permit from compliance documents endpoint
 
   // ------------------------------------------------------------
   // --------- OPENS APPLICATION STATUS CONFIRMATION ------------
@@ -202,7 +187,6 @@ export default function ApplicationReview() {
 
   const reputation = getReputationBadge(application?.hirer.userID, bookings);
 
-  console.log("vendorComment:", vendorComment);
   return (
     <VendorDashboardLayout>
       {/* Back link */}

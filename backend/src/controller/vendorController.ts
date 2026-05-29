@@ -6,6 +6,7 @@ import { Venue } from "../entity/Venue";
 import { Booking } from "../entity/Booking";
 import { VendorComment } from "../entity/VendorComment";
 import { HirerReputationTag } from "../entity/HirerReputationTag";
+import { ComplianceDocument } from "../entity/ComplianceDocument";
 
 export class VendorController {
   private userRepository = AppDataSource.getRepository(User);
@@ -13,6 +14,7 @@ export class VendorController {
   private venueRepository = AppDataSource.getRepository(Venue);
   private bookingRepository = AppDataSource.getRepository(Booking);
   private commentRepository = AppDataSource.getRepository(VendorComment);
+  private complianceRepository = AppDataSource.getRepository(ComplianceDocument);
 
   /**
    * @param request - Express request object containing user details in body
@@ -351,5 +353,35 @@ export class VendorController {
       order: { createdAt: "DESC" },
     });
     return res.json(bookings);
+  }
+
+  // ---------------------------------------------------------------
+  // ------------------ GET HIRER COMPLIANCE DOCS ------------------
+  // ---------------------------------------------------------------
+  // Fetch compliance documents and credibility score for a specific hirer.
+  // Used by the vendor to view a hirer's credibility on their profile page.
+  // hirerID comes from the URL param not the JWT
+  async getHirerCompliance(req: Request, res: Response) {
+    const hirerID = parseInt(req.params.hirerID as string);
+
+    // Verify the hirer exists and is actually a hirer role
+    const hirerExists = await this.userRepository.findOne({
+      where: { userID: hirerID, role: "hirer" },
+    });
+    if (!hirerExists) {
+      return res.status(404).json({ message: "Hirer not found" });
+    }
+
+    // Fetch all compliance documents for this hirer
+    const documents = await this.complianceRepository.find({
+      where: { hirer: { userID: hirerID } },
+      order: { uploadedAt: "DESC" },
+    });
+
+    // Calculate credibility score as a percentage
+    // score out of 5, capped at 5, converted to %
+    const credibilityScore = Math.round((Math.min(5, documents.length) / 5) * 100);
+
+    return res.json({ documents, credibilityScore });
   }
 }

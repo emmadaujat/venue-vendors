@@ -43,8 +43,7 @@ export default function VendorDashboard() {
   // ---------- STAT CARD CALCULATIONS --------------
   // ------------------------------------------------------------
 
-  // TODO: add endDate in application entity
-  // Total Revenue Calculations
+  // Total revenue — sum of pricePerDay for all completed bookings
   const totalRevenue = bookings
     .filter((booking) => booking.status === "Completed")
     .reduce((sum, booking) => sum + (booking.application.venue.pricePerDay ?? 0), 0);
@@ -71,23 +70,6 @@ export default function VendorDashboard() {
     bookings.length > 0
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
-
-  {
-    /*TODO: update getting data from database*/
-  }
-  // Approved applications with all display data pre-calculated
-  // const approvedApplicationsWithDetails = applications
-  //   .filter((a) => vendorVenueIds.includes(a.venueId) && a.status === "Approved")
-  //   .map((a) => ({
-  //     ...a,
-  //     hirer: DEFAULT_USERS.find((u) => u.id === a.hirerId),
-  //     venue: vendorVenues.find((v) => v.id === a.venueId),
-  //     // check localStorage comment first, fall back to dummyData comment
-  //     commentText:
-  //       vendorComments[a.hirerId] ??
-  //       DEFAULT_VENDOR_COMMENTS.find((c) => c.hirerId === a.hirerId && c.vendorId === user?.id)
-  //         ?.commentText,
-  //   }));
 
   if (isLoading)
     return (
@@ -219,7 +201,7 @@ export default function VendorDashboard() {
           </Text>
         </Flex>
 
-        <Table size="sm">
+        <Table size="md">
           <Thead>
             <Tr>
               <Th>Hirer</Th>
@@ -240,12 +222,18 @@ export default function VendorDashboard() {
                       No bookings yet
                     </Td>
                   )}
-
-                  {/* TODO: add link to view hirer page */}
+                  {/* Hirer name — links to hirer profile page */}
                   <Td>
-                    {booking.application.hirer.firstName} {booking.application.hirer.lastName}
+                    <Box>
+                      <NextLink
+                        href={`/vendorDashboard/hirerProfiles/${booking.application.hirer.userID}`}
+                      >
+                        <Text _hover={{ textDecoration: "underline" }} fontWeight="semibold">
+                          {booking.application.hirer.firstName} {booking.application.hirer.lastName}
+                        </Text>
+                      </NextLink>
+                    </Box>
                   </Td>
-                  {/* TODO: add link to view venue page */}
                   <Td>{booking.application.venue.name}</Td>
                   <Td>{booking.application.eventName}</Td>
                   <Td>{booking.application.eventType}</Td>
@@ -292,13 +280,13 @@ export default function VendorDashboard() {
             </Text>
           </NextLink>
         </Flex>
-        <Table size="sm">
+        <Table size="md">
           <Thead>
             <Tr>
               <Th>Applicant</Th>
               <Th>Venue</Th>
               <Th>Event Name</Th>
-              <Th>Event Type</Th>
+              <Th whiteSpace="nowrap">Event Type</Th>
               <Th>Date</Th>
               <Th>Guests</Th>
               <Th>Reputation</Th>
@@ -326,7 +314,11 @@ export default function VendorDashboard() {
                     <Td>
                       <Box>
                         <NextLink href={`/vendorDashboard/applications/${app.applicationID}`}>
-                          <Text _hover={{ textDecoration: "underline" }} fontWeight="semibold">
+                          <Text
+                            _hover={{ textDecoration: "underline" }}
+                            whiteSpace="nowrap"
+                            fontWeight="semibold"
+                          >
                             {app.hirer.firstName} {app.hirer.lastName}
                           </Text>
                         </NextLink>
@@ -350,7 +342,7 @@ export default function VendorDashboard() {
                         {getHirerAvgRating(app.hirer.userID, bookings) !== null ? (
                           <>
                             {renderStars(getHirerAvgRating(app.hirer.userID, bookings)!)}
-                            <Text gap={4} fontSize="xs" color="gray.500">
+                            <Text whiteSpace="nowrap" gap={4} fontSize="xs" color="gray.500">
                               {getHirerAvgRating(app.hirer.userID, bookings)} / 5
                             </Text>
                           </>

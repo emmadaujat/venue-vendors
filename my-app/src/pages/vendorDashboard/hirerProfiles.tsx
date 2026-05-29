@@ -16,10 +16,11 @@ import {
 import NextLink from "next/link";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
 import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 import { getReputationBadge, getHirerAvgRating } from "@/hirerRatingCalculation";
+import { vendorApi } from "@/services/vendorApi";
 
 export default function HirerProfiles() {
   const { user } = useAuth("vendor");
@@ -27,33 +28,14 @@ export default function HirerProfiles() {
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
   const isLoading = applicationsLoading || bookingsLoading;
 
-  // Credibility score from localStorage
-  // Saved by the hirer when they submit their application
-  // This is a single global value (not per hirer) since only
-  // one hirer is logged in at a time
-  const [credibilityScore, setCredibilityScore] = useState<number>(0);
+  // Credibility scores keyed by hirerID
+  const [credibilityScores, setCredibilityScores] = useState<Record<number, number>>({});
 
-  // Helper - check local storage and dummy data for status and comment updates
-  // useEffect(() => {
-  //   if (!user?.id) return;
-  //   // Load all applications from dummyData + localStorage (new submissions + status updates)
-  //   setApplications(getAllApplications());
-  //   // Credibility score saved on application submit
-  //   const storedScore = localStorage.getItem("credibilityScore");
-  //   if (storedScore) setCredibilityScore(Number(storedScore));
-  // }, [user?.id]);
-
-  {
-    /*TODO: update getting data from database*/
-  }
   // Deduplicate hirers - one row per unique hirerId
   // A hirer may have applied to multiple venues so we only
   // want to show them once in the list
   const uniqueHirerIds = [...new Map(applications.map((a) => [a.hirer.userID, a.hirer])).values()];
 
-  {
-    /*TODO: update getting data from database*/
-  }
   // Build hirer rows with all display data pre-calculated
   const hirerRows = uniqueHirerIds.map((hirer) => {
     const hirerApplications = applications.filter((a) => a.hirer.userID === hirer.userID);
@@ -73,6 +55,28 @@ export default function HirerProfiles() {
       totalApplications: hirerApplications.length,
     };
   });
+
+  // Fetch credibility score for each unique hirer once the list is ready
+  useEffect(() => {
+    if (uniqueHirerIds.length === 0) return;
+
+    async function fetchScores() {
+      const scores: Record<number, number> = {};
+      await Promise.all(
+        uniqueHirerIds.map(async (hirer) => {
+          try {
+            const data = await vendorApi.getHirerCompliance(hirer.userID);
+            scores[hirer.userID] = data.credibilityScore;
+          } catch {
+            scores[hirer.userID] = 0;
+          }
+        }),
+      );
+      setCredibilityScores(scores);
+    }
+
+    fetchScores();
+  }, [uniqueHirerIds.length]);
 
   return (
     <VendorDashboardLayout>
@@ -174,9 +178,10 @@ export default function HirerProfiles() {
                       )}
                     </Flex>
                   </Td>
-                  {/* TODO: Credibility score — N/A until compliance endpoint is available */}
                   <Td>
-                    <Text fontWeight="semibold">NA%</Text>
+                    <Text fontWeight="semibold">
+                      {credibilityScores[row.hirer.userID] ?? "..."}%
+                    </Text>
                   </Td>
 
                   {/* Application status breakdown for this vendor */}
