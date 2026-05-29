@@ -119,4 +119,13 @@ export const vendorApi = {
     const response = await api.post(`/vendor/venues`, data);
     return response.data;
   },
+
+  // -------------------------------------------------------------------
+  // GET /vendor/hirers/:hirerID/bookings
+  // Fetch full booking history for a specific hirer across all venues
+  // -------------------------------------------------------------------
+  getHirerBookingHistory: async (hirerID: number): Promise<Booking[]> => {
+    const response = await api.get(`/vendor/hirers/${hirerID}/bookings`);
+    return response.data;
+  },
 };

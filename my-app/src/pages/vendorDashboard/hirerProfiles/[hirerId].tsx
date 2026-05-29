@@ -2,7 +2,6 @@ import {
   Text,
   Flex,
   Box,
-  Button,
   Table,
   Thead,
   Tbody,
@@ -12,30 +11,28 @@ import {
   Badge,
   Divider,
   Avatar,
+  Spinner,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import NextLink from "next/link";
-import { StarIcon, CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
-import { getPDFfromDB } from "@/pdfStorage";
-import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
-import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons";
 import { getReputationBadge, getHirerAvgRating } from "@/hirerRatingCalculation";
-import { useVendorComments } from "@/hooks/vendor/useVendorComments";
+import { renderStars } from "@/helpersUtil";
 
-// Hardcoded reputation scores per hirer
-const HIRER_REPUTATION_SCORES: Record<string, number> = {
-  "1": 4.5, // Taylor Swift
-  "2": 4.2, // Beyonce
-  "3": 3.8, // Ariana Grande
-};
+// Import custom hooks
+import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
+import { useVendorComments } from "@/hooks/vendor/useVendorComments";
+import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { useHirerBookingHistory } from "@/hooks/vendor/useHirerBookingHistory";
 
 export default function HirerProfileDetail() {
   const router = useRouter();
   const { hirerId } = router.query;
   const { user } = useAuth("vendor");
+  const hirerID = parseInt(hirerId as string);
 
   // Fetch from custom hooks
   const {
@@ -43,149 +40,48 @@ export default function HirerProfileDetail() {
     isLoading: applicationsLoading,
     fetchApplications,
   } = useVendorApplications();
-  const { bookings } = useVendorBookings();
+
+  // This vendor's bookings — used for reputation and rating calculations
+  const { bookings, isLoading: bookingsLoading } = useVendorBookings();
+
+  // This hirer's full booking history across all venues — used for the table
+  const { bookings: hirerBookings, isLoading: historyLoading } = useHirerBookingHistory(hirerID);
+
+  // get vendor comments for hirer
   const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
 
   // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
-  const isLoading = applicationsLoading || commentsLoading;
-
-  // States
-  const [vendorComment, setVendorComment] = useState<string>("");
-  const [licenseFileName, setLicenseFileName] = useState<string>("");
-  const [insuranceFileName, setInsuranceFileName] = useState<string>("");
-  const [businessCertFileName, setBusinessCertFileName] = useState<string>("");
-  const [isBusiness, setIsBusiness] = useState<boolean>(false);
+  const isLoading = applicationsLoading || bookingsLoading || commentsLoading || historyLoading;
   const [credibilityScore, setCredibilityScore] = useState<number>(0);
 
-  const [licenseFile, setLicenseFile] = useState<{ fileName: string; data: string } | null>(null);
-  const [insuranceFile, setInsuranceFile] = useState<{ fileName: string; data: string } | null>(
-    null,
+  // -------------------------------------------------------------------
+  // ---------- FIND HIRER DETAILS FROM APPLICATIONS ---------------------
+  // -------------------------------------------------------------------
+  const hirer = applications.find((a) => a.hirer.userID === hirerID)?.hirer;
+
+  // -------------------------------------------------------------------
+  // ---------- FIND BOOKINGS FOR THIS HIRER ---------------------------
+  // -------------------------------------------------------------------
+  // TODO:
+
+  // ------------------------------------------------------------------
+  // ---------- FIND VENDOR COMMENTS FOR HIRERID ----------------
+  // -------------------------------------------------------------------
+  const hirerComments = vendorComments.filter(
+    (c) => c.booking.application.hirer.userID === hirerID,
   );
-  const [businessCertFile, setBusinessCertFile] = useState<{
-    fileName: string;
-    data: string;
-  } | null>(null);
 
-  // On load - read comment and documents from localStorage
-  // Documents are stored globally (not per hirer) by the hirer
-  // when they fill out their application form
-  useEffect(() => {
-    if (!hirerId || !user?.id) return;
+  // Reputation
+  const reputation = getReputationBadge(hirerID, bookings);
 
-    {
-      /*TODO: RETRIEVE comments from database*/
-    }
-    // Load vendor's comment for this hirer
-    // Check localStorage first, fall back to dummyData
-    const storedComments = localStorage.getItem("vendorComments");
-    if (storedComments) {
-      const parsed = JSON.parse(storedComments);
-      if (parsed[hirerId as string]) {
-        setVendorComment(parsed[hirerId as string]);
-      } else {
-        // Fall back to dummyData comment
-        const dummyComment = DEFAULT_VENDOR_COMMENTS.find(
-          (c) => c.hirerId === hirerId && c.vendorId === user.id,
-        );
-        if (dummyComment) setVendorComment(dummyComment.commentText);
-      }
-    } else {
-      // No localStorage comments at all - use dummyData
-      const dummyComment = DEFAULT_VENDOR_COMMENTS.find(
-        (c) => c.hirerId === hirerId && c.vendorId === user.id,
-      );
-      if (dummyComment) setVendorComment(dummyComment.commentText);
-    }
+  // Hirer rating
+  const avgRating = getHirerAvgRating(hirerID, bookings);
 
-    {
-      /*TODO: RETRIEVE docs from database*/
-    }
-    // Load compliance documents from localStorage (JPG) and IndexedDB (PDFs)
-    const savedLicense = localStorage.getItem("complianceDoc_license");
-    if (savedLicense) {
-      const parsed = JSON.parse(savedLicense);
-      setLicenseFileName(parsed.fileName);
-      setLicenseFile(parsed);
-    }
-
-    // Insurance PDF is stored in IndexedDB
-    getPDFfromDB("complianceDoc_insurance").then((saved) => {
-      if (saved) {
-        setInsuranceFileName(saved.fileName);
-        setInsuranceFile(saved);
-      }
-    });
-
-    // Business cert PDF is stored in IndexedDB
-    getPDFfromDB("complianceDoc_businessCert").then((saved) => {
-      if (saved) {
-        setBusinessCertFileName(saved.fileName);
-        setBusinessCertFile(saved);
-      }
-    });
-
-    {
-      /*TODO: update getting doc from database*/
-    }
-    const savedIsBusiness = localStorage.getItem("complianceDoc_isBusiness");
-    if (savedIsBusiness === "true") setIsBusiness(true);
-
-    // Credibility score saved as percentage on application submit
-    const savedCredibility = localStorage.getItem("credibilityScore");
-    if (savedCredibility) setCredibilityScore(Number(savedCredibility));
-  }, [hirerId, user?.id]);
-
-  {
-    /*TODO: RETRIEVE hirer from database*/
-  }
-  // Find the hirer from dummyData
-  const hirer = DEFAULT_USERS.find((u) => u.id === hirerId);
-
-  {
-    /*TODO: RETRIEVE getting hirer from database*/
-  }
-  // Hirer's full booking history across ALL venues
-  const hirerBookings = DEFAULT_BOOKINGS.filter((b) => b.hirerId === hirerId);
-
-  {
-    /*TODO: update getting data from database*/
-  }
   // Totals row calculations for the booking history table
   const totalEvents = hirerBookings.length;
-  const uniqueVenueCount = [...new Set(hirerBookings.map((b) => b.venueId))].length;
-  const ratedBookings = hirerBookings.filter((b) => b.vendorRating > 0);
-  const avgRating =
-    ratedBookings.length > 0
-      ? (ratedBookings.reduce((sum, b) => sum + b.vendorRating, 0) / ratedBookings.length).toFixed(
-          1,
-        )
-      : "N/A";
 
-  // Reputation score and badge for this hirer
-  const reputationScore = HIRER_REPUTATION_SCORES[hirerId as string];
-  const reputationBadge = !reputationScore
-    ? { label: "No rating", color: "gray" }
-    : reputationScore >= 4.3
-      ? { label: "Verified", color: "green" }
-      : reputationScore >= 4.0
-        ? { label: "Good standing", color: "blue" }
-        : { label: "Unverified", color: "orange" };
-
-  {
-    /*TODO: update getting applications from database*/
-  }
-  // Applications hirer has made to this vendor's venues
-  const vendorVenueIds = DEFAULT_VENUES.filter((v) => v.vendorId === user?.id).map((v) => v.id);
-  const hirerApplicationToThisVendor = DEFAULT_APPLICATIONS.find(
-    (a) => a.hirerId === hirerId && vendorVenueIds.includes(a.venueId),
-  );
-
-  // Helper - render star icons from a numeric rating
-  function renderStars(rating: number) {
-    return Array.from({ length: rating }).map((_, i) => (
-      <StarIcon key={i} color="yellow.400" boxSize={3} />
-    ));
-  }
+  // unique venues
+  const uniqueVenueCount = new Set(hirerBookings.map((b) => b.application.venue.name)).size;
 
   // Helper - document row: shows filename or "Not uploaded"
   function DocumentRow({
@@ -234,6 +130,15 @@ export default function HirerProfileDetail() {
       </Flex>
     );
   }
+
+  if (isLoading)
+    return (
+      <VendorDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </VendorDashboardLayout>
+    );
 
   // Guard - if hirer not found
   if (!hirer) {
@@ -296,11 +201,11 @@ export default function HirerProfileDetail() {
                 {hirer.email}
               </Text>
               <Text fontSize="sm" color="gray.500">
-                {hirer.phone}
+                {hirer.phoneNumber}
               </Text>
             </Box>
-            <Badge colorScheme={reputationBadge.color} ml="auto">
-              {reputationBadge.label}
+            <Badge colorScheme={reputation.color} ml="auto">
+              {reputation.label}
             </Badge>
           </Flex>
           <Divider mb={8} />
@@ -311,11 +216,11 @@ export default function HirerProfileDetail() {
               <Text fontSize="md" color="gray.500">
                 Reputation Score
               </Text>
-              {reputationScore ? (
+              {avgRating ? (
                 <Flex align="center" gap={1} mt={1}>
-                  {renderStars(Math.round(reputationScore))}
+                  {renderStars(Math.round(avgRating))}
                   <Text fontSize="md" ml={1}>
-                    {reputationScore} / 5
+                    {avgRating} / 5
                   </Text>
                 </Flex>
               ) : (
@@ -354,7 +259,11 @@ export default function HirerProfileDetail() {
             Documents uploaded by the hirer during their application
           </Text>
 
-          <DocumentRow
+          <Text fontSize="sm" color="gray.400">
+            Compliance documents coming soon.
+          </Text>
+
+          {/*  <DocumentRow
             label="Driver's License (JPG)"
             fileName={licenseFileName}
             file={licenseFile}
@@ -366,8 +275,8 @@ export default function HirerProfileDetail() {
             file={insuranceFile}
           />
           <Divider />
-
-          {/* Business cert only shows if hirer is applying as a business */}
+ 
+          {/* Business cert only shows if hirer is applying as a business 
           {isBusiness && (
             <>
               <Divider />
@@ -380,6 +289,7 @@ export default function HirerProfileDetail() {
           )}
 
           <Divider mt={2} mb={3} />
+          */}
 
           {/* Credibility score calculated */}
           <Flex justify="space-between" align="center">
@@ -400,7 +310,7 @@ export default function HirerProfileDetail() {
             Historical Hire List
           </Text>
           <Text color="white" fontSize="xs" fontWeight={"regular"}>
-            All bookings across all venues, not just this vendor's
+            All bookings across all venues
           </Text>
         </Box>
 
@@ -426,30 +336,30 @@ export default function HirerProfileDetail() {
             <Tbody>
               {/* Booking rows */}
               {hirerBookings.map((booking) => (
-                <Tr key={booking.id}>
+                <Tr key={booking.bookingID}>
                   {/* Vemue Name row */}
                   <Td>
                     <Text fontSize="sm" fontWeight="semibold">
-                      {booking.venueName}
+                      {booking.application.venue.name ?? "Venue Deleted"}
                     </Text>
                   </Td>
 
                   {/* Vemue Location row */}
                   <Td>
                     <Text fontSize="sm" color="gray.500">
-                      {booking.venueLocation}
+                      {booking.application.venue.location ?? "-"}
                     </Text>
                   </Td>
 
                   {/* Event Name row */}
                   <Td>
-                    <Text fontSize="sm">{booking.eventName}</Text>
+                    <Text fontSize="sm">{booking.application.eventName}</Text>
                   </Td>
 
                   {/* Date of event row */}
                   <Td minW="200px">
                     <Text fontSize="sm">
-                      {new Date(booking.eventDate).toLocaleDateString("en-AU", {
+                      {new Date(booking.application.eventDate).toLocaleDateString("en-AU", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
@@ -460,11 +370,11 @@ export default function HirerProfileDetail() {
                   {/* Rating row */}
                   <Td minW="200px">
                     <Flex align="center" gap={1}>
-                      {booking.vendorRating > 0 ? (
+                      {booking.hirerReputationRating > 0 ? (
                         <>
-                          {renderStars(booking.vendorRating)}
+                          {renderStars(booking.hirerReputationRating)}
                           <Text fontSize="sm" ml={1}>
-                            {booking.vendorRating} / 5
+                            {booking.hirerReputationRating} / 5
                           </Text>
                         </>
                       ) : (
@@ -519,29 +429,47 @@ export default function HirerProfileDetail() {
         <Divider mb={4} />
 
         {/* Display comment */}
-        {vendorComment ? (
-          <Text fontSize="sm" color="gray.700" lineHeight="tall" mb={4}>
-            {vendorComment}
+        {hirerComments.length === 0 ? (
+          <Text fontSize="sm" color="gray.400" mb={4}>
+            No notes added yet. Notes can be added from an approved application
           </Text>
         ) : (
-          <Text fontSize="sm" color="gray.400" mb={4}>
-            No notes added yet.
-          </Text>
-        )}
-
-        {/* Edit/Add comment links to the application review page  */}
-        {hirerApplicationToThisVendor && (
-          <NextLink href={`/vendorDashboard/applications/${hirerApplicationToThisVendor.id}`}>
-            <Button
-              size="sm"
-              variant="outline"
-              borderColor="brand.primary"
-              color="brand.primary"
-              _hover={{ bg: "brand.secondary" }}
+          hirerComments.map((comment) => (
+            <Box
+              key={comment.commentID}
+              mb={4}
+              p={4}
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="md"
             >
-              {vendorComment ? "Edit notes →" : "Add notes →"}
-            </Button>
-          </NextLink>
+              {/* Which application this comment is linked to */}
+              <Text fontSize="sm" color="gray.400" mb={2}>
+                {comment.booking.application.eventName} — {comment.booking.application.venue.name}
+              </Text>
+
+              {/* Comment text */}
+              <Text fontSize="sm" color="gray.700" lineHeight="tall" mb={4}>
+                {comment.commentText}
+              </Text>
+
+              {/* Edit/Add comment links to the application review page  */}
+              <NextLink
+                href={`/vendorDashboard/applications/${comment.booking.application.applicationID}`}
+              >
+                <Text
+                  fontSize="sm"
+                  fontWeight="semibold"
+                  color="brand.primary"
+                  mt={2}
+                  cursor="pointer"
+                  _hover={{ textDecoration: "underline" }}
+                >
+                  {comment.commentText ? "Edit notes →" : "Add notes →"}
+                </Text>
+              </NextLink>
+            </Box>
+          ))
         )}
       </Box>
     </VendorDashboardLayout>

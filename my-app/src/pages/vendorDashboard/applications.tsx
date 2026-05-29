@@ -50,7 +50,6 @@ export default function VendorApplications() {
     );
 
   // TODO: sorting most - least recent is doing opposite way
-  // TODO: implement reputation sorting once reputation score  is built
   // Sort applications based on selected sort option
   const sortedApplications = [...applications].sort((a, b) => {
     if (sortBy === "most-recent") {

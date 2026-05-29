@@ -329,4 +329,27 @@ export class VendorController {
       joinedDate: user.joinedDate,
     });
   }
+
+  // --------------------------------------------------------------------------------
+  // -------- GET A HIRERS APPROVED APPLICATIONS/ BOOKINGS ACROSS ALL VENUES --------
+  // --------------------------------------------------------------------------------
+  // Used by the vendor to view a hirer's full historical hire list.
+  // hirerID comes from the URL param, not the JWT.
+  async getHirerBookingHistory(req: Request, res: Response) {
+    // get hirerID from URL
+    const hirerID = parseInt(req.params.hirerID as string);
+
+    // check hirer exists
+    const hirerExists = await this.userRepository.findOne({
+      where: { userID: hirerID, role: "hirer" },
+    });
+    if (!hirerExists) return res.status(404).json({ message: "Hirer not found" });
+
+    const bookings = await this.bookingRepository.find({
+      where: { application: { hirer: { userID: hirerID } } },
+      relations: { application: { venue: true, hirer: true } },
+      order: { createdAt: "DESC" },
+    });
+    return res.json(bookings);
+  }
 }
