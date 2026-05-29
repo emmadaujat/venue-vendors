@@ -20,11 +20,18 @@ export default function Home() {
   // All venues, loaded from the backend database.
   const [venues, setVenues] = useState<Venue[]>([]);
 
+  // Total bookings across the platform — shown in the platform overview stat card
+  const [totalBookings, setTotalBookings] = useState<number>(0);
+
   useEffect(() => {
     hirerApi
       .getVenues()
       .then((data) => setVenues(data))
       .catch((error) => console.error("Failed to load venues", error));
+    hirerApi
+      .getPlatformStats()
+      .then((data) => setTotalBookings(data.totalBookings))
+      .catch((error) => console.error("Failed to load platform stats", error));
   }, []);
 
   // A couple of "limited availability" venues for the side panel.
@@ -210,7 +217,6 @@ export default function Home() {
 
           {/* venue cards 2x2 grid */}
           <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4} mb="10%" alignItems={"stretch"}>
-            {/*TODO: update getting venues from database*/}
             {venues
               .map((venue) => (
                 <Box
@@ -291,7 +297,6 @@ export default function Home() {
               <Flex>
                 <Box flex="1" textAlign="center">
                   <Text fontSize={"large"} fontWeight={"semibold"}>
-                    {/*TODO: update getting venues from database*/}
                     {venues.length} +
                   </Text>
                   <Text fontSize={"md"} fontWeight={"regular"} color={"gray.500"}>
@@ -300,7 +305,7 @@ export default function Home() {
                 </Box>
                 <Box flex="1" textAlign="center">
                   <Text fontSize={"large"} fontWeight={"semibold"}>
-                    11 +
+                    {totalBookings} +
                   </Text>
                   <Text fontSize={"md"} fontWeight={"regular"} color={"gray.500"}>
                     Events hosted
@@ -329,7 +334,6 @@ export default function Home() {
             <Divider borderColor={"brand.primary"} borderWidth={"1px"} />
 
             <Box p={4}>
-              {/*TODO: update getting venues from database*/}
               {limitedVenues.map((venue) => (
                 <Box key={venue.venueID} mb={2}>
                   <Flex align={"center"} gap={4}>

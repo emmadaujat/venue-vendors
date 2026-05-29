@@ -17,6 +17,9 @@ const venueBrowseController = new VenueBrowseController();
 
 router.get("/", (req, res) => venueBrowseController.getAllVenues(req, res));
 
+// Get total events hosted stat for index pg
+router.get("/stats", (req, res) => venueBrowseController.getPlatformStats(req, res));
+
 router.get("/:id/suitability", (req, res) => venueBrowseController.getVenueSuitability(req, res));
 
 router.get("/:id", (req, res) => venueBrowseController.getVenueById(req, res));
