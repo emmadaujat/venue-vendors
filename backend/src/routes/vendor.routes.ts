@@ -83,4 +83,14 @@ router.post("/venues", validateDto(ManageVenueDTO), async (req, res) => {
   await venueController.createVenue(req, res);
 });
 
+// Fetch full booking history for a specific hirer across all venues
+router.get("/hirers/:hirerID/bookings", async (req, res) => {
+  await vendorController.getHirerBookingHistory(req, res);
+});
+
+// Fetch compliance documents and credibility score for a specific hirer
+router.get("/hirers/:hirerID/compliance", async (req, res) => {
+  await vendorController.getHirerCompliance(req, res);
+});
+
 export default router;

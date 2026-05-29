@@ -137,4 +137,8 @@ export type ComplianceDocument = {
   fileName: string;
   uploadedAt: string;
   isVerified: boolean;
+  isBusiness: boolean;
+  abnNumber?: string;
+  fileURL: string;
+  complianceDocID: number;
 };

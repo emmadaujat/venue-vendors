@@ -49,15 +49,13 @@ export default function VendorApplications() {
       </VendorDashboardLayout>
     );
 
-  // TODO: sorting most - least recent is doing opposite way
-  // TODO: implement reputation sorting once reputation score  is built
   // Sort applications based on selected sort option
   const sortedApplications = [...applications].sort((a, b) => {
     if (sortBy === "most-recent") {
-      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+      return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
     }
     if (sortBy === "least-recent") {
-      return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+      return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
     }
     if (sortBy === "reputation-high") {
       const scoreA = getHirerAvgRating(a.hirer.userID, bookings) ?? 0;
