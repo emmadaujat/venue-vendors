@@ -76,7 +76,7 @@ const VendorDashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </Box>
 
         {/* main content area */}
-        <Box flex="1" p={6}>
+        <Box flex="1" p={6} minW={0}>
           {children}
         </Box>
       </Flex>

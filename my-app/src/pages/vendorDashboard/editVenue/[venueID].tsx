@@ -51,7 +51,6 @@ import {
 } from "@/venueValidation";
 
 // Hardcoded suitability tags
-// TODO: check if a look up table needs to be added for suitability options
 const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"];
 
 // venue availability drop down

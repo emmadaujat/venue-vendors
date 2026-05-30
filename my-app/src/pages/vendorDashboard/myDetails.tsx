@@ -218,7 +218,7 @@ export default function VendorMyDetails() {
             <Flex justifyContent="center" alignItems="center" gap={1}>
               <StarIcon color="yellow.500" boxSize={3} />
               <Text fontSize="xl" fontWeight="bold">
-                {avgRating}
+                {avgRating.toFixed(2)}
               </Text>
             </Flex>
           </Box>

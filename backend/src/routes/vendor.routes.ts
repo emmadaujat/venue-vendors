@@ -7,6 +7,7 @@ import { validateDto } from "../middlewares/validate";
 import { VendorCommentDTO } from "../dtos/vendor-comment.dto";
 import { UpdateProfileDTO } from "../dtos/update-profile.dto";
 import { ManageVenueDTO } from "../dtos/manage-venue.dto";
+import { VenueBlockoutDTO } from "../dtos/venue-blockout.dto";
 
 const router = Router();
 const venueController = new VenueController();
@@ -91,6 +92,21 @@ router.get("/hirers/:hirerID/bookings", async (req, res) => {
 // Fetch compliance documents and credibility score for a specific hirer
 router.get("/hirers/:hirerID/compliance", async (req, res) => {
   await vendorController.getHirerCompliance(req, res);
+});
+
+// Fetch venues blocked dates
+router.get("/venues/:venueId/blockedDates", async (req, res) => {
+  await venueController.getVenueBlockedDates(req, res);
+});
+
+// Create blocked dates for a venue
+router.post("/venues/:venueId/blockedDates", validateDto(VenueBlockoutDTO), async (req, res) => {
+  await venueController.createVenueBlockedDates(req, res);
+});
+
+// Delete blocked dates for a venue
+router.delete("/venues/:venueId/blockedDates/:blockDateId", async (req, res) => {
+  await venueController.deleteVenueBlockedDates(req, res);
 });
 
 export default router;

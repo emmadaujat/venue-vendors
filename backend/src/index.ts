@@ -12,10 +12,6 @@ import bookingRoutes from "./routes/booking.routes";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.get("/api/test", (req, res) => {
-  res.json({ message: "test works" });
-});
-
 app.use(cors());
 app.use(express.json());
 
