@@ -24,19 +24,36 @@
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
+import { ApolloServer } from "@apollo/server";
+import { expressMiddleware } from "@apollo/server/express4";
+import { typeDefs } from "./graphql/schema";
+import { resolvers } from "./graphql/resolvers";
+import { AppDataSource } from "./data-source";
 
-const app = express();
-const PORT = process.env.PORT || 4001;
+async function main() {
+  // Initialise the database connection
+  await AppDataSource.initialize();
+  console.log("Admin DB connected");
 
-app.use(cors());
-app.use(express.json());
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
 
-// Temporary health route so the scaffold runs and deploys.
-// Emma's B4.1 work replaces this with the Apollo /graphql endpoint.
-app.get("/", (_req, res) => {
-  res.json({ status: "admin-backend scaffold running — GraphQL not wired yet" });
-});
+  // Create Apollo Server with schema and resolvers
+  const server = new ApolloServer({ typeDefs, resolvers });
 
-app.listen(PORT, () => {
-  console.log(`admin-backend scaffold running on port ${PORT}`);
+  // Must start Apollo before attaching to Express
+  await server.start();
+
+  // Attach GraphQL endpoint to Express at /graphql
+  app.use("/graphql", expressMiddleware(server));
+
+  const PORT = process.env.PORT || 4001;
+  app.listen(PORT, () => {
+    console.log(`admin-backend scaffold running on port ${PORT}`);
+  });
+}
+
+main().catch((err) => {
+  console.error("Failed to start admin server", err);
 });

@@ -1,2 +1,0 @@
-# Emma (S3): copy the same TypeORM entity files from /backend/src/entity here.
-# Both apps read the same MS SQL DB but stay independent projects.
