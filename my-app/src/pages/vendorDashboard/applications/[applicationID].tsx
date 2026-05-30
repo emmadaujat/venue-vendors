@@ -29,6 +29,7 @@ import { vendorApi } from "@/services/vendorApi";
 import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
 import { useVendorComments } from "@/hooks/vendor/useVendorComments";
 import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
+import { useHirerCompliance } from "@/hooks/vendor/useHirerCompliance";
 
 export default function ApplicationReview() {
   const router = useRouter();
@@ -88,6 +89,12 @@ export default function ApplicationReview() {
     ) ?? null;
 
   //TODO: load event permit from compliance documents endpoint
+
+  // Fetch compliance documents for this hirer to check business status and documents
+  const { documents } = useHirerCompliance(application?.hirer.userID ?? 0);
+  // Check if hirer is applying as a business and get their ABN
+  const isBusiness = documents.some((d) => d.isBusiness);
+  const abnNumber = documents.find((d) => d.abnNumber)?.abnNumber;
 
   // ------------------------------------------------------------
   // --------- OPENS APPLICATION STATUS CONFIRMATION ------------
@@ -313,6 +320,26 @@ export default function ApplicationReview() {
                   </Text>
                 )}
               </Flex>
+
+              {/* Business applicant indicator */}
+              <Flex justify="space-between" align="center">
+                <Text color="gray.500" fontSize="sm">
+                  Applicant Type
+                </Text>
+                <Badge colorScheme={isBusiness ? "purple" : "gray"}>
+                  {isBusiness ? "Business" : "Individual"}
+                </Badge>
+              </Flex>
+
+              {/* ABN — only show if applying as business */}
+              {isBusiness && abnNumber && (
+                <Flex justify="space-between">
+                  <Text color="gray.500" fontSize="sm">
+                    ABN
+                  </Text>
+                  <Text fontWeight="semibold">{abnNumber}</Text>
+                </Flex>
+              )}
             </Flex>
           </Box>
 
@@ -349,109 +376,113 @@ export default function ApplicationReview() {
           </Box>
           {/* Vendor comment on hirer */}
           {/* Only show comment box if application has been approved */}
-          {application.status === "approved" && (
-            <Box
-              border="1px solid"
-              borderColor="gray.200"
-              borderRadius="md"
-              p={6}
-              mt={6}
-              bg="brand.secondary"
-            >
-              <Box p={4} borderRadius="md">
-                <Text fontWeight="bold" fontSize="lg" color="brand.primary">
-                  Comments on Hirer
-                </Text>
-                <Text fontSize="sm" color="brand.primary" fontWeight="semibold">
-                  Add private notes or feedback about this hirer. These are saved to their profile.
-                </Text>
-              </Box>
-
-              <Divider mb={2} borderColor="brand.primary" />
-
-              {/* READ MODE - show comment as text with Edit button */}
-              {!isEditingComment ? (
-                <Box p={4}>
-                  <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
-                    {vendorComment?.commentText || "No comment added yet."}
+          {application.status === "approved" ||
+            (application.status === "Approved" && (
+              <Box
+                border="1px solid"
+                borderColor="gray.200"
+                borderRadius="md"
+                p={6}
+                mt={6}
+                bg="brand.secondary"
+              >
+                <Box p={4} borderRadius="md">
+                  <Text fontWeight="bold" fontSize="lg" color="brand.primary">
+                    Comments on Hirer
                   </Text>
-                  {commentDeleted && (
-                    <Text fontSize="sm" color="green.500">
-                      Comment deleted successfully.
-                    </Text>
-                  )}
-                  {commentSaved && (
-                    <Text fontSize="sm" color="green.500">
-                      Comment saved successfully.
-                    </Text>
-                  )}
-
-                  <Button
-                    bg="brand.primary"
-                    color="white"
-                    _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                    onClick={() => {
-                      setIsEditingComment(true);
-                      setCommentSaved(false);
-                      setCommentText(vendorComment?.commentText ?? "");
-                    }}
-                  >
-                    {vendorComment ? "Edit Comment" : "Add Comment"}
-                  </Button>
-                  {vendorComment?.commentText && (
-                    <Button
-                      variant="outline"
-                      borderColor="red.400"
-                      color="red.400"
-                      _hover={{ bg: "red.50" }}
-                      onClick={onDeleteOpen}
-                      ml={4}
-                    >
-                      Delete Comment
-                    </Button>
-                  )}
+                  <Text fontSize="sm" color="brand.primary" fontWeight="semibold">
+                    Add private notes or feedback about this hirer. These are saved to their
+                    profile.
+                  </Text>
                 </Box>
-              ) : (
-                /* EDIT MODE - show textarea with Save and Cancel buttons */
-                <Box>
-                  <Textarea
-                    placeholder="Write your notes about this hirer here..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    mb={3}
-                    resize="vertical"
-                    borderColor="gray.300"
-                    color="brand.primary"
-                    _focus={{ borderColor: "brand.primary" }}
-                  />
 
-                  {commentSaved && (
-                    <Text fontSize="sm" color="green.500" mb={2}>
-                      Comment saved successfully.
+                <Divider mb={2} borderColor="brand.primary" />
+
+                {/* READ MODE - show comment as text with Edit button */}
+                {!isEditingComment ? (
+                  <Box p={4}>
+                    <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
+                      {vendorComment?.commentText || "No comment added yet."}
                     </Text>
-                  )}
+                    {commentDeleted && (
+                      <Text fontSize="sm" color="green.500">
+                        Comment deleted successfully.
+                      </Text>
+                    )}
+                    {commentSaved && (
+                      <Text fontSize="sm" color="green.500">
+                        Comment saved successfully.
+                      </Text>
+                    )}
 
-                  <Flex gap={3}>
                     <Button
                       bg="brand.primary"
                       color="white"
                       _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                      onClick={() => (vendorComment ? handleSaveComment() : handleCreateComment())}
+                      onClick={() => {
+                        setIsEditingComment(true);
+                        setCommentSaved(false);
+                        setCommentText(vendorComment?.commentText ?? "");
+                      }}
                     >
-                      Save Comment
+                      {vendorComment ? "Edit Comment" : "Add Comment"}
                     </Button>
-                    <Button
-                      variant="outline"
+                    {vendorComment?.commentText && (
+                      <Button
+                        variant="outline"
+                        borderColor="red.400"
+                        color="red.400"
+                        _hover={{ bg: "red.50" }}
+                        onClick={onDeleteOpen}
+                        ml={4}
+                      >
+                        Delete Comment
+                      </Button>
+                    )}
+                  </Box>
+                ) : (
+                  /* EDIT MODE - show textarea with Save and Cancel buttons */
+                  <Box>
+                    <Textarea
+                      placeholder="Write your notes about this hirer here..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      mb={3}
+                      resize="vertical"
                       borderColor="gray.300"
-                      onClick={() => setIsEditingComment(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </Flex>
-                </Box>
-              )}
-            </Box>
-          )}
+                      color="brand.primary"
+                      _focus={{ borderColor: "brand.primary" }}
+                    />
+
+                    {commentSaved && (
+                      <Text fontSize="sm" color="green.500" mb={2}>
+                        Comment saved successfully.
+                      </Text>
+                    )}
+
+                    <Flex gap={3}>
+                      <Button
+                        bg="brand.primary"
+                        color="white"
+                        _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+                        onClick={() =>
+                          vendorComment ? handleSaveComment() : handleCreateComment()
+                        }
+                      >
+                        Save Comment
+                      </Button>
+                      <Button
+                        variant="outline"
+                        borderColor="gray.300"
+                        onClick={() => setIsEditingComment(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </Flex>
+                  </Box>
+                )}
+              </Box>
+            ))}
         </Box>
 
         {/* Right column - hirer details + actions */}

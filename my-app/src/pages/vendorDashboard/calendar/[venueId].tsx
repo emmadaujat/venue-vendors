@@ -1,4 +1,3 @@
-import { DEFAULT_VENUES } from "../../../dummyData";
 import {
   Text,
   Flex,
@@ -7,6 +6,7 @@ import {
   Select,
   Input,
   Divider,
+  Spinner,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -18,22 +18,15 @@ import {
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import NextLink from "next/link";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
-// Type for a blocked period
-type BlockedPeriod = {
-  id: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-};
+// Custom hooks
+import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
+import { useVenueBlockouts } from "@/hooks/vendor/useVenueBlockouts";
 
-{
-  /*TODO: RETRIEVE drop down options from database*/
-}
 // Reason options for the dropdown
 const REASON_OPTIONS = ["Maintenance", "Renovation", "Private Event", "Staff Holiday", "Other"];
 
@@ -42,26 +35,36 @@ export default function VenueCalendar() {
   const { venueId } = router.query;
   const { user } = useAuth("vendor");
 
-  // Format date to local date string
-  function formatLocalDate(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
+  // get venueId from URL convert string to number
+  const venueIdNum = venueId ? parseInt(venueId as string) : null;
 
-  {
-    /*TODO: RETRIEVE venues from database*/
-  }
-  // Find the venue from dummyData
-  const venue = DEFAULT_VENUES.find((v) => v.id === venueId);
+  // Fetch this vendors venues to find the venue name
+  const { venues, isLoading: venuesLoading } = useVendorVenues();
 
-  // State for the date range selection and reason
+  // fetch and manage blocked dates for this venue
+  const {
+    blockedDates,
+    isLoading: blockoutsLoading,
+    createBlockout,
+    deleteBlockout,
+  } = useVenueBlockouts(venueIdNum);
+
+  // Find the specific venue from the list (for displaying its name)
+  const venue = venues.find((v) => v.venueID === venueIdNum);
+
+  // Combined loading state — wait for both to be ready
+  const isLoading = venuesLoading || blockoutsLoading;
+
+  // Calendar date range selection state
   const [selectedRange, setSelectedRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState(REASON_OPTIONS[0]);
-  const [blockedPeriods, setBlockedPeriods] = useState<BlockedPeriod[]>([]);
+
+  // Success/error state for the confirm dialog
   const [isSuccess, setIsSuccess] = useState(false);
-  const [periodToRemove, setPeriodToRemove] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
+
+  // Which blocked period is queued for removal
+  const [periodToRemove, setPeriodToRemove] = useState<number | null>(null);
   const [isRemoveSuccess, setIsRemoveSuccess] = useState(false);
 
   // Confirmation dialogs
@@ -69,80 +72,16 @@ export default function VenueCalendar() {
   const { isOpen: isRemoveOpen, onOpen: onRemoveOpen, onClose: onRemoveClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  {
-    /*TODO: RETRIEVE blocked dates from database*/
+  // -------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------
+  // Format date to to YYYY-MM-DD string
+  function formatLocalDate(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
-  // Load blocked periods from localStorage on page load
-  useEffect(() => {
-    if (!venueId) return;
-    const saved = localStorage.getItem("blockedDates");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setBlockedPeriods(parsed[venueId as string] ?? []);
-    }
-  }, [venueId]);
-
-  {
-    /*TODO: CREATE- save blocked dates for venue to database*/
-  }
-  // Save blocked periods to localStorage
-  function saveToLocalStorage(updated: BlockedPeriod[]) {
-    const saved = localStorage.getItem("blockedDates");
-    const allBlocked = saved ? JSON.parse(saved) : {};
-    allBlocked[venueId as string] = updated;
-    localStorage.setItem("blockedDates", JSON.stringify(allBlocked));
-  }
-
-  // Handle confirm block dates button click
-  function handleConfirm() {
-    if (!selectedRange?.from || !selectedRange?.to) return;
-
-    const newPeriod: BlockedPeriod = {
-      id: Date.now().toString(),
-      startDate: formatLocalDate(selectedRange.from),
-      endDate: formatLocalDate(selectedRange.to),
-      reason,
-    };
-
-    {
-      /*TODO: UPDATE blocked dates for venue to database*/
-    }
-    const updated = [...blockedPeriods, newPeriod];
-    setBlockedPeriods(updated);
-    saveToLocalStorage(updated);
-    setIsSuccess(true);
-
-    // Show success message for 2 seconds then close
-    setTimeout(() => {
-      setIsSuccess(false);
-      onConfirmClose();
-      setSelectedRange(undefined);
-    }, 2000);
-  }
-
-  {
-    /*TODO: DELETE - blocked dates for venues from database*/
-  }
-  // Handle remove blocked period
-  function handleRemoveConfirm() {
-    if (!periodToRemove) return;
-    const updated = blockedPeriods.filter((p) => p.id !== periodToRemove);
-    setBlockedPeriods(updated);
-    saveToLocalStorage(updated);
-    setIsRemoveSuccess(true);
-
-    setTimeout(() => {
-      setIsRemoveSuccess(false);
-      onRemoveClose();
-      setPeriodToRemove(null);
-    }, 2000);
-  }
-
-  // Convert blocked periods to disabled dates for DayPicker
-  const disabledDays = blockedPeriods.map((p) => ({
-    from: new Date(p.startDate),
-    to: new Date(p.endDate),
-  }));
 
   // Format date for display
   function formatDate(dateStr: string) {
@@ -153,19 +92,75 @@ export default function VenueCalendar() {
     });
   }
 
-  if (!venue) {
+  // -------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------
+
+  // Handle confirm block dates when vendor clicks in the block dates dialog
+  async function handleConfirm() {
+    if (!selectedRange?.from || !selectedRange?.to) return;
+
+    try {
+      await createBlockout(
+        formatLocalDate(selectedRange.from),
+        formatLocalDate(selectedRange.to),
+        reason,
+      );
+      setIsSuccess(true);
+      // Show success message for 2 seconds then close
+      setTimeout(() => {
+        setIsSuccess(false);
+        onConfirmClose();
+        setSelectedRange(undefined);
+      }, 2000);
+    } catch (error) {
+      // Show error state in the dialog if the API call fails
+      console.error("Failed to block out dates", error);
+      setIsError(true);
+    }
+  }
+
+  // Handle remove blocked period
+  async function handleRemoveConfirm() {
+    if (!periodToRemove) return;
+    try {
+      await deleteBlockout(periodToRemove);
+      setIsRemoveSuccess(true);
+      setTimeout(() => {
+        setIsRemoveSuccess(false);
+        onRemoveClose();
+        setPeriodToRemove(null);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to delete block out date", error);
+    }
+  }
+
+  // Convert blocked periods to disabled dates for DayPicker
+  // The DB stores them as Date objects — convert back to JS Dates for the calendar
+  const disabledDays = blockedDates.map((p) => ({
+    from: new Date(p.startDate),
+    to: new Date(p.endDate),
+  }));
+
+  // -------------------------------------------------------------------
+  // Loading and auth guard
+  // -------------------------------------------------------------------
+  if (isLoading) {
     return (
       <VendorDashboardLayout>
-        <Text>Venue not found.</Text>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
       </VendorDashboardLayout>
     );
   }
 
-  // Check if vendor owns this venue
-  if (venue.vendorId !== user?.id) {
+  // Venue not found or doesn't belong to this vendor
+  if (!venue) {
     return (
       <VendorDashboardLayout>
-        <Text>You do not have permission to manage this venue.</Text>
+        <Text>Venue not found or you do not have permission to manage this venue.</Text>
       </VendorDashboardLayout>
     );
   }
@@ -261,15 +256,15 @@ export default function VenueCalendar() {
               </Text>
             </Box>
 
-            {blockedPeriods.length === 0 ? (
+            {blockedDates.length === 0 ? (
               <Box p={4}>
                 <Text fontSize="sm" color="gray.500">
                   No blocked periods for this venue yet.
                 </Text>
               </Box>
             ) : (
-              blockedPeriods.map((period) => (
-                <Box key={period.id}>
+              blockedDates.map((period) => (
+                <Box key={period.blockedID}>
                   <Flex p={4} justify="space-between" align="center">
                     <Box>
                       <Text fontWeight="semibold" fontSize="sm">
@@ -286,7 +281,7 @@ export default function VenueCalendar() {
                       cursor="pointer"
                       _hover={{ textDecoration: "underline" }}
                       onClick={() => {
-                        setPeriodToRemove(period.id);
+                        setPeriodToRemove(period.blockedID);
                         onRemoveOpen();
                       }}
                     >
@@ -408,11 +403,13 @@ export default function VenueCalendar() {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold" color="brand.primary">
-              {isSuccess ? "Success!" : "Confirm Blocked Period"}
+              {isSuccess ? "Success!" : isError ? "Error" : "Confirm Blocked Period"}
             </AlertDialogHeader>
             <AlertDialogBody>
               {isSuccess ? (
                 <Text>Dates have been successfully blocked!</Text>
+              ) : isError ? (
+                <Text color="red.500">Something went wrong. Please try again.</Text>
               ) : (
                 <Text>
                   Are you sure you want to block{" "}
@@ -425,21 +422,29 @@ export default function VenueCalendar() {
             <AlertDialogFooter>
               {!isSuccess && (
                 <>
-                  <Button ref={cancelRef} onClick={onConfirmClose}>
-                    Cancel
-                  </Button>
                   <Button
-                    ml={3}
-                    bg="brand.primary"
-                    color="white"
-                    onClick={handleConfirm}
-                    _hover={{
-                      bg: "brand.secondary",
-                      color: "brand.primary",
+                    ref={cancelRef}
+                    onClick={() => {
+                      setIsError(false);
+                      onConfirmClose();
                     }}
                   >
-                    Confirm
+                    Cancel
                   </Button>
+                  {!isError && (
+                    <Button
+                      ml={3}
+                      bg="brand.primary"
+                      color="white"
+                      onClick={handleConfirm}
+                      _hover={{
+                        bg: "brand.secondary",
+                        color: "brand.primary",
+                      }}
+                    >
+                      Confirm
+                    </Button>
+                  )}
                 </>
               )}
             </AlertDialogFooter>

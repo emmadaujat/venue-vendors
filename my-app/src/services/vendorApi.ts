@@ -1,5 +1,12 @@
 import api from "@/services/api";
-import { Venue, Application, Booking, VendorComment, ComplianceDocument } from "@/types";
+import {
+  Venue,
+  Application,
+  Booking,
+  VendorComment,
+  ComplianceDocument,
+  VenueBlockedDates,
+} from "@/types";
 
 // Input type for updating the vendor's profile
 export interface UpdateProfileInput {
@@ -137,6 +144,45 @@ export const vendorApi = {
     hirerID: number,
   ): Promise<{ documents: ComplianceDocument[]; credibilityScore: number }> => {
     const response = await api.get(`/vendor/hirers/${hirerID}/compliance`);
+    return response.data;
+  },
+
+  // -------------------------------------------------------------------
+  // GET /vendor/venues/:venueId/blockedDates
+  // Fetch blocked dates for a venue
+  // -------------------------------------------------------------------
+  getVenueBlockedDates: async (venueId: number): Promise<VenueBlockedDates[]> => {
+    const response = await api.get(`/vendor/venues/${venueId}/blockedDates`);
+    return response.data;
+  },
+
+  // -------------------------------------------------------------------
+  // POST /vendor/venues/:venueId/blockedDates
+  // Create blocked dates for a venue
+  // -------------------------------------------------------------------
+  createVenueBlockedDates: async (
+    venueId: number,
+    startDate: string,
+    endDate: string,
+    reason: string,
+  ): Promise<VenueBlockedDates> => {
+    const response = await api.post(`/vendor/venues/${venueId}/blockedDates`, {
+      startDate,
+      endDate,
+      reason,
+    });
+    return response.data;
+  },
+
+  // -------------------------------------------------------------------
+  // DELETE /vendor/venues/:venueId/blockedDates/:blockDateId
+  // Delete blocked dates for a venue
+  // -------------------------------------------------------------------
+  deleteVenueBlockedDates: async (
+    venueId: number,
+    blockedDateId: number,
+  ): Promise<{ message: string }> => {
+    const response = await api.delete(`/vendor/venues/${venueId}/blockedDates/${blockedDateId}`);
     return response.data;
   },
 };

@@ -40,7 +40,7 @@ export class VenueBrowseController {
 
     // Get every venue with its child rows attached.
     const venues = await this.venueRepository.find({
-      relations: { amenities: true, suitabilityTags: true, vendor: true },
+      relations: { amenities: true, suitabilityTags: true }, // removed vendor from relations as it was returning all vendors details including password
     });
 
     // Filter in plain JavaScript — easy to read and good enough for
@@ -93,9 +93,8 @@ export class VenueBrowseController {
         amenities: true,
         suitabilityTags: true,
         blockedDates: true,
-        vendor: true,
       },
-    });
+    }); // removed vendor from relations as it was returning all vendors details including password
 
     if (!venue) {
       return res.status(404).json({ message: "Venue not found" });

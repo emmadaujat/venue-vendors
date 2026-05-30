@@ -26,6 +26,7 @@ import { useVendorApplications } from "@/hooks/vendor/useVendorApplications";
 import { useVendorBookings } from "@/hooks/vendor/useVendorBookings";
 import { useVendorVenues } from "@/hooks/vendor/useVendorVenues";
 import { useVendorComments } from "@/hooks/vendor/useVendorComments";
+import { useAllHirersCompliance } from "@/hooks/vendor/useHirerCompliance";
 
 export default function VendorDashboard() {
   const { user } = useAuth("vendor");
@@ -35,6 +36,7 @@ export default function VendorDashboard() {
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
   const { vendorComments, isLoading: commentsLoading } = useVendorComments();
   const { venues, isLoading: venuesLoading } = useVendorVenues();
+  const { credibilityMap } = useAllHirersCompliance(bookings);
 
   // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
   const isLoading = applicationsLoading || bookingsLoading || commentsLoading || venuesLoading;
@@ -161,7 +163,7 @@ export default function VendorDashboard() {
           <Flex align="center" gap={2}>
             <StarIcon color="yellow.400" />
             <Text fontSize="2xl" fontWeight="bold">
-              {avgRating}
+              {avgRating.toFixed(2)}
             </Text>
           </Flex>
         </Box>
@@ -207,28 +209,33 @@ export default function VendorDashboard() {
               <Th>Hirer</Th>
               <Th>Venue</Th>
               <Th>Event Name</Th>
-              <Th>Event Type</Th>
               <Th>Date</Th>
-              <Th>Rating from Hirer</Th>
+              <Th>Reputation</Th>
+              <Th whiteSpace={"nowrap"}>Compliance Score</Th>
+              <Th>Status</Th>
             </Tr>
           </Thead>
           <Tbody fontSize={"sm"}>
-            {bookings.map((booking) => {
-              return (
+            {bookings.length === 0 ? (
+              <Tr>
+                <Td colSpan={6} textAlign="center" color="gray.400">
+                  No bookings yet
+                </Td>
+              </Tr>
+            ) : (
+              bookings.map((booking) => (
                 <Tr key={booking.bookingID}>
-                  {/* if no comments  */}
-                  {bookings.length === 0 && (
-                    <Td colSpan={5} textAlign="center" color="gray.400">
-                      No bookings yet
-                    </Td>
-                  )}
                   {/* Hirer name — links to hirer profile page */}
                   <Td>
                     <Box>
                       <NextLink
                         href={`/vendorDashboard/hirerProfiles/${booking.application.hirer.userID}`}
                       >
-                        <Text _hover={{ textDecoration: "underline" }} fontWeight="semibold">
+                        <Text
+                          _hover={{ textDecoration: "underline" }}
+                          fontWeight="semibold"
+                          color={"brand.primary"}
+                        >
                           {booking.application.hirer.firstName} {booking.application.hirer.lastName}
                         </Text>
                       </NextLink>
@@ -236,7 +243,6 @@ export default function VendorDashboard() {
                   </Td>
                   <Td>{booking.application.venue.name}</Td>
                   <Td>{booking.application.eventName}</Td>
-                  <Td>{booking.application.eventType}</Td>
                   <Td>
                     {new Date(booking.application.eventDate).toLocaleDateString("en-AU", {
                       day: "2-digit",
@@ -244,12 +250,12 @@ export default function VendorDashboard() {
                       year: "numeric",
                     })}
                   </Td>
-                  <Td>
+                  <Td whiteSpace={"nowrap"}>
                     <Flex align="center" gap={2}>
-                      {booking.vendorRating > 0 ? (
+                      {booking.hirerReputationRating > 0 ? (
                         <>
-                          {renderStars(booking.vendorRating)}
-                          <Text fontSize="xs">{booking.vendorRating} / 5</Text>
+                          {renderStars(booking.hirerReputationRating)}
+                          <Text fontSize="xs">{booking.hirerReputationRating} / 5</Text>
                         </>
                       ) : (
                         <Text fontSize="sm" color="gray.400">
@@ -258,9 +264,22 @@ export default function VendorDashboard() {
                       )}
                     </Flex>
                   </Td>
+                  {/* Compliance score — percentage based on how many documents the hirer has uploaded */}
+                  <Td>
+                    {credibilityMap[booking.application.hirer.userID] !== undefined ? (
+                      <Text fontWeight="semibold">
+                        {credibilityMap[booking.application.hirer.userID]}%
+                      </Text>
+                    ) : (
+                      <Text fontSize="sm" color="gray.400">
+                        Loading...
+                      </Text>
+                    )}
+                  </Td>
+                  <Td>{booking.status}</Td>
                 </Tr>
-              );
-            })}
+              ))
+            )}
           </Tbody>
         </Table>
       </Box>
@@ -271,7 +290,7 @@ export default function VendorDashboard() {
           <NextLink href="/vendorDashboard/applications">
             {" "}
             <Text color="white" fontWeight="semibold" _hover={{ textDecoration: "underline" }}>
-              Recent Applications
+              New Applications
             </Text>
           </NextLink>
           <NextLink href="/vendorDashboard/applications">
@@ -285,8 +304,7 @@ export default function VendorDashboard() {
             <Tr>
               <Th>Applicant</Th>
               <Th>Venue</Th>
-              <Th>Event Name</Th>
-              <Th whiteSpace="nowrap">Event Type</Th>
+              <Th whiteSpace={"nowrap"}>Event Name</Th>
               <Th>Date</Th>
               <Th>Guests</Th>
               <Th>Reputation</Th>
@@ -306,7 +324,7 @@ export default function VendorDashboard() {
                   <Tr key={app.applicationID}>
                     {/* if no applications  */}
                     {applications.length === 0 && (
-                      <Td colSpan={5} textAlign="center" color="gray.400">
+                      <Td colSpan={7} textAlign="center" color="gray.400">
                         {" "}
                         No applications yet{" "}
                       </Td>
@@ -318,6 +336,7 @@ export default function VendorDashboard() {
                             _hover={{ textDecoration: "underline" }}
                             whiteSpace="nowrap"
                             fontWeight="semibold"
+                            color={"brand.primary"}
                           >
                             {app.hirer.firstName} {app.hirer.lastName}
                           </Text>
@@ -325,7 +344,6 @@ export default function VendorDashboard() {
                       </Box>
                     </Td>
                     <Td>{app.venue.name}</Td>
-                    <Td>{app.eventName}</Td>
                     <Td>{app.eventType}</Td>
                     <Td>
                       {new Date(app.eventDate).toLocaleDateString("en-AU", {

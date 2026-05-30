@@ -245,9 +245,11 @@ export default function EditVenue() {
       {/* Back to My Venues link */}
       <NextLink href="/vendorDashboard/myVenues">
         <Text
-          fontSize="sm"
           color="brand.primary"
+          fontSize="md"
+          mb={4}
           cursor="pointer"
+          fontWeight="semibold"
           _hover={{ textDecoration: "underline" }}
         >
           ← Back to My Venues

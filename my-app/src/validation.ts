@@ -10,10 +10,17 @@ export function isValidEmail(email: string) {
 }
 
 // checks if the password meets requirements
+// TODO:
+// Add a complex password validator so that each password should contain
+// at least 1 upper case letter,
+// 1 lower case letter,
+// and 1 special character,
+// and be at least 6 digits
 export function isValidPassword(password: string) {
   if (!password) return "Password Field is required";
   if (password.length < 8) return "Password must be at least 8 characters";
   if (!/[A-Z]/.test(password)) return "Must contain an uppercase letter";
+  if (!/[^a-zA-Z0-9]/.test(password)) return "Must contain a special character";
   if (!/\d/.test(password)) return "Must contain a number";
   if (!/[a-z]/.test(password)) return "Must contain a lowercase letter";
 

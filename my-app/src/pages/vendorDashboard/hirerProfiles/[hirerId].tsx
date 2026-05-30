@@ -155,10 +155,10 @@ export default function HirerProfileDetail() {
       <NextLink href="/vendorDashboard/hirerProfiles">
         <Text
           color="brand.primary"
-          fontSize="sm"
+          fontSize="md"
           mb={4}
-          fontWeight="semibold"
           cursor="pointer"
+          fontWeight="semibold"
           _hover={{ textDecoration: "underline" }}
         >
           ← Back to Hirer Profiles

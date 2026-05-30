@@ -4,12 +4,14 @@ import { User } from "../entity/User";
 import { Venue } from "../entity/Venue";
 import { VenueAmenities } from "../entity/VenueAmenities";
 import { VenueSuitabilityTag } from "../entity/VenueSuitabilityTag";
+import { VenueBlockedDates } from "../entity/VenueBlockedDates";
 
 export class VenueController {
   private userRepository = AppDataSource.getRepository(User);
   private venueRepository = AppDataSource.getRepository(Venue);
   private amenityRepository = AppDataSource.getRepository(VenueAmenities);
   private suitabilityTagRepository = AppDataSource.getRepository(VenueSuitabilityTag);
+  private venueBlockedDates = AppDataSource.getRepository(VenueBlockedDates);
 
   /**
    * @param request - Express request object containing user details in body
@@ -228,5 +230,93 @@ export class VenueController {
     } catch (error) {
       return res.status(500).json({ message: "Error creating venue", error });
     }
+  }
+
+  // -------------------------------------------------------------------
+  // ------------------ GET VENUES BLOCKED DATES -----------------------
+  // -------------------------------------------------------------------
+  // fetches all blocked periods for a venue
+  async getVenueBlockedDates(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
+    const venueId = parseInt(req.params.venueId as string);
+
+    // Verify the venue exists AND belongs to the logged-in vendor
+    const venue = await this.venueRepository.findOne({
+      where: { venueID: venueId, vendor: { userID: vendorID } },
+    });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found or not authorised" });
+    }
+
+    // Fetch all blocked date records for this venue
+    const blockedDates = await this.venueBlockedDates.find({
+      where: { venue: { venueID: venueId } },
+    });
+
+    return res.json(blockedDates);
+  }
+
+  // -------------------------------------------------------------------
+  // ------------------ CREATE VENUES BLOCKED DATES --------------------
+  // -------------------------------------------------------------------
+  // creates a new blocked period for a venue
+  // Body is validated by VenueBlockoutDTO before reaching here.
+  async createVenueBlockedDates(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
+    const venueId = parseInt(req.params.venueId as string);
+    const { startDate, endDate, reason } = req.body;
+
+    // Verify the venue exists AND belongs to the logged-in vendor
+    const venue = await this.venueRepository.findOne({
+      where: { venueID: venueId, vendor: { userID: vendorID } },
+    });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found or not authorised" });
+    }
+
+    // Build the new blocked date record
+    // Convert YYYY-MM-DD strings from the DTO into Date objects for the entity
+    const newBlockout = this.venueBlockedDates.create({
+      venue,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      reason,
+    });
+
+    const saved = await this.venueBlockedDates.save(newBlockout);
+    return res.status(201).json(saved);
+  }
+
+  // -------------------------------------------------------------------
+  // ------------------ DELETE VENUES BLOCKED DATES --------------------
+  // -------------------------------------------------------------------
+  // removes a blocked period by ID
+  async deleteVenueBlockedDates(req: Request, res: Response) {
+    const vendorID = this.vendorID(req);
+    const venueId = parseInt(req.params.venueId as string);
+    const blockDateId = parseInt(req.params.blockDateId as string);
+
+    // Verify the venue belongs to this vendor before allowing delete
+    const venue = await this.venueRepository.findOne({
+      where: { venueID: venueId, vendor: { userID: vendorID } },
+    });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found or not authorised" });
+    }
+
+    // Find the specific blocked date record
+    const blockout = await this.venueBlockedDates.findOne({
+      where: { blockedID: blockDateId, venue: { venueID: venueId } },
+    });
+
+    if (!blockout) {
+      return res.status(404).json({ message: "Blocked date not found" });
+    }
+
+    await this.venueBlockedDates.remove(blockout);
+    return res.json({ message: "Blocked period removed successfully" });
   }
 }

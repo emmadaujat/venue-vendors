@@ -142,3 +142,11 @@ export type ComplianceDocument = {
   fileURL: string;
   complianceDocID: number;
 };
+
+export type VenueBlockedDates = {
+  blockedID: number;
+  venueID: number;
+  startDate: string;
+  endDate: string;
+  reason: string;
+};
