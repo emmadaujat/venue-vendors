@@ -8,6 +8,8 @@ import vendorRoutes from "./routes/vendor.routes";
 import venueRoutes from "./routes/venue.routes";
 import hirerRoutes from "./routes/hirer.routes";
 import bookingRoutes from "./routes/booking.routes";
+// DI vendor analytics (Infographic Report)
+import vendorStatsRoutes from "./routes/vendor-stats.routes";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +27,9 @@ app.use("/api/venues", venueRoutes);
 app.use("/api/hirer", hirerRoutes);
 app.use("/api/bookings", bookingRoutes);
 
+// Stats router is registered FIRST so /api/vendor/stats matches
+// here before falling through to Emma's main vendor router.
+app.use("/api/vendor", vendorStatsRoutes);
 app.use("/api/vendor", vendorRoutes);
 
 // Connect to the database then start the server

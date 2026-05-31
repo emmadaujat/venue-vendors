@@ -185,4 +185,32 @@ export const vendorApi = {
     const response = await api.delete(`/vendor/venues/${venueId}/blockedDates/${blockedDateId}`);
     return response.data;
   },
+
+  // -------------------------------------------------------------------
+  // DI - GET /vendor/stats?range=week|month|lastMonth|all
+  // Returns the data for the four Infographic Report charts:
+  //   * perVenue       - bar chart (hirer tally per venue)
+  //   * stackedTotals  - stacked bar chart (hirer totals by venue)
+  //   * hirerPieData   - pie chart (most/least active hirers)
+  //   * utilization    - line chart (bookings over time)
+  // -------------------------------------------------------------------
+  getStats: async (range: string): Promise<VendorStats> => {
+    const response = await api.get(`/vendor/stats`, { params: { range } });
+    return response.data;
+  },
 };
+
+// Shape returned by /vendor/stats — used by the Infographic page.
+export interface VendorStats {
+  range: string;
+  totalBookings: number;
+  venueCount: number;
+  perVenue: Array<Record<string, string | number>>;
+  hirerNames: string[];
+  venueNames: string[];
+  stackedTotals: Array<Record<string, string | number>>;
+  hirerPieData: Array<{ name: string; count: number }>;
+  mostActive: { name: string; count: number } | null;
+  leastActive: { name: string; count: number } | null;
+  utilization: Array<{ date: string; count: number }>;
+}
