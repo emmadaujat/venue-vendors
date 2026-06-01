@@ -36,6 +36,8 @@ export default function SignUp() {
     role: "",
   });
 
+  // TODO: Make it so you can press enter to sign up
+
   const [validateEmail, setValidateEmail] = useState<string | null>(null); // can be a string or null
   const [validatePassword, setValidatePassword] = useState<string | null>(null);
   const [validateConfirmPassword, setValidateConfirmPassword] = useState<string | null>(null);

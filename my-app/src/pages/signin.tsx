@@ -16,6 +16,7 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { CheckIcon } from "@chakra-ui/icons";
+// TODO: Make it so you can press enter to sign in
 
 export default function Signin() {
   const [formData, setFormData] = useState({
