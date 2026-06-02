@@ -7,6 +7,8 @@ import Dashboard from "./pages/dashboard";
 import Venues from "./pages/venues";
 import Reports from "./pages/reports";
 import ProtectedRoute from "./components/protectedRoutes";
+import AddVenue from "./pages/addVenue";
+import ManageVenue from "./pages/manageVenue";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/venues" element={<Venues />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/addVenue" element={<AddVenue />} />
+        <Route path="/manageVenue" element={<ManageVenue />} />
       </Route>
     </Routes>
   );

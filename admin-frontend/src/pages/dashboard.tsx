@@ -25,7 +25,7 @@ export default function AdminDashboard() {
         <Text fontWeight="semibold" color="brand.primary" fontSize="3xl">
           Welcome, Admin
         </Text>
-        <Link to="/venues/addVenue">
+        <Link to="/addVenue">
           <Button
             bg="brand.primary"
             color={"white"}
