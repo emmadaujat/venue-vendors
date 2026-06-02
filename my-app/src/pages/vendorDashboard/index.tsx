@@ -360,7 +360,7 @@ export default function VendorDashboard() {
                         {getHirerAvgRating(app.hirer.userID, bookings) !== null ? (
                           <>
                             {renderStars(getHirerAvgRating(app.hirer.userID, bookings)!)}
-                            <Text whiteSpace="nowrap" gap={4} fontSize="xs" color="gray.500">
+                            <Text whiteSpace="nowrap" gap={4} fontSize="xs">
                               {getHirerAvgRating(app.hirer.userID, bookings)} / 5
                             </Text>
                           </>
