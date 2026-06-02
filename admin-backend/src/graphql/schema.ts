@@ -26,6 +26,20 @@ export const typeDefs = gql`
     availabilityStatus: String
     isFeatured: Boolean!
     vendor: User
+    # Amenities and suitability tags needed by frontend forms
+    amenities: [String!]!
+    suitabilityTags: [String!]!
+  }
+
+  type VendorStat {
+    userID: ID!
+    firstName: String!
+    lastName: String!
+    email: String!
+    joinedDate: String
+    totalVenues: Int!
+    totalBookings: Int!
+    avgRating: Float!
   }
 
   # ----------------------
@@ -50,6 +64,18 @@ export const typeDefs = gql`
     approvedBookings: Int!
   }
 
+  # --------------------------
+  # ---- Dashboard Stats -----
+  # --------------------------
+
+  type DashboardStats {
+    totalVenues: Int!
+    totalVendors: Int!
+    totalHirers: Int!
+    totalBookings: Int!
+    avgRating: Float!
+  }
+
   # ---------------
   # ---- Auth ----
   # ---------------
@@ -71,6 +97,8 @@ export const typeDefs = gql`
     imageURL: String
     availabilityStatus: String
     isFeatured: Boolean
+    amenities: [String!]
+    suitabilityTags: [String!]
   }
 
   # -----------------
@@ -81,14 +109,23 @@ export const typeDefs = gql`
     # Get all venues with their assigned vendor (resolver.ts step 1)
     venues: [Venue!]!
 
+    # Get a single venue by ID — used by ManageVenue page
+    venueById(venueId: ID!): Venue
+
     # Get all users with vendor role (resolver.ts step 2)
     vendors: [User!]!
+
+    # Dashboard stat cards — total venues, vendors, hirers, bookings, avg rating
+    dashboardStats: DashboardStats!
 
     # Top 3 most popular venues with most popular day and timeslot (resolver.ts step 8)
     topVenues: [VenueStat!]!
 
     # Top 3 most active applicants (resolver.ts step 9)
     topApplicants: [ApplicationStat!]!
+
+    # Get top rated vendors
+    topRatedVendors: [VendorStat!]!
   }
 
   # -------------------

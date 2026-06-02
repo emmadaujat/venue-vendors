@@ -47,6 +47,74 @@ export const resolvers = {
 
     // 9. get top 3 most active applicants (successful bookings / number of bookings submitted (HD PART I. MOST SUCCESSFUL APPLICANT - Query - [ApplicationStat]!)
     topApplicants: async () => {},
+
+    // Get a single venue by ID - used by ManageVenue page
+    venueById: async (_: any, args: any) => {
+      return await venueRepository.findOne({
+        where: { venueID: parseInt(args.venueId) },
+        relations: { vendor: true },
+      });
+    },
+
+    // Dashboard stat cards
+    dashboardStats: async () => {
+      const totalVenues = await venueRepository.count();
+      const totalVendors = await userRepository.count({ where: { role: "vendor" } });
+      const totalHirers = await userRepository.count({ where: { role: "hirer" } });
+      const totalBookings = await bookingRepository.count();
+
+      // Calculate total avg vendor rating across all bookings
+      const bookings = await bookingRepository.find();
+      const avgRating =
+        bookings.length > 0
+          ? bookings.reduce((acc, curr) => acc + (curr.vendorRating ?? 0), 0) / bookings.length
+          : 0;
+
+      return {
+        totalVenues,
+        totalVendors,
+        totalHirers,
+        totalBookings,
+        avgRating: Math.round(avgRating * 2) / 2,
+      };
+    },
+
+    // Top 3 rated vendors - calculates avg vendorRating across all venues
+    topRatedVendors: async () => {
+      // get all vendors with their venues and bookings
+      const vendors = await userRepository.find({
+        where: { role: "vendor" },
+        relations: { venues: { applications: { booking: true } } },
+      });
+
+      const vendorStats = vendors.map((vendor) => {
+        // get all bookings for all venues and applications for this vendor
+        const allBookings =
+          vendor.venues?.flatMap(
+            (v: any) => v.applications?.flatMap((a: any) => (a.booking ? [a.booking] : [])) ?? [],
+          ) ?? [];
+
+        const avgRating =
+          allBookings.length > 0
+            ? allBookings.reduce((acc: number, b: any) => acc + (b.vendorRating ?? 0), 0) /
+              allBookings.length
+            : 0;
+
+        return {
+          userID: vendor.userID,
+          firstName: vendor.firstName,
+          lastName: vendor.lastName,
+          email: vendor.email,
+          joinedDate: vendor.joinedDate,
+          totalVenues: vendor.venues?.length ?? 0,
+          totalBookings: allBookings.length,
+          avgRating: Math.round(avgRating * 2) / 2,
+        };
+      });
+
+      // Sort highest to lowest and return top 3
+      return vendorStats.sort((a, b) => b.avgRating - a.avgRating).slice(0, 3);
+    },
   },
 
   Mutation: {
@@ -78,5 +146,20 @@ export const resolvers = {
 
     // 5. delete venue (HD PART H. "D" CRUD - mutation - (venueId: ID!))
     deleteVenue: async (_: any, args: any) => {},
+  },
+  // Fetch related amenities and suitability tags
+  Venue: {
+    amenities: async (parent: any) => {
+      const amenities = await venueAmenitiesRepository.find({
+        where: { venue: { venueID: parent.venueID } },
+      });
+      return amenities.map((a) => a.amenityName);
+    },
+    suitabilityTags: async (parent: any) => {
+      const suitabilityTags = await venueSuitabilityTagRepository.find({
+        where: { venue: { venueID: parent.venueID } },
+      });
+      return suitabilityTags.map((t) => t.suitabilityName);
+    },
   },
 };

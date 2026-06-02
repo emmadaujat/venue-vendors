@@ -18,6 +18,12 @@ import {
   Image,
   Badge,
   Divider,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -26,10 +32,10 @@ import {
   ModalBody,
   ModalFooter,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminDashboardLayout from "../components/adminDashboardLayout";
-import { Link } from "react-router-dom";
 import {
   isValidVenueName,
   isValidLocation,
@@ -39,13 +45,13 @@ import {
   isValidImageURL,
 } from "../venueValidation";
 
-// Suitability tag options
+// Hardcoded suitability tags
 const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"];
 
 // venue availability drop down
 const AVAILABILITY_OPTIONS = ["Available", "Limited Availability", "Not Available"];
 
-export default function AddVenue() {
+export default function ManageVenue() {
   const navigate = useNavigate();
 
   // ===========================================================
@@ -61,6 +67,7 @@ export default function AddVenue() {
   const [suitabilityTags, setSuitabilityTags] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityInput, setAmenityInput] = useState("");
+  const [isFeatured, setIsFeatured] = useState(false);
 
   // ===========================================================
   // Per-field validation error states
@@ -91,28 +98,35 @@ export default function AddVenue() {
   // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
+  // ===========================================================
+  // Delete confirmation dialog
+  // ===========================================================
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   // Placeholder until GraphQL query is added
   const vendors: any[] = [];
+  const venue: any = null;
 
   // -------------------------------------------------------------------
-  // Retrieve draft from localStorage
+  // Pre-populate form fields once venue data is loaded from venue details
   // -------------------------------------------------------------------
-  // Load draft on page load if there is one
   useEffect(() => {
-    const saved = localStorage.getItem("createVenueDraft");
-    if (saved) {
-      const draft = JSON.parse(saved);
-      setName(draft.name ?? "");
-      setLocation(draft.location ?? "");
-      setCapacity(draft.capacity ?? "");
-      setPricePerDay(draft.pricePerDay ?? "");
-      setShortDescription(draft.shortDescription ?? "");
-      setImageURL(draft.imageURL ?? "");
-      setAvailabilityStatus(draft.availabilityStatus ?? "Available");
-      setAmenities(draft.amenities ?? []);
-      setSuitabilityTags(draft.suitabilityTags ?? []);
+    if (venue) {
+      setName(venue.name);
+      setLocation(venue.location);
+      setCapacity(String(venue.capacity));
+      setPricePerDay(String(venue.pricePerDay));
+      setShortDescription(venue.shortDescription);
+      setImageURL(venue.imageURL);
+      setAvailabilityStatus(venue.availabilityStatus);
+      setSuitabilityTags(venue.suitabilityTags ?? []);
+      setAmenities(venue.amenities ?? []);
     }
-  }, []);
+  }, [venue]);
 
   // -------------------------------------------------------------------
   // Get vendors from database to show as options in drop down menu
@@ -124,17 +138,6 @@ export default function AddVenue() {
     setSelectedVendor(vendor);
   }
 
-  // -------------------------------------------------------------------
-  // Calculate Vendors years of experience
-  // -------------------------------------------------------------------
-  function getVendorYearsExperience(): string {
-    if (!selectedVendor?.joinedDate) return "";
-    const years = Math.floor(
-      (new Date().getTime() - new Date(selectedVendor.joinedDate).getTime()) /
-        (1000 * 60 * 60 * 24 * 365),
-    );
-    return `${years} years`;
-  }
   // -------------------------------------------------------------------
   // Amenity helpers
   // -------------------------------------------------------------------
@@ -206,8 +209,8 @@ export default function AddVenue() {
     //TODO: wire up to GraphQL createVenue mutation
     setIsSubmitting(true);
     try {
+      // TODO: wire up GraphQL deleteVenue mutation
       setSaveSuccess(true);
-      localStorage.removeItem("createVenueDraft");
       // Show success message for 1.5 seconds then redirect
       setTimeout(() => {
         onPreviewClose();
@@ -224,38 +227,34 @@ export default function AddVenue() {
     }
   }
 
-  function handleSaveDraft() {
-    localStorage.setItem(
-      "createVenueDraft",
-      JSON.stringify({
-        name,
-        location,
-        capacity,
-        pricePerDay,
-        shortDescription,
-        imageURL,
-        availabilityStatus,
-        amenities,
-        suitabilityTags,
-      }),
-    );
+  // ===========================================================
+  // Confirm delete — called when vendor confirms in the delete dialog
+  // ===========================================================
+  async function handleConfirmDelete() {
+    if (!venue) return;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      // TODO: wire up GraphQL deleteVenue mutation
+      onDeleteClose();
+      navigate("/venues");
+    } catch (error) {
+      setDeleteError("Something went wrong deleting the venue. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
-  // ===========================================================
-  // Cancel form — reset all form fields to empty, clear saved draft from localStorage
-  // ===========================================================
-  function handleCancel() {
-    setName("");
-    setLocation("");
-    setCapacity("");
-    setPricePerDay("");
-    setShortDescription("");
-    setImageURL("");
-    setAvailabilityStatus("Available");
-    setSuitabilityTags([]);
-    setAmenities([]);
-    setSelectedVendor(null);
-    localStorage.removeItem("createVenueDraft");
+  // -------------------------------------------------------------------
+  // Calculate Vendors years of experience
+  // -------------------------------------------------------------------
+  function getVendorYearsExperience(): string {
+    if (!selectedVendor?.joinedDate) return "";
+    const years = Math.floor(
+      (new Date().getTime() - new Date(selectedVendor.joinedDate).getTime()) /
+        (1000 * 60 * 60 * 24 * 365),
+    );
+    return `${years} years`;
   }
 
   // ===========================================================
@@ -269,17 +268,15 @@ export default function AddVenue() {
 
   return (
     <AdminDashboardLayout>
-      {/* Back to Venues link */}
+      {/* Back to My Venues link */}
       <Link to="/venues">
         <Text
+          fontSize="sm"
           color="brand.primary"
-          fontSize="md"
-          mb={4}
           cursor="pointer"
-          fontWeight="semibold"
           _hover={{ textDecoration: "underline" }}
         >
-          ← Back to Venues
+          ← Back to My Venues
         </Text>
       </Link>
 
@@ -287,31 +284,27 @@ export default function AddVenue() {
       <Flex justify="space-between" mt={8} mb={4} maxW="80%">
         <Box mt={8} mb={4}>
           <Text fontSize="lg" fontWeight="bold">
-            Add a new Venue
+            Update Venue Details - {venue?.name}
           </Text>
           <Text fontSize="sm" color="gray.500">
-            Create a new venue for VenueVendors
+            Update Venue Details & reassign a vendor below
           </Text>
         </Box>
 
         <Flex gap={3}>
           <Link to="/venues">
-            <Button
-              variant="outline"
-              borderColor="brand.primary"
-              color="brand.primary"
-              onClick={handleCancel}
-            >
+            <Button variant="outline" borderColor="brand.primary" color="brand.primary">
               Cancel
             </Button>
           </Link>
           <Button
             bg="brand.primary"
             color="white"
-            onClick={handleSaveDraft}
+            onClick={handleSaveClick}
+            isLoading={isSubmitting}
             _hover={{ bg: "brand.secondary", color: "brand.primary" }}
           >
-            Save Draft
+            Save
           </Button>
         </Flex>
       </Flex>
@@ -364,14 +357,40 @@ export default function AddVenue() {
           <Text color="white" fontWeight="semibold">
             Venue Details
           </Text>
+          {/* Featured toggle — admin can mark venue as featured */}
+          <Flex align="center" gap={2}>
+            <Text color="white" fontSize="sm">
+              Featured
+            </Text>
+            <Button
+              size="xs"
+              bg={isFeatured ? "gray.300" : "red.400"}
+              color="white"
+              onClick={() => setIsFeatured(false)}
+              borderRightRadius={0}
+            >
+              No
+            </Button>
+            <Button
+              size="xs"
+              bg={isFeatured ? "green.400" : "gray.300"}
+              color="white"
+              onClick={() => setIsFeatured(true)}
+              borderLeftRadius={0}
+            >
+              Yes
+            </Button>
+          </Flex>
         </Flex>
 
         <Box p={6}>
           <Stack spacing={5}>
             {/* Venue Name + Location */}
             <Flex gap={4}>
-              <FormControl isRequired isInvalid={!!nameError} flex="1">
-                <FormLabel fontWeight="semibold">Venue Name</FormLabel>
+              <FormControl isInvalid={!!nameError} flex="1">
+                <FormLabel fontWeight="semibold">
+                  Venue Name <span style={{ color: "red" }}>*</span>
+                </FormLabel>
                 <Input
                   value={name}
                   onChange={(e) => {
@@ -383,8 +402,10 @@ export default function AddVenue() {
                 <FormErrorMessage>{nameError}</FormErrorMessage>
               </FormControl>
 
-              <FormControl isRequired isInvalid={!!locationError} flex="1">
-                <FormLabel fontWeight="semibold">Venue Location</FormLabel>
+              <FormControl isInvalid={!!locationError} flex="1">
+                <FormLabel fontWeight="semibold">
+                  Venue Location <span style={{ color: "red" }}>*</span>
+                </FormLabel>
                 <Input
                   value={location}
                   onChange={(e) => {
@@ -399,8 +420,10 @@ export default function AddVenue() {
 
             {/* Capacity + Price + Rate — three-column row */}
             <Flex gap={4}>
-              <FormControl isRequired isInvalid={!!capacityError} flex="1">
-                <FormLabel fontWeight="semibold">Capacity</FormLabel>
+              <FormControl isInvalid={!!capacityError} flex="1">
+                <FormLabel fontWeight="semibold">
+                  Capacity <span style={{ color: "red" }}>*</span>
+                </FormLabel>
                 <Input
                   type="number"
                   value={capacity}
@@ -413,8 +436,10 @@ export default function AddVenue() {
                 <FormErrorMessage>{capacityError}</FormErrorMessage>
               </FormControl>
 
-              <FormControl isRequired isInvalid={!!priceError} flex="0.5">
-                <FormLabel fontWeight="semibold">Price</FormLabel>
+              <FormControl isInvalid={!!priceError} flex="0.5">
+                <FormLabel fontWeight="semibold">
+                  Price <span style={{ color: "red" }}>*</span>
+                </FormLabel>
                 <Input
                   type="number"
                   value={pricePerDay}
@@ -437,8 +462,10 @@ export default function AddVenue() {
             </Flex>
 
             {/* Venue Description */}
-            <FormControl isRequired isInvalid={!!descriptionError}>
-              <FormLabel fontWeight="semibold">Venue Description</FormLabel>
+            <FormControl isInvalid={!!descriptionError}>
+              <FormLabel fontWeight="semibold">
+                Venue Description <span style={{ color: "red" }}>*</span>
+              </FormLabel>
               <Textarea
                 value={shortDescription}
                 onChange={(e) => {
@@ -457,8 +484,10 @@ export default function AddVenue() {
             </FormControl>
 
             {/* Venue Image URL */}
-            <FormControl isRequired isInvalid={!!imageURLError}>
-              <FormLabel fontWeight="semibold">Venue Image</FormLabel>
+            <FormControl isInvalid={!!imageURLError}>
+              <FormLabel fontWeight="semibold">
+                Venue Image <span style={{ color: "red" }}>*</span>
+              </FormLabel>
               <Input
                 value={imageURL}
                 onChange={(e) => {
@@ -606,7 +635,7 @@ export default function AddVenue() {
           <Stack spacing={4}>
             {/* Top row — vendor select + years of experience */}
             <Flex gap={4}>
-              <FormControl flex="1" isRequired isInvalid={!!vendorError}>
+              <FormControl flex="1" isInvalid={!!vendorError}>
                 <FormLabel fontWeight={"semibold"}>Vendor Name</FormLabel>
                 <Select
                   placeholder="Select a vendor"
@@ -667,8 +696,13 @@ export default function AddVenue() {
         </Box>
       </Box>
 
-      {/* Add Venue btn */}
-      <Flex mt={10} justify={"flex-end"} maxW={"80%"}>
+      {/* Save / Cancel btn */}
+      <Flex gap={3}>
+        <Link to="/venues">
+          <Button variant="outline" borderColor="brand.primary" color="brand.primary">
+            Cancel
+          </Button>
+        </Link>
         <Button
           bg="brand.primary"
           color="white"
@@ -676,20 +710,38 @@ export default function AddVenue() {
           isLoading={isSubmitting}
           _hover={{ bg: "brand.secondary", color: "brand.primary" }}
         >
-          Add Venue
+          Update
+        </Button>
+      </Flex>
+      {/* ===================== DELETE VENUE BUTTON ===================== */}
+      <Flex justify="flex-start" mb={8} mt={20}>
+        <Button
+          bg="red.500"
+          color="white"
+          onClick={onDeleteOpen}
+          _hover={{ bg: "red.600" }}
+          leftIcon={<span>🗑</span>}
+        >
+          DELETE VENUE
         </Button>
       </Flex>
 
+      {/* ===================== SUBMIT ERROR ===================== */}
+      {submitError && (
+        <Text color="red.500" fontSize="sm" mb={4}>
+          {submitError}
+        </Text>
+      )}
       {/* ===========================================================
-          SAVE PREVIEW MODAL
-          Shows a summary card of the updated venue before confirming.
-      =========================================================== */}
+        SAVE PREVIEW MODAL 
+        Shows a summary card of the updated venue before confirming.
+        =========================================================== */}
       <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="md" isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader color="brand.primary">
             {" "}
-            {saveSuccess ? "Venue successfully created!" : "Create Venue Confirmation Preview"}
+            {saveSuccess ? "Venue Updated!" : "Update Venue Confirmation Preview"}
           </ModalHeader>
 
           <ModalBody>
@@ -697,7 +749,7 @@ export default function AddVenue() {
               // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
-                  ✓ Venue Created Successfully!
+                  ✓ Venue Updated Successfully!
                 </Text>
                 <Text fontSize="sm" color="gray.500">
                   Redirecting you back to My Venues...
@@ -755,21 +807,6 @@ export default function AddVenue() {
                     ))}
                   </Flex>
                 )}
-                {/* Assigned vendor */}
-                {selectedVendor && (
-                  <>
-                    <Divider mb={3} />
-                    <Text fontWeight="semibold" fontSize="sm">
-                      Assigned Vendor
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      {selectedVendor.firstName} {selectedVendor.lastName}
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      {selectedVendor.email}
-                    </Text>
-                  </>
-                )}
               </>
             )}
           </ModalBody>
@@ -792,13 +829,60 @@ export default function AddVenue() {
                   isLoading={isSubmitting}
                   _hover={{ bg: "brand.secondary", color: "brand.primary" }}
                 >
-                  Create
+                  Save
                 </Button>
               </>
             )}
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* ===========================================================
+        DELETE CONFIRMATION DIALOG
+        =========================================================== */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="brand.primary">
+              Delete Venue
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <Text>
+                Are you sure you want to delete <strong>{venue?.name}</strong> from VenueVendors?
+              </Text>
+              <Text fontSize="sm" color="gray.500" mt={2}>
+                Deleting a venue cannot be undone.
+              </Text>
+              {deleteError && (
+                <Text color="red.500" fontSize="sm" mt={2}>
+                  {deleteError}
+                </Text>
+              )}
+            </AlertDialogBody>
+
+            <AlertDialogFooter gap={3}>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Cancel
+              </Button>
+              <Button
+                bg="red.500"
+                color="white"
+                onClick={handleConfirmDelete}
+                isLoading={isDeleting}
+                _hover={{ bg: "red.600" }}
+              >
+                DELETE VENUE
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </AdminDashboardLayout>
   );
 }

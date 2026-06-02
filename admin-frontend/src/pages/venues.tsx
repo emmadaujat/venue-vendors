@@ -62,7 +62,7 @@ export default function Venues() {
           </InputGroup>
         </Flex>
 
-        <Link to="/venues/addVenue">
+        <Link to="/addVenue">
           <Button
             bg="brand.primary"
             color={"white"}
