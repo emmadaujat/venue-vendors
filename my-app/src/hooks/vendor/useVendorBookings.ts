@@ -16,7 +16,7 @@ export function useVendorBookings() {
 
   const fetchBookings = async () => {
     try {
-      const data = await vendorApi.getVendorBookings(user!.id);
+      const data = await vendorApi.getVendorBookings();
       setBookings(data);
       setIsLoading(false);
     } catch (error) {

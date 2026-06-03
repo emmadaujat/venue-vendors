@@ -16,7 +16,7 @@ export function useVendorComments() {
 
   const fetchComments = async () => {
     try {
-      const data = await vendorApi.getVendorComments(user!.id);
+      const data = await vendorApi.getVendorComments();
       setVendorComments(data);
       setIsLoading(false);
     } catch (error) {

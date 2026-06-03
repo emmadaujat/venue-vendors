@@ -16,7 +16,7 @@ export function useVendorApplications() {
 
   const fetchApplications = async () => {
     try {
-      const data = await vendorApi.getVendorApplications(user!.id);
+      const data = await vendorApi.getVendorApplications();
       setApplications(data);
       setIsLoading(false);
     } catch (error) {

@@ -116,12 +116,13 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 
 ## Technology Stack
 
-- **Frontend**: React 18 with TypeScript (Functional Components + Hooks)
-- **Framework**: Next.js 13+ (Pages Router)
-- **Styling**: Chakra UI + Tailwind CSS
-- **State Management**: React Hooks (localStorage, useState, useEffect)
-- **Data Persistence**: HTML5 localStorage (no database)
-- **Testing**: Jest + React Testing Library + node:assert
+- **Frontend (my-app)**: React + TypeScript (functional components + hooks), Next.js Pages Router, Chakra UI
+- **Backend**: Node + Express + TypeORM REST API
+- **Admin frontend**: Vite + React TS + Apollo Client
+- **Admin backend**: Apollo Server (GraphQL) + TypeORM
+- **Database**: Cloud MS SQL Server (shared by both backends)
+- **Auth**: JWT (argon2 password hashing) stored in `localStorage` as `vv_token`
+- **Testing**: Jest + ts-jest + supertest + node:assert (backend HD tests)
 
 ---
 
@@ -160,34 +161,42 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 
 ---
 
-## Unit tests (Jest + React Testing Library)
+## Unit tests
 
-- Install dependencies (if not already installed):
+### HD contextual unit tests (backend — Node + Express)
+
+The HD requirement is **6 contextual unit tests in the Node + Express backend**
+(`/backend`, not the GraphQL admin backend). Aleeya owns 3, Emma owns 3.
 
 ```bash
-cd my-app
+cd backend
 npm install
+npm test
 ```
 
-- Run the test suite:
+Aleeya's 3 tests live in `backend/src/__tests__/` and each opens with a
+CONTEXT comment block explaining why it exists:
+
+- `auth.signup.test.ts` — the API rejects weak passwords even when the React
+  form is bypassed (OWASP A07).
+- `booking.create.test.ts` — a hirer cannot book a date the vendor has blocked
+  (`409 timeslot blocked`), guarding the stale-frontend race condition.
+- `reputation.compute.test.ts` — average-reputation edge cases (zero → `null`,
+  single → exact value, many → mean rounded to 1dp), using `node:assert/strict`.
+
+Stack: **Jest + ts-jest + supertest + node:assert**. See `backend/README.md`
+for full details.
+
+### Frontend tests (my-app)
 
 ```bash
 cd my-app
 npm test
 ```
 
-- Test files are in `src/__tests__/`:
-  - `hirerTests.test.tsx` — venue filter logic and form validation (StepEventDetails)
-  - `vendorTests.test.tsx` — sign-in validation and successful login + redirect
+- `src/__tests__/vendorTests.test.tsx` — sign-in form validation.
 
-- Jest config: `jest.config.ts` and setup file `jest.setup.ts` (loads `@testing-library/jest-dom`).
-
-- To generate a coverage report:
-
-```bash
-cd my-app
-npx jest --coverage
-```
+Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 
 ---
 

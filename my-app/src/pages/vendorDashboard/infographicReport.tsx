@@ -83,16 +83,26 @@ export default function InfographicReport() {
   const [selectedRange, setSelectedRange] = useState("all");
   const [stats, setStats] = useState<VendorStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Holds a friendly message if the backend call fails, so the
+  // page never just shows a blank/forever-spinner (which looked
+  // like the page "wouldn't open"). Empty string = no error.
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Whenever the user changes the time-range dropdown, re-fetch
   // the stats from the backend. This is the "zoom" in/out.
   useEffect(() => {
     if (!user) return;
     setIsLoading(true);
+    setErrorMessage("");
     vendorApi
       .getStats(selectedRange)
       .then((data) => setStats(data))
-      .catch((error) => console.error("Failed to load vendor stats", error))
+      .catch((error) => {
+        console.error("Failed to load vendor stats", error);
+        setErrorMessage(
+          "Could not load your report data. Make sure you are signed in as a vendor and the backend server is running.",
+        );
+      })
       .finally(() => setIsLoading(false));
   }, [user, selectedRange]);
 
@@ -168,9 +178,26 @@ export default function InfographicReport() {
         </Flex>
       )}
 
+      {/* Visible error banner if the backend call failed, so the
+          page explains itself instead of silently showing nothing. */}
+      {!isLoading && errorMessage && (
+        <Box
+          p={6}
+          textAlign="center"
+          bg="red.50"
+          borderRadius="md"
+          border="1px solid"
+          borderColor="red.200"
+        >
+          <Text fontSize="md" fontWeight="semibold" color="red.600">
+            {errorMessage}
+          </Text>
+        </Box>
+      )}
+
       {/* Empty-state when this vendor has no activity in the
           chosen window - keeps the page from looking broken. */}
-      {!isLoading && stats && stats.totalBookings === 0 && (
+      {!isLoading && !errorMessage && stats && stats.totalBookings === 0 && (
         <Box
           p={10}
           textAlign="center"
@@ -189,7 +216,7 @@ export default function InfographicReport() {
       )}
 
       {/* The four charts - only shown when we have data */}
-      {!isLoading && stats && stats.totalBookings > 0 && (
+      {!isLoading && !errorMessage && stats && stats.totalBookings > 0 && (
         <>
           {/* --------------------------------------------------
               CHART 1 - CHANGE 2.1
@@ -279,9 +306,11 @@ export default function InfographicReport() {
                       cx="50%"
                       cy="50%"
                       outerRadius={110}
-                      label={(entry: { name?: string; count?: number }) =>
-                        `${entry.name ?? ""} (${entry.count ?? 0})`
-                      }
+                      // A boolean label keeps recharts' own renderer
+                      // (returning a custom string here can crash on
+                      // some recharts versions). The hirer names are
+                      // shown in the Legend + Tooltip instead.
+                      label
                     >
                       {stats.hirerPieData.map((_, idx) => (
                         <Cell
@@ -291,6 +320,7 @@ export default function InfographicReport() {
                       ))}
                     </Pie>
                     <Tooltip />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </Box>

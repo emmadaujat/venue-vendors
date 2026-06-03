@@ -18,7 +18,7 @@ export function useVendorVenues() {
 
   const fetchVenues = async () => {
     try {
-      const data = await vendorApi.getVendorsVenues(user!.id);
+      const data = await vendorApi.getVendorsVenues();
       setVenues(data);
       setIsLoading(false);
     } catch (error) {
