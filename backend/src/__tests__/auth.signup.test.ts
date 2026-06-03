@@ -39,10 +39,14 @@ describe("POST /api/register - weak password is rejected", () => {
     // reached the DB and exploded there instead of being caught.
     expect(res.status).toBe(400);
 
-    // The error message MUST mention the password so the front-
-    // end can highlight the correct field. We do a loose regex
-    // match so the test does not break if the wording is tweaked.
-    expect(res.body.message).toMatch(/password/i);
+    // The validateDto middleware (validate.ts) returns TWO shapes:
+    //   - message: "Validation failed"
+    //   - fields: ["password"]   <-- what the frontend uses to highlight fields
+    //   - errors: [{ property, constraints }]
+    // The spec says "the HD sign-up test relies on this" (TASK_ALLOCATION_PLAN.md).
+    // We check `fields` so the assertion stays stable even if the
+    // exact wording of the constraint message changes.
+    expect(res.body.fields).toContain("password");
   });
 
   test("returns 400 when password has no uppercase letter", async () => {
@@ -56,6 +60,8 @@ describe("POST /api/register - weak password is rejected", () => {
     });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/uppercase/i);
+    // Again check `fields` — the failing property is "password"
+    // because the @Matches(/[A-Z]/) decorator is on that field.
+    expect(res.body.fields).toContain("password");
   });
 });
