@@ -24,7 +24,7 @@ function App() {
         <Route path="/venues" element={<Venues />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/addVenue" element={<AddVenue />} />
-        <Route path="/manageVenue" element={<ManageVenue />} />
+        <Route path="/manageVenue/:venueId" element={<ManageVenue />} />
       </Route>
     </Routes>
   );

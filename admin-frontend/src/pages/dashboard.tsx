@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Box,
   Flex,
@@ -272,14 +271,16 @@ export default function AdminDashboard() {
                     </Badge>
                   </Td>
                   <Td>
-                    <Link to={`/venues/${venue.venueID}`}>
-                      <Text
+                    <Link to={`/manageVenue/${venue.venueID}`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        borderColor="brand.primary"
                         color="brand.primary"
-                        _hover={{ textDecoration: "underline" }}
-                        cursor="pointer"
+                        _hover={{ bg: "brand.secondary" }}
                       >
-                        Manage Venue →
-                      </Text>
+                        Manage →
+                      </Button>
                     </Link>
                   </Td>
                 </Tr>
@@ -333,7 +334,7 @@ export default function AdminDashboard() {
                       </Text>
                     </Box>
                   </Td>
-                  <Td>{vendor.totalVenues} Venues</Td>
+                  <Td>{vendor.totalVenues} Venue listings</Td>
                   <Td>{formatDate(vendor.joinedDate)}</Td>
                   <Td>{vendor.totalBookings} Bookings</Td>
                   <Td>

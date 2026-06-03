@@ -13,24 +13,74 @@ import {
   Tbody,
   Tr,
   Th,
+  Td,
+  Switch,
 } from "@chakra-ui/react";
 import AdminDashboardLayout from "../components/adminDashboardLayout";
 import { Link } from "react-router-dom";
-import { SearchIcon, StarIcon } from "@chakra-ui/icons";
-import { useNavigate, useLocation } from "react-router-dom";
+import { SearchIcon } from "@chakra-ui/icons";
+import { useQuery, gql, useMutation } from "@apollo/client";
 
-export default function Venues() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState();
-  const [searchText, setSearchText] = useState("");
-
-  // pressing Enter in search bar searches the list of venues with the query
-  // TODO: update search to search through venues in venues table
-  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && searchText.trim() !== "") {
-      navigate("/venues?search=" + encodeURIComponent(searchText.trim()));
+// Fetch dashbaord stat cards
+const GET_DASHBOARD_STATS = gql`
+  query GetDashboardStats {
+    dashboardStats {
+      totalVenues
+      totalVendors
+      totalHirers
+      totalBookings
+      avgRating
     }
   }
+`;
+
+// Fetch venues with vendor info
+const GET_VENUES = gql`
+  query GetVenues {
+    venues {
+      venueID
+      name
+      capacity
+      location
+      isFeatured
+      availabilityStatus
+      vendor {
+        userID
+        firstName
+        lastName
+        email
+        phoneNumber
+        joinedDate
+      }
+    }
+  }
+`;
+
+// Update venue featured status
+const SET_FEATURED = gql`
+  mutation SetFeatured($venueId: ID!, $featured: Boolean!) {
+    setFeatured(venueId: $venueId, featured: $featured) {
+      venueID
+      isFeatured
+    }
+  }
+`;
+
+export default function Venues() {
+  // Fetch dashboard stats
+  const { data: statsData, loading: statsLoading } = useQuery(GET_DASHBOARD_STATS);
+
+  // Fetch all venues
+  const { data: venuesData, loading: venuesLoading } = useQuery(GET_VENUES);
+
+  // setFeatured mutation - refetches venues after toggle so UI updates
+  const [setFeatured] = useMutation(SET_FEATURED, {
+    refetchQueries: [{ query: GET_VENUES }],
+  });
+
+  const isLoading = statsLoading || venuesLoading;
+
+  const [searchText, setSearchText] = useState("");
 
   if (isLoading)
     return (
@@ -40,6 +90,22 @@ export default function Venues() {
         </Flex>
       </AdminDashboardLayout>
     );
+
+  const stats = statsData?.dashboardStats;
+  const venues: any[] = venuesData?.venues ?? [];
+
+  // Filter venues by name, location or vendor name based on search text
+  const filteredVenues = venues.filter((venue) => {
+    const search = searchText.toLowerCase();
+    const vendorName = venue.vendor
+      ? `${venue.vendor.firstName} ${venue.vendor.lastName}`.toLowerCase()
+      : "";
+    return (
+      venue.name.toLowerCase().includes(search) ||
+      venue.location.toLowerCase().includes(search) ||
+      vendorName.includes(search)
+    );
+  });
 
   return (
     <AdminDashboardLayout>
@@ -57,7 +123,6 @@ export default function Venues() {
               borderRadius={"8px"}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              onKeyDown={onSearchKeyDown}
             />
           </InputGroup>
         </Flex>
@@ -77,7 +142,7 @@ export default function Venues() {
       <Flex justify="space-between">
         <Box mt={8} mb={4}>
           <Text fontSize="xl" fontWeight="bold">
-            Manage Venues
+            Venues Overview
           </Text>
           <Text fontSize="sm" color="gray.500">
             View and manage your VenueVendors Venues
@@ -99,8 +164,7 @@ export default function Venues() {
               Total Venues
             </Text>
             <Text fontSize="2xl" fontWeight="bold">
-              {/* TODO: get stats */}
-              15
+              {stats?.totalVenues ?? 0}
             </Text>
           </Box>
 
@@ -117,7 +181,7 @@ export default function Venues() {
               Total Vendors
             </Text>
             <Text fontSize="2xl" fontWeight="bold">
-              {/* TODO: get stats */}6
+              {stats?.totalVendors ?? 0}
             </Text>
           </Box>
         </Flex>
@@ -136,8 +200,7 @@ export default function Venues() {
             Venues
           </Text>
           <Text color="white" fontSize="md">
-            {/* TODO: get stats */}
-            Total: 15
+            Total: {stats?.totalVenues ?? 0}
           </Text>
         </Flex>
         <Table size="md">
@@ -146,11 +209,76 @@ export default function Venues() {
               <Th>Venue Name</Th>
               <Th>Location</Th>
               <Th>Assigned Vendor</Th>
-              <Th>Featured</Th> {/* TODO: WILL BE A TOGGLE */}
-              <Th>Actions</Th> {/* TODO: ACTIONS WILL BE A BUTTON TO GO TO EDIT VENUEID */}
+              <Th>Capacity</Th>
+              <Th>Featured</Th>
+              <Th>Actions</Th>
             </Tr>
           </Thead>
-          <Tbody fontSize="sm">{/* TODO: GET 3 MOST RECENTLY ADDED VENUES */}</Tbody>
+          <Tbody fontSize="sm">
+            {filteredVenues.length === 0 ? (
+              <Tr>
+                <Td colSpan={6} textAlign="center" color="gray.400">
+                  No venues
+                </Td>
+              </Tr>
+            ) : (
+              filteredVenues.map((venue) => (
+                <Tr key={venue.venueID}>
+                  <Td fontWeight="semibold">{venue.name}</Td>
+                  <Td>{venue.location}</Td>
+                  <Td>
+                    {venue.vendor ? (
+                      <Box>
+                        <Text>
+                          {venue.vendor.firstName} {venue.vendor.lastName}
+                        </Text>
+                        <Text fontSize="xs" color="gray.400">
+                          {venue.vendor.email}
+                        </Text>
+                      </Box>
+                    ) : (
+                      <Text color="gray.400">Unassigned</Text>
+                    )}
+                  </Td>
+                  <Td>{venue.capacity} ppl</Td>
+                  {/* Change a venue to be featured */}
+                  <Td>
+                    <Flex align="center" gap={2}>
+                      <Switch
+                        isChecked={venue.isFeatured}
+                        colorScheme="green"
+                        onChange={() =>
+                          setFeatured({
+                            variables: {
+                              venueId: venue.venueID,
+                              featured: !venue.isFeatured,
+                            },
+                          })
+                        }
+                        _hover={{ opacity: 0.8 }}
+                      ></Switch>
+                      <Text fontSize="sm">{venue.isFeatured ? "Yes" : "No"}</Text>
+                    </Flex>
+                  </Td>
+
+                  {/* Link to individual venue page */}
+                  <Td>
+                    <Link to={`/manageVenue/${venue.venueID}`}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        borderColor="brand.primary"
+                        color="brand.primary"
+                        _hover={{ bg: "brand.secondary" }}
+                      >
+                        Manage →
+                      </Button>
+                    </Link>
+                  </Td>
+                </Tr>
+              ))
+            )}
+          </Tbody>
         </Table>
       </Box>
     </AdminDashboardLayout>
