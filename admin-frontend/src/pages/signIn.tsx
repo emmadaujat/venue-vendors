@@ -133,7 +133,7 @@ export default function SignIn() {
                     onClick={handleLogin}
                     isLoading={loading}
                   >
-                    Login
+                    Sign In
                   </Button>
                 </>
               ) : (

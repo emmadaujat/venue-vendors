@@ -133,7 +133,21 @@ export const resolvers = {
     },
 
     // 7. add or remove venues to featured venues section (HD PART H. FEATURED VENUE - mutation - (venueId: ID!, featured: Boolean!))
-    setFeatured: async (_: any, args: any) => {},
+    setFeatured: async (_: any, args: any) => {
+      const { venueId, featured } = args;
+
+      // Find the venue and update its featured status
+      const venue = await venueRepository.findOne({
+        where: { venueID: parseInt(venueId) },
+        relations: { vendor: true },
+      });
+
+      if (!venue) throw new Error("Venue not found");
+
+      // update featured status on venue and return
+      venue.isFeatured = featured;
+      return await venueRepository.save(venue);
+    },
 
     // 3. reassign venues (HD PART H. SWAP VENDORS - mutation - (venueId: ID!, vendorId: ID!))
     assignVendor: async (_: any, args: any) => {},
