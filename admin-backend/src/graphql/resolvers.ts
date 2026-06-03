@@ -42,9 +42,11 @@ export const resolvers = {
       });
     },
 
+    // TODO:
     // 8. get top 3 most popular venues and get their most popular day and timeslot (HD PART I. MOST POPULAR VENUE - Query - [VenueStat]!)
     topVenues: async () => {},
 
+    // TODO:
     // 9. get top 3 most active applicants (successful bookings / number of bookings submitted (HD PART I. MOST SUCCESSFUL APPLICANT - Query - [ApplicationStat]!)
     topApplicants: async () => {},
 
@@ -149,17 +151,206 @@ export const resolvers = {
       return await venueRepository.save(venue);
     },
 
-    // 3. reassign venues (HD PART H. SWAP VENDORS - mutation - (venueId: ID!, vendorId: ID!))
-    assignVendor: async (_: any, args: any) => {},
+    // 3. reassign venue vendor (HD PART H. SWAP VENDORS - mutation - (venueId: ID!, vendorId: ID!))
+    assignVendor: async (_: any, args: any) => {
+      const { venueId, vendorId } = args;
+
+      // Find the venue
+      const venue = await venueRepository.findOne({
+        where: { venueID: parseInt(venueId) },
+        relations: { vendor: true },
+      });
+
+      if (!venue) throw new Error("Venue not found");
+
+      // Find the vendor
+      const vendor = await userRepository.findOne({
+        where: { userID: parseInt(vendorId), role: "vendor" },
+      });
+
+      if (!vendor) throw new Error("Vendor not found");
+
+      try {
+        // Assign the new vendor to the venue
+        venue.vendor = vendor;
+        await venueRepository.save(venue);
+
+        // Return updated venue with new vendor relation
+        return await venueRepository.findOne({
+          where: { venueID: parseInt(venueId) },
+          relations: { vendor: true },
+        });
+      } catch (error) {
+        throw new Error("Error assigning vendor. Please try again.");
+      }
+    },
 
     // 6. create a venue (HD PART H. "C" CRUD - mutation - (input: VenueInput!))
-    createVenue: async (_: any, args: any) => {},
+    createVenue: async (_: any, args: any) => {
+      const { input } = args;
+      const {
+        name,
+        location,
+        capacity,
+        pricePerDay,
+        shortDescription,
+        imageURL,
+        availabilityStatus,
+        amenities,
+        suitabilityTags,
+        isFeatured,
+        vendorId,
+      } = input;
+
+      // Check if a venue with the same name and location already exists
+      const existingVenue = await venueRepository.findOne({
+        where: { name, location },
+      });
+
+      if (existingVenue) {
+        throw new Error("A venue with this name and location already exists.");
+      }
+
+      try {
+        // Create and save the venue first
+        const newVenue = venueRepository.create({
+          name,
+          location,
+          capacity,
+          pricePerDay,
+          shortDescription,
+          imageURL,
+          availabilityStatus,
+          isFeatured: isFeatured ?? false,
+          rating: 0,
+          reviewCount: 0,
+          vendor: { userID: parseInt(vendorId) },
+        });
+
+        const savedVenue = await venueRepository.save(newVenue);
+
+        // Insert amenities if provided
+        if (amenities && amenities.length > 0) {
+          const newAmenities = amenities.map((amenityName: string) =>
+            venueAmenitiesRepository.create({
+              amenityName,
+              venue: { venueID: savedVenue.venueID },
+            }),
+          );
+          await venueAmenitiesRepository.save(newAmenities);
+        }
+
+        // Insert suitability tags if provided
+        if (suitabilityTags && suitabilityTags.length > 0) {
+          const newTags = suitabilityTags.map((suitabilityName: string) =>
+            venueSuitabilityTagRepository.create({
+              suitabilityName,
+              venue: { venueID: savedVenue.venueID },
+            }),
+          );
+          await venueSuitabilityTagRepository.save(newTags);
+        }
+
+        // Return the created venue with vendor relation
+        return await venueRepository.findOne({
+          where: { venueID: savedVenue.venueID },
+          relations: { vendor: true },
+        });
+      } catch (error) {
+        throw new Error("Error creating venue. Please try again.");
+      }
+    },
 
     // 4. update venue details (HD PART H. "U" CRUD - mutation - (venueId: ID!, input: VenueInput!))
-    updateVenue: async (_: any, args: any) => {},
+    updateVenue: async (_: any, args: any) => {
+      const { venueId, input } = args;
+      const {
+        name,
+        location,
+        capacity,
+        pricePerDay,
+        shortDescription,
+        imageURL,
+        availabilityStatus,
+        amenities,
+        suitabilityTags,
+        isFeatured,
+      } = input;
+
+      // Find the venue
+      const venue = await venueRepository.findOne({
+        where: { venueID: parseInt(venueId) },
+        relations: { vendor: true },
+      });
+
+      if (!venue) throw new Error("Venue not found");
+
+      // Update main venue fields
+      venue.name = name;
+      venue.location = location;
+      venue.capacity = capacity;
+      venue.pricePerDay = pricePerDay;
+      venue.shortDescription = shortDescription;
+      venue.imageURL = imageURL;
+      venue.availabilityStatus = availabilityStatus;
+      venue.isFeatured = isFeatured ?? venue.isFeatured;
+
+      try {
+        // Save updated venue fields
+        await venueRepository.save(venue);
+
+        // Delete old amenities and suitability tags then reinsert new ones
+        await venueAmenitiesRepository.delete({ venue: { venueID: parseInt(venueId) } });
+        await venueSuitabilityTagRepository.delete({ venue: { venueID: parseInt(venueId) } });
+
+        // Insert new amenities
+        if (amenities && amenities.length > 0) {
+          const newAmenities = amenities.map((amenityName: string) =>
+            venueAmenitiesRepository.create({ amenityName, venue: { venueID: parseInt(venueId) } }),
+          );
+          await venueAmenitiesRepository.save(newAmenities);
+        }
+
+        // Insert new suitability tags
+        if (suitabilityTags && suitabilityTags.length > 0) {
+          const newTags = suitabilityTags.map((suitabilityName: string) =>
+            venueSuitabilityTagRepository.create({
+              suitabilityName,
+              venue: { venueID: parseInt(venueId) },
+            }),
+          );
+          await venueSuitabilityTagRepository.save(newTags);
+        }
+
+        // Return updated venue with vendor relation
+        return await venueRepository.findOne({
+          where: { venueID: parseInt(venueId) },
+          relations: { vendor: true },
+        });
+      } catch (error) {
+        throw new Error("Error updating venue. Please try again.");
+      }
+    },
 
     // 5. delete venue (HD PART H. "D" CRUD - mutation - (venueId: ID!))
-    deleteVenue: async (_: any, args: any) => {},
+    deleteVenue: async (_: any, args: any) => {
+      const { venueId } = args;
+
+      // Find venue
+      const venue = await venueRepository.findOne({
+        where: { venueID: parseInt(venueId) },
+        relations: { vendor: true },
+      });
+
+      if (!venue) throw new Error("Venue not found");
+
+      try {
+        await venueRepository.remove(venue);
+        return true;
+      } catch (error) {
+        throw new Error("Error deleting venue. Please try again.");
+      }
+    },
   },
   // Fetch related amenities and suitability tags
   Venue: {

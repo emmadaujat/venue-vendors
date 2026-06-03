@@ -31,6 +31,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Spinner,
+  Switch,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -44,6 +46,75 @@ import {
   isValidDescription,
   isValidImageURL,
 } from "../venueValidation";
+import { useQuery, gql, useMutation } from "@apollo/client";
+import { useParams } from "react-router-dom";
+
+const GET_VENUE_BY_ID = gql`
+  query getVenueById($venueId: ID!) {
+    venueById(venueId: $venueId) {
+      venueID
+      name
+      capacity
+      location
+      pricePerDay
+      shortDescription
+      imageURL
+      isFeatured
+      availabilityStatus
+      amenities
+      suitabilityTags
+      vendor {
+        userID
+        firstName
+        lastName
+        email
+        phoneNumber
+        joinedDate
+      }
+    }
+  }
+`;
+
+const GET_VENDORS = gql`
+  query GetVendors {
+    vendors {
+      userID
+      firstName
+      lastName
+      email
+      phoneNumber
+      joinedDate
+    }
+  }
+`;
+
+const UPDATE_VENUE = gql`
+  mutation UpdateVenue($venueId: ID!, $input: VenueInput!) {
+    updateVenue(venueId: $venueId, input: $input) {
+      venueID
+      name
+    }
+  }
+`;
+
+const DELETE_VENUE = gql`
+  mutation DeleteVenue($venueId: ID!) {
+    deleteVenue(venueId: $venueId)
+  }
+`;
+
+const ASSIGN_VENDOR = gql`
+  mutation AssignVendor($venueId: ID!, $vendorId: ID!) {
+    assignVendor(venueId: $venueId, vendorId: $vendorId) {
+      venueID
+      vendor {
+        userID
+        firstName
+        lastName
+      }
+    }
+  }
+`;
 
 // Hardcoded suitability tags
 const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"];
@@ -51,8 +122,38 @@ const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"
 // venue availability drop down
 const AVAILABILITY_OPTIONS = ["Available", "Limited Availability", "Not Available"];
 
+/*  TODO: 
+when vendor is reassigned, update the vendor fields with new vendor details
+change featured toggle design
+fix years of experience data return
+*/
 export default function ManageVenue() {
   const navigate = useNavigate();
+
+  // Get venueID from URL
+  const { venueId } = useParams();
+
+  // Fetch VenueID data
+  const { data: venueData, loading: venueLoading } = useQuery(GET_VENUE_BY_ID, {
+    variables: { venueId },
+    skip: !venueId,
+  });
+  const venue = venueData?.venueById;
+
+  // Return vendors
+  const { data: vendorsData } = useQuery(GET_VENDORS);
+  const vendors: any[] = vendorsData?.vendors ?? [];
+
+  // Update venue mutation — refetches venue data after save
+  const [updateVenue] = useMutation(UPDATE_VENUE, {
+    refetchQueries: [{ query: GET_VENUE_BY_ID, variables: { venueId } }],
+  });
+
+  // Delete venue mutation
+  const [deleteVenue] = useMutation(DELETE_VENUE);
+
+  // Assign vendor mutation
+  const [assignVendor] = useMutation(ASSIGN_VENDOR);
 
   // ===========================================================
   // Form state — all pre-populated from the venue once it loads
@@ -107,10 +208,6 @@ export default function ManageVenue() {
 
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // Placeholder until GraphQL query is added
-  const vendors: any[] = [];
-  const venue: any = null;
-
   // -------------------------------------------------------------------
   // Pre-populate form fields once venue data is loaded from venue details
   // -------------------------------------------------------------------
@@ -119,12 +216,19 @@ export default function ManageVenue() {
       setName(venue.name);
       setLocation(venue.location);
       setCapacity(String(venue.capacity));
-      setPricePerDay(String(venue.pricePerDay));
-      setShortDescription(venue.shortDescription);
-      setImageURL(venue.imageURL);
+      setPricePerDay(String(venue.pricePerDay ?? ""));
+      setShortDescription(venue.shortDescription ?? "");
+      setImageURL(venue.imageURL ?? "");
       setAvailabilityStatus(venue.availabilityStatus);
       setSuitabilityTags(venue.suitabilityTags ?? []);
       setAmenities(venue.amenities ?? []);
+      setIsFeatured(venue.isFeatured ?? false);
+
+      // Pre-select the current vendor if one is assigned
+      if (venue.vendor) {
+        setSelectedVendorId(String(venue.vendor.userID));
+        setSelectedVendor(venue.vendor);
+      }
     }
   }, [venue]);
 
@@ -134,7 +238,7 @@ export default function ManageVenue() {
   function handleVendorSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const vendorId = e.target.value;
     setSelectedVendorId(vendorId);
-    const vendor = vendors.find((v) => v.userID === parseInt(vendorId));
+    const vendor = vendors.find((v) => String(v.userID) === String(vendorId));
     setSelectedVendor(vendor);
   }
 
@@ -203,13 +307,40 @@ export default function ManageVenue() {
   }
 
   // ===========================================================
-  // Confirm create — called when vendor clicks create in the preview modal
+  // Confirm create — called when vendor clicks save in the preview modal
   // ===========================================================
   async function handleConfirmSave() {
-    //TODO: wire up to GraphQL createVenue mutation
     setIsSubmitting(true);
     try {
-      // TODO: wire up GraphQL deleteVenue mutation
+      await updateVenue({
+        variables: {
+          venueId,
+          input: {
+            name,
+            location,
+            capacity: Number(capacity),
+            pricePerDay: Number(pricePerDay),
+            shortDescription,
+            imageURL,
+            availabilityStatus,
+            amenities,
+            suitabilityTags,
+            isFeatured,
+            vendorId: selectedVendorId,
+          },
+        },
+      });
+
+      // Assign vendor separately if updated
+      if (selectedVendorId) {
+        await assignVendor({
+          variables: {
+            venueId,
+            vendorId: selectedVendorId,
+          },
+        });
+      }
+
       setSaveSuccess(true);
       // Show success message for 1.5 seconds then redirect
       setTimeout(() => {
@@ -235,7 +366,9 @@ export default function ManageVenue() {
     setIsDeleting(true);
     setDeleteError("");
     try {
-      // TODO: wire up GraphQL deleteVenue mutation
+      await deleteVenue({
+        variables: { venueId },
+      });
       onDeleteClose();
       navigate("/venues");
     } catch (error) {
@@ -245,16 +378,14 @@ export default function ManageVenue() {
     }
   }
 
-  // -------------------------------------------------------------------
-  // Calculate Vendors years of experience
-  // -------------------------------------------------------------------
-  function getVendorYearsExperience(): string {
-    if (!selectedVendor?.joinedDate) return "";
-    const years = Math.floor(
-      (new Date().getTime() - new Date(selectedVendor.joinedDate).getTime()) /
-        (1000 * 60 * 60 * 24 * 365),
-    );
-    return `${years} years`;
+  // Convert timestamp to readable date
+  function formatDate(timestamp: string | number): string {
+    if (!timestamp) return "N/A";
+    return new Date(Number(timestamp)).toLocaleDateString("en-AU", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   }
 
   // ===========================================================
@@ -266,6 +397,15 @@ export default function ManageVenue() {
     return "red";
   }
 
+  if (venueLoading || !venue)
+    return (
+      <AdminDashboardLayout>
+        <Flex justify="center" align="center" height="50vh">
+          <Spinner size="xl" color="brand.primary" />
+        </Flex>
+      </AdminDashboardLayout>
+    );
+
   return (
     <AdminDashboardLayout>
       {/* Back to My Venues link */}
@@ -274,6 +414,7 @@ export default function ManageVenue() {
           fontSize="sm"
           color="brand.primary"
           cursor="pointer"
+          fontWeight={"semibold"}
           _hover={{ textDecoration: "underline" }}
         >
           ← Back to My Venues
@@ -291,6 +432,7 @@ export default function ManageVenue() {
           </Text>
         </Box>
 
+        {/* Save / Cancel btn */}
         <Flex gap={3}>
           <Link to="/venues">
             <Button variant="outline" borderColor="brand.primary" color="brand.primary">
@@ -359,27 +501,29 @@ export default function ManageVenue() {
           </Text>
           {/* Featured toggle — admin can mark venue as featured */}
           <Flex align="center" gap={2}>
-            <Text color="white" fontSize="sm">
+            <Text color="white" fontSize="md">
               Featured
             </Text>
-            <Button
-              size="xs"
-              bg={isFeatured ? "gray.300" : "red.400"}
-              color="white"
-              onClick={() => setIsFeatured(false)}
-              borderRightRadius={0}
-            >
-              No
-            </Button>
-            <Button
-              size="xs"
-              bg={isFeatured ? "green.400" : "gray.300"}
-              color="white"
-              onClick={() => setIsFeatured(true)}
-              borderLeftRadius={0}
-            >
-              Yes
-            </Button>
+            <Flex gap={0}>
+              <Button
+                size="sm"
+                bg={isFeatured ? "gray.400" : "red.600"}
+                color="white"
+                onClick={() => setIsFeatured(false)}
+                borderRightRadius={0}
+              >
+                No
+              </Button>
+              <Button
+                size="sm"
+                bg={isFeatured ? "green.500" : "gray.400"}
+                color="white"
+                onClick={() => setIsFeatured(true)}
+                borderLeftRadius={0}
+              >
+                Yes
+              </Button>
+            </Flex>
           </Flex>
         </Flex>
 
@@ -653,9 +797,9 @@ export default function ManageVenue() {
 
               {/*  Read-only fields that populate after vendor selection */}
               <FormControl flex="1">
-                <FormLabel fontWeight="semibold">Years of Experience</FormLabel>
+                <FormLabel fontWeight="semibold">Member Since</FormLabel>
                 <Input
-                  value={getVendorYearsExperience()}
+                  value={formatDate(selectedVendor?.joinedDate ?? "")}
                   isReadOnly
                   bg="white"
                   borderColor="gray.200"
@@ -696,23 +840,6 @@ export default function ManageVenue() {
         </Box>
       </Box>
 
-      {/* Save / Cancel btn */}
-      <Flex gap={3}>
-        <Link to="/venues">
-          <Button variant="outline" borderColor="brand.primary" color="brand.primary">
-            Cancel
-          </Button>
-        </Link>
-        <Button
-          bg="brand.primary"
-          color="white"
-          onClick={handleSaveClick}
-          isLoading={isSubmitting}
-          _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-        >
-          Update
-        </Button>
-      </Flex>
       {/* ===================== DELETE VENUE BUTTON ===================== */}
       <Flex justify="flex-start" mb={8} mt={20}>
         <Button

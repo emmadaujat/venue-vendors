@@ -99,6 +99,7 @@ export const typeDefs = gql`
     isFeatured: Boolean
     amenities: [String!]
     suitabilityTags: [String!]
+    vendorId: ID
   }
 
   # -----------------
