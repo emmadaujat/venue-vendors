@@ -5,16 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
 import Logo from "@/components/logo";
-import {
-  Box,
-  FormControl,
-  FormLabel,
-  Text,
-  Input,
-  Button,
-  Link,
-  IconButton,
-} from "@chakra-ui/react";
+import { Box, FormControl, FormLabel, Text, Input, Button, Link, Spinner } from "@chakra-ui/react";
 import { CheckIcon } from "@chakra-ui/icons";
 
 export default function Signin() {
@@ -129,24 +120,17 @@ export default function Signin() {
             alignItems="center"
             justifyContent="center"
             height="100%"
+            py={10}
           >
             {/* success tick */}
-            <IconButton
-              isRound={true}
-              variant="solid"
-              colorScheme="green"
-              aria-label="Done"
-              boxSize="100px"
-              fontSize="50px"
-              icon={<CheckIcon />}
-            />
-            <Text mt={8} fontWeight="bold" color="brand.primary" fontSize="2xl">
-              {" "}
+            <CheckIcon color="green.400" boxSize={12} mb={4} />
+            <Text mt={4} fontWeight="bold" color="brand.primary" fontSize="2xl">
               Sign in successful
             </Text>
-            <Text fontSize="md" color={"brand.primary"}>
+            <Text fontSize="md" color="brand.primary" mb={4}>
               Please wait while we process your request
             </Text>
+            <Spinner color="brand.primary" size="lg" />
           </Box>
         ) : (
           <>
@@ -186,6 +170,7 @@ export default function Signin() {
                 fontSize="small"
                 placeholder="Please enter your password"
                 onChange={handleInput}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} // press enter to sign in
               />
               {submitted && validatePassword && (
                 <Text fontSize={"13px"} fontWeight={"semibold"} color={"red.400"}>

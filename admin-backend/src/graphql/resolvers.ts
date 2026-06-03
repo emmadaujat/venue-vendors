@@ -46,9 +46,51 @@ export const resolvers = {
     // 8. get top 3 most popular venues and get their most popular day and timeslot (HD PART I. MOST POPULAR VENUE - Query - [VenueStat]!)
     topVenues: async () => {},
 
-    // TODO:
-    // 9. get top 3 most active applicants (successful bookings / number of bookings submitted (HD PART I. MOST SUCCESSFUL APPLICANT - Query - [ApplicationStat]!)
-    topApplicants: async () => {},
+    // 9. Top 3 most successful applicants
+    //
+    // "Successful" = ratio of approved bookings to total
+    // applications submitted, with a minimum of 1 application so
+    // we don't divide by zero or surface noise from hirers who
+    // have never applied. Ties are broken by raw approval count
+    // so a hirer with 10/10 ranks above one with 1/1.
+    //
+    // Returns the ApplicationStat type declared in schema.ts:
+    //   { userID, firstName, lastName, email, totalApplications,
+    //     approvedBookings }
+    topApplicants: async () => {
+      // Load every hirer with their applications attached.
+      const hirers = await userRepository.find({
+        where: { role: "hirer" },
+        relations: { applications: true },
+      });
+
+      const stats = hirers
+        .map((hirer) => {
+          const all = hirer.applications ?? [];
+          const approved = all.filter((a) => a.status === "approved").length;
+          return {
+            userID: hirer.userID,
+            firstName: hirer.firstName,
+            lastName: hirer.lastName,
+            email: hirer.email,
+            totalApplications: all.length,
+            approvedBookings: approved,
+            // Score used only for sorting, not returned.
+            _ratio: all.length === 0 ? 0 : approved / all.length,
+          };
+        })
+        // Must have applied at least once to be considered.
+        .filter((s) => s.totalApplications > 0)
+        .sort((a, b) => {
+          if (b._ratio !== a._ratio) return b._ratio - a._ratio;
+          return b.approvedBookings - a.approvedBookings;
+        })
+        .slice(0, 3)
+        // Strip the helper field before sending it to the client.
+        .map(({ _ratio, ...stat }) => stat);
+
+      return stats;
+    },
 
     // Get a single venue by ID - used by ManageVenue page
     venueById: async (_: any, args: any) => {

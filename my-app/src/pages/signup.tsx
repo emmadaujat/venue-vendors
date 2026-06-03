@@ -17,11 +17,11 @@ import {
   Text,
   Input,
   Button,
-  IconButton,
   Flex,
   RadioGroup,
   Radio,
   Stack,
+  Spinner,
 } from "@chakra-ui/react";
 import { CheckIcon } from "@chakra-ui/icons";
 
@@ -35,6 +35,8 @@ export default function SignUp() {
     phoneNumber: "",
     role: "",
   });
+
+  // TODO: Make it so you can press enter to sign up
 
   const [validateEmail, setValidateEmail] = useState<string | null>(null); // can be a string or null
   const [validatePassword, setValidatePassword] = useState<string | null>(null);
@@ -165,24 +167,17 @@ export default function SignUp() {
             alignItems="center"
             justifyContent="center"
             height="100%"
+            py={10}
           >
             {/* success tick */}
-            <IconButton
-              isRound={true}
-              variant="solid"
-              colorScheme="green"
-              aria-label="Done"
-              boxSize="100px"
-              fontSize="50px"
-              icon={<CheckIcon />}
-            />
-            <Text mt={8} fontWeight="bold" color="brand.primary" fontSize="2xl">
-              {" "}
+            <CheckIcon color="green.400" boxSize={12} mb={4} />
+            <Text mt={4} fontWeight="bold" color="brand.primary" fontSize="2xl">
               Sign Up successful
             </Text>
-            <Text fontSize="md" color={"brand.primary"}>
+            <Text fontSize="md" color="brand.primary" mb={4}>
               Please wait while we process your request
             </Text>
+            <Spinner color="brand.primary" size="lg" />
           </Box>
         ) : (
           <>
@@ -303,6 +298,7 @@ export default function SignUp() {
                 fontSize="small"
                 placeholder="Please confirm your password"
                 onChange={handleInput}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} // press enter to sign up
               />
               {submitted && validateConfirmPassword && (
                 <Text fontSize={"13px"} fontWeight={"semibold"} color={"red.400"}>
