@@ -27,6 +27,7 @@ import { Application } from "../entity/Application";
 import { Booking } from "../entity/Booking";
 import { SavedVenue } from "../entity/SavedVenue";
 import { ComplianceDocument } from "../entity/ComplianceDocument";
+import { computeAverageReputation } from "../utils/reputation";
 
 export class HirerController {
   private userRepository = AppDataSource.getRepository(User);
@@ -229,11 +230,11 @@ export class HirerController {
         rating: a.booking!.hirerReputationRating,
       }));
 
-    let averageRating: number | null = null;
-    if (ratedHistory.length > 0) {
-      const sum = ratedHistory.reduce((total, h) => total + h.rating, 0);
-      averageRating = parseFloat((sum / ratedHistory.length).toFixed(1));
-    }
+    // Pure helper from utils/reputation.ts so it can also be unit
+    // tested in isolation (HD test 3).
+    const averageRating = computeAverageReputation(
+      ratedHistory.map((h) => h.rating),
+    );
 
     res.json({ averageRating, totalRated: ratedHistory.length, history: ratedHistory });
   }
