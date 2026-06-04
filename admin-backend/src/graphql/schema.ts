@@ -50,9 +50,11 @@ export const typeDefs = gql`
     venueID: ID!
     name: String!
     location: String!
-    totalBookings: Int!
+    totalApplications: Int!
     mostPopularDay: String
     mostPopularTimeslot: String
+    vendorName: String
+    vendorEmail: String
   }
 
   type ApplicationStat {
@@ -62,6 +64,7 @@ export const typeDefs = gql`
     email: String!
     totalApplications: Int!
     approvedBookings: Int!
+    joinedDate: String
   }
 
   # --------------------------

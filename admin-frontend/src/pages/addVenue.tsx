@@ -38,6 +38,32 @@ import {
   isValidDescription,
   isValidImageURL,
 } from "../venueValidation";
+import { useMutation, useQuery, gql } from "@apollo/client";
+
+// Fetch all vendors to populate the dropdown
+const GET_VENDORS = gql`
+  query GetVendors {
+    vendors {
+      userID
+      firstName
+      lastName
+      email
+      phoneNumber
+      joinedDate
+    }
+  }
+`;
+
+// Create venue mutation — matches VenueInput in schema.ts
+const CREATE_VENUE = gql`
+  mutation CreateVenue($input: VenueInput!) {
+    createVenue(input: $input) {
+      venueID
+      name
+      location
+    }
+  }
+`;
 
 // Suitability tag options
 const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"];
@@ -91,8 +117,10 @@ export default function AddVenue() {
   // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
-  // Placeholder until GraphQL query is added
-  const vendors: any[] = [];
+  const { data: vendorsData } = useQuery(GET_VENDORS);
+  const vendors: any[] = vendorsData?.vendors ?? [];
+
+  const [createVenue] = useMutation(CREATE_VENUE);
 
   // -------------------------------------------------------------------
   // Retrieve draft from localStorage
@@ -204,9 +232,25 @@ export default function AddVenue() {
   // Confirm create — called when vendor clicks create in the preview modal
   // ===========================================================
   async function handleConfirmSave() {
-    //TODO: wire up to GraphQL createVenue mutation
     setIsSubmitting(true);
     try {
+      await createVenue({
+        variables: {
+          input: {
+            name,
+            location,
+            capacity: parseInt(capacity),
+            pricePerDay: parseFloat(pricePerDay),
+            shortDescription,
+            imageURL,
+            availabilityStatus,
+            isFeatured: false,
+            amenities,
+            suitabilityTags,
+            vendorId: selectedVendorId,
+          },
+        },
+      });
       setSaveSuccess(true);
       localStorage.removeItem("createVenueDraft");
       // Show success message for 1.5 seconds then redirect

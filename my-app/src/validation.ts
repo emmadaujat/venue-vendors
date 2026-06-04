@@ -10,7 +10,6 @@ export function isValidEmail(email: string) {
 }
 
 // checks if the password meets requirements
-// TODO:
 // Add a complex password validator so that each password should contain
 // at least 1 upper case letter,
 // 1 lower case letter,

@@ -122,11 +122,6 @@ const SUITABILITY_OPTIONS = ["Corporate", "Wedding", "Conference", "Gala Dinner"
 // venue availability drop down
 const AVAILABILITY_OPTIONS = ["Available", "Limited Availability", "Not Available"];
 
-/*  TODO: 
-when vendor is reassigned, update the vendor fields with new vendor details
-change featured toggle design
-fix years of experience data return
-*/
 export default function ManageVenue() {
   const navigate = useNavigate();
 
