@@ -88,7 +88,7 @@ export default function ApplicationReview() {
       (c) => c.booking.application.applicationID === parseInt(applicationID as string),
     ) ?? null;
 
-  //TODO: load event permit from compliance documents endpoint
+  //TODO: load event permit from compliance documents
 
   // Fetch compliance documents for this hirer to check business status and documents
   const { documents } = useHirerCompliance(application?.hirer.userID ?? 0);

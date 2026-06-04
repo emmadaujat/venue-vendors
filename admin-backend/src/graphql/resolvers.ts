@@ -42,9 +42,70 @@ export const resolvers = {
       });
     },
 
-    // TODO:
-    // 8. get top 3 most popular venues and get their most popular day and timeslot (HD PART I. MOST POPULAR VENUE - Query - [VenueStat]!)
-    topVenues: async () => {},
+    // Top 3 most popular venues by total applications,
+    // with their most popular day and timeslot derived from eventDate/eventEndDate
+    topVenues: async () => {
+      // Load all venues with their applications (including eventDate and eventEndDate)
+      const venues = await venueRepository.find({
+        relations: {
+          applications: true,
+          vendor: true,
+        },
+      });
+
+      // Helper: get day name from a date e.g. "Monday"
+      const getDayName = (date: Date): string => {
+        return new Date(date).toLocaleDateString("en-AU", { weekday: "long" });
+      };
+
+      // Helper: format a time from a Date object e.g. "9pm"
+      const formatHour = (date: Date): string => {
+        const d = new Date(date);
+        const hours = d.getHours();
+        const period = hours >= 12 ? "pm" : "am";
+        const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+        return `${displayHour}${period}`;
+      };
+
+      // Helper: find the most frequent value in an array of strings
+      // e.g. ["Monday", "Monday", "Friday"] → "Monday"
+      const mostFrequent = (arr: string[]): string => {
+        if (arr.length === 0) return "N/A";
+        const freq: Record<string, number> = {};
+        arr.forEach((val) => (freq[val] = (freq[val] ?? 0) + 1));
+        return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+      };
+
+      const stats = venues
+        .filter((venue) => venue.applications.length > 0) // exclude venues with no applications
+        .map((venue) => {
+          const applications = venue.applications;
+
+          // Collect all days from eventDate e.g. ["Monday", "Friday", "Monday"]
+          const days = applications.filter((a) => a.eventDate).map((a) => getDayName(a.eventDate));
+
+          // Collect all timeslots from eventDate + eventEndDate e.g. ["9am-11am", "6pm-9pm"]
+          const timeslots = applications
+            .filter((a) => a.eventDate && a.eventEndDate)
+            .map((a) => `${formatHour(a.eventDate)}-${formatHour(a.eventEndDate)}`);
+
+          return {
+            venueID: venue.venueID,
+            name: venue.name,
+            location: venue.location,
+            vendorName: `${venue.vendor.firstName} ${venue.vendor.lastName}`,
+            vendorEmail: venue.vendor.email,
+            totalApplications: applications.length,
+            mostPopularDay: mostFrequent(days),
+            mostPopularTimeslot: mostFrequent(timeslots),
+          };
+        })
+        // Sort by most applications descending
+        .sort((a, b) => b.totalApplications - a.totalApplications)
+        .slice(0, 3);
+
+      return stats;
+    },
 
     // 9. Top 3 most successful applicants
     //
@@ -73,6 +134,7 @@ export const resolvers = {
             firstName: hirer.firstName,
             lastName: hirer.lastName,
             email: hirer.email,
+            joinedDate: hirer.joinedDate,
             totalApplications: all.length,
             approvedBookings: approved,
             // Score used only for sorting, not returned.
