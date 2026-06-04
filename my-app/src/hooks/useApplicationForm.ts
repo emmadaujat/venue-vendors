@@ -270,7 +270,54 @@ export default function useApplicationForm(user: User | null) {
         additionalNotes: eventDescriptionText.trim() || undefined,
       });
 
-      // Success — clear the local draft and show the success page.
+      // After the booking is created, save each uploaded compliance document
+      // to the database as a base64 string so vendors can view and download them.
+      // Each document is stored using POST /api/hirer/compliance.
+      // (Dipto: "convert the document to string or other format like blob, then store it in DB")
+
+      const savedLicense = localStorage.getItem("complianceDoc_license");
+      if (savedLicense) {
+        const parsed = JSON.parse(savedLicense);
+        await hirerApi.addCompliance({
+          documentType: "Drivers License",
+          fileName: parsed.fileName,
+          fileURL: parsed.data,  // base64 data URL string
+        });
+      }
+
+      const savedInsurance = localStorage.getItem("complianceDoc_insurance");
+      if (savedInsurance) {
+        const parsed = JSON.parse(savedInsurance);
+        await hirerApi.addCompliance({
+          documentType: "Public Liability Insurance",
+          fileName: parsed.fileName,
+          fileURL: parsed.data,  // base64 data URL string
+        });
+      }
+
+      const savedPermit = localStorage.getItem("complianceDoc_permit");
+      if (savedPermit) {
+        const parsed = JSON.parse(savedPermit);
+        await hirerApi.addCompliance({
+          documentType: "Event Permit",
+          fileName: parsed.fileName,
+          fileURL: parsed.data,  // base64 data URL string, vendor can download this
+        });
+      }
+
+      const savedBizCert = localStorage.getItem("complianceDoc_businessCert");
+      if (savedBizCert) {
+        const parsed = JSON.parse(savedBizCert);
+        await hirerApi.addCompliance({
+          documentType: "Business Registration Certificate",
+          fileName: parsed.fileName,
+          fileURL: parsed.data,  // base64 data URL string
+          isBusiness: true,
+          abnNumber: businessAbnNumberText || undefined,
+        });
+      }
+
+      // Success, clear the local draft and show the success page.
       localStorage.removeItem("applicationDraft");
       setApplicationSubmittedSuccessfully(true);
     } catch (error: unknown) {
@@ -281,7 +328,7 @@ export default function useApplicationForm(user: User | null) {
       };
       setSubmitErrorText(
         axiosError.response?.data?.message ||
-          "Could not submit application. Please try again.",
+        "Could not submit application. Please try again.",
       );
     }
   }

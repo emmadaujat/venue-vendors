@@ -17,7 +17,7 @@ import {
 import { useRouter } from "next/router";
 import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import NextLink from "next/link";
 import { CheckIcon, CheckCircleIcon } from "@chakra-ui/icons";
 import { Textarea } from "@chakra-ui/react";
@@ -88,13 +88,22 @@ export default function ApplicationReview() {
       (c) => c.booking.application.applicationID === parseInt(applicationID as string),
     ) ?? null;
 
-  //TODO: load event permit from compliance documents endpoint
-
   // Fetch compliance documents for this hirer to check business status and documents
   const { documents } = useHirerCompliance(application?.hirer.userID ?? 0);
   // Check if hirer is applying as a business and get their ABN
   const isBusiness = documents.some((d) => d.isBusiness);
   const abnNumber = documents.find((d) => d.abnNumber)?.abnNumber;
+
+  // Load the event permit from the compliance documents stored in the DB.
+  // When documents load, find the "Event Permit" entry and use its base64
+  // fileURL so the vendor can download it directly from this page.
+  useEffect(() => {
+    const permit = documents.find((d) => d.documentType === "Event Permit");
+    if (permit) {
+      setPermitFileName(permit.fileName);
+      setPermitFile({ fileName: permit.fileName, data: permit.fileURL ?? "" });
+    }
+  }, [documents]);
 
   // ------------------------------------------------------------
   // --------- OPENS APPLICATION STATUS CONFIRMATION ------------

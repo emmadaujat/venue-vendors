@@ -116,13 +116,15 @@ export default function HirerComplianceDocuments() {
         }
     }
 
-    // Save one document's metadata to the database, then refresh
+    // Save one document to the database as a base64 string, then refresh
     // the score so the percentage updates immediately.
-    async function persistComplianceDoc(documentType: string, fileName: string) {
+    // fileURL is the base64 data URL from FileReader so vendors can download it.
+    async function persistComplianceDoc(documentType: string, fileName: string, fileURL: string) {
         try {
             await hirerApi.addCompliance({
                 documentType,
                 fileName,
+                fileURL,
                 isBusiness: isApplyingAsBusiness,
                 abnNumber: businessAbnText || undefined,
             });
@@ -154,10 +156,12 @@ export default function HirerComplianceDocuments() {
 
         const fileReader = new FileReader();
         fileReader.onload = function () {
-            // PDFs are stored in IndexedDB (not localStorage) as required by the assignment
-            savePDFtoDB("complianceDoc_insurance", selectedFile.name, fileReader.result as string);
+            const base64String = fileReader.result as string;
+            // Also save locally so it persists across page refreshes
+            savePDFtoDB("complianceDoc_insurance", selectedFile.name, base64String);
             setInsuranceUpload({ fileName: selectedFile.name, isUploaded: true, errorMessage: "" });
-            persistComplianceDoc("Public Liability Insurance", selectedFile.name);
+            // Save the actual file content (base64) to the DB so vendors can download it
+            persistComplianceDoc("Public Liability Insurance", selectedFile.name, base64String);
         };
         fileReader.readAsDataURL(selectedFile);
     }
@@ -201,7 +205,8 @@ export default function HirerComplianceDocuments() {
                 isUploaded: true,
                 errorMessage: "",
             });
-            persistComplianceDoc("Drivers License", selectedFile.name);
+            // Save the actual file content (base64) to the DB so vendors can download it
+            persistComplianceDoc("Drivers License", selectedFile.name, base64String);
         };
         fileReader.readAsDataURL(selectedFile);
     }
@@ -223,10 +228,12 @@ export default function HirerComplianceDocuments() {
 
         const fileReader = new FileReader();
         fileReader.onload = function () {
-            // PDFs are stored in IndexedDB (not localStorage) as required by the assignment
-            savePDFtoDB("complianceDoc_businessCert", selectedFile.name, fileReader.result as string);
+            const base64String = fileReader.result as string;
+            // Also save locally so it persists across page refreshes
+            savePDFtoDB("complianceDoc_businessCert", selectedFile.name, base64String);
             setBusinessCertUpload({ fileName: selectedFile.name, isUploaded: true, errorMessage: "" });
-            persistComplianceDoc("Business Registration Certificate", selectedFile.name);
+            // Save the actual file content (base64) to the DB so vendors can download it
+            persistComplianceDoc("Business Registration Certificate", selectedFile.name, base64String);
         };
         fileReader.readAsDataURL(selectedFile);
     }

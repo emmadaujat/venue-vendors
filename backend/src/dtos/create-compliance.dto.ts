@@ -31,10 +31,10 @@ export class CreateComplianceDTO {
   @Length(1, 255)
   fileName: string;
 
-  // Optional link/reference to where the file lives.
+  // Stores the file as a base64 data URL (e.g. "data:application/pdf;base64,...").
+  // No length limit here — a 2 MB file becomes ~2.7 MB of base64 text.
   @IsOptional()
   @IsString()
-  @Length(0, 500)
   fileURL?: string;
 
   // True when the hirer is representing a business/organisation.

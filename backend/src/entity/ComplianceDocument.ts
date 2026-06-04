@@ -34,7 +34,9 @@ export class ComplianceDocument {
   @CreateDateColumn()
   uploadedAt: Date;
 
-  @Column({ length: 500, nullable: true })
+  // Stores the file as a base64 string so vendors can download it.
+  // type:'text' maps to nvarchar(max) in SQL Server, which holds up to 2 GB.
+  @Column({ type: 'text', nullable: true })
   fileURL: string;
 
   @Column({ default: false })
