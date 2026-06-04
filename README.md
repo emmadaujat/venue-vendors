@@ -163,10 +163,17 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 
 ## Unit tests
 
-### HD contextual unit tests (backend — Node + Express)
+### HD contextual unit tests (6 total)
 
-The HD requirement is **6 contextual unit tests in the Node + Express backend**
-(`/backend`, not the GraphQL admin backend). Aleeya owns 3, Emma owns 3.
+The HD requirement is **6 contextual unit tests**. As confirmed with the tutor,
+they are split across the two backends:
+
+- **4 tests in the REST API (`/backend`, Node + Express)**
+- **2 tests in the GraphQL admin API (`/admin-backend`) covering Venue CRUD**
+
+Each test opens with a CONTEXT comment block explaining why it exists.
+
+**`/backend` — 4 tests** (`backend/src/__tests__/`):
 
 ```bash
 cd backend
@@ -174,18 +181,30 @@ npm install
 npm test
 ```
 
-Aleeya's 3 tests live in `backend/src/__tests__/` and each opens with a
-CONTEXT comment block explaining why it exists:
-
 - `auth.signup.test.ts` — the API rejects weak passwords even when the React
-  form is bypassed (OWASP A07).
+  form is bypassed (OWASP A07). *(Aleeya)*
 - `booking.create.test.ts` — a hirer cannot book a date the vendor has blocked
-  (`409 timeslot blocked`), guarding the stale-frontend race condition.
+  (`409 timeslot blocked`), guarding the stale-frontend race condition. *(Aleeya)*
 - `reputation.compute.test.ts` — average-reputation edge cases (zero → `null`,
-  single → exact value, many → mean rounded to 1dp), using `node:assert/strict`.
+  single → exact value, many → mean rounded to 1dp), using `node:assert/strict`. *(Aleeya)*
+- `vendor.stats.test.ts` — a brand-new vendor with no venues/bookings gets a
+  `200` with zeroed/empty data, never a `500` (empty-aggregate edge case). *(Emma)*
 
-Stack: **Jest + ts-jest + supertest + node:assert**. See `backend/README.md`
-for full details.
+**`/admin-backend` — 2 tests** (`admin-backend/src/__tests__/`):
+
+```bash
+cd admin-backend
+npm install
+npm test
+```
+
+- `venue.crud.test.ts` — two tests on the admin GraphQL CRUD resolvers: *(Emma)*
+  - `createVenue` refuses a duplicate (same name + location) and never saves it.
+  - `deleteVenue` removes an existing venue and returns `true`.
+
+Stack: **Jest + ts-jest + supertest + node:assert** in `/backend`;
+**Jest + ts-jest** (resolvers called directly) in `/admin-backend`.
+See `backend/README.md` for full details.
 
 ### Frontend tests (my-app)
 
