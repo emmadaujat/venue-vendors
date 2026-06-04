@@ -32,7 +32,6 @@ import {
   ModalBody,
   ModalFooter,
   Spinner,
-  Switch,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";

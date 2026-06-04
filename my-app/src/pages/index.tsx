@@ -32,6 +32,12 @@ export default function Home() {
       .catch((error) => console.error("Failed to load platform stats", error));
   }, []);
 
+  // Venues an admin has marked as featured (via the admin dashboard toggle).
+  // If none are featured yet, fall back to the first few venues so the
+  // section is never empty.
+  const featuredFromAdmin = venues.filter((v) => v.isFeatured);
+  const featuredVenues = (featuredFromAdmin.length > 0 ? featuredFromAdmin : venues).slice(0, 4);
+
   // A couple of "limited availability" venues for the side panel.
   const limitedVenues = venues
     .filter((v) => v.availabilityStatus === "Limited Availability")
@@ -215,62 +221,60 @@ export default function Home() {
 
           {/* venue cards 2x2 grid */}
           <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4} mb="10%" alignItems={"stretch"}>
-            {venues
-              .map((venue) => (
-                <Box
-                  key={venue.venueID}
-                  display="flex"
-                  flexDirection="column"
-                  p={10}
-                  flex="1"
-                  borderColor="grey"
-                  boxShadow="lg"
-                  bg="white"
-                  borderRadius={8}
-                  h="100%"
-                >
-                  <Image src={venue.imageURL} alt={venue.name} objectFit="cover"></Image>
-                  <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
-                    {venue.name}
-                  </Text>
-                  <Text fontSize="sm" fontWeight="semibold">
-                    {venue.location}
-                  </Text>
-                  <Text mt={2} fontSize="sm" fontWeight="regular">
-                    {venue.shortDescription}
-                  </Text>
-                  <Box mt="auto">
-                    <Flex justify="space-between" mb={2}>
-                      <Text mt={4} color="brand.primary" fontWeight="semibold">
-                        {venue.rating}{" "}
-                        <span>
-                          <StarIcon color="yellow.600"></StarIcon>
-                        </span>
-                      </Text>
-                      <Text mt={4} color="brand.primary" fontWeight="semibold">
-                        ${venue.pricePerDay}/day
-                      </Text>
-                    </Flex>
-                    <NextLink href={`/venues/${venue.venueID}`}>
-                      <Button
-                        bg="brand.primary"
-                        color="white"
-                        width="100%"
-                        mt={"auto"}
-                        _hover={{
-                          bg: "transparent",
-                          border: "2px solid",
-                          borderColor: "brand.primary",
-                          color: "brand.primary",
-                        }}
-                      >
-                        View Venue <ArrowForwardIcon />
-                      </Button>
-                    </NextLink>
-                  </Box>
+            {featuredVenues.map((venue) => (
+              <Box
+                key={venue.venueID}
+                display="flex"
+                flexDirection="column"
+                p={10}
+                flex="1"
+                borderColor="grey"
+                boxShadow="lg"
+                bg="white"
+                borderRadius={8}
+                h="100%"
+              >
+                <Image src={venue.imageURL} alt={venue.name} objectFit="cover"></Image>
+                <Text mt={2} fontWeight="bold" fontSize="xl" color="brand.primary">
+                  {venue.name}
+                </Text>
+                <Text fontSize="sm" fontWeight="semibold">
+                  {venue.location}
+                </Text>
+                <Text mt={2} fontSize="sm" fontWeight="regular">
+                  {venue.shortDescription}
+                </Text>
+                <Box mt="auto">
+                  <Flex justify="space-between" mb={2}>
+                    <Text mt={4} color="brand.primary" fontWeight="semibold">
+                      {venue.rating}{" "}
+                      <span>
+                        <StarIcon color="yellow.600"></StarIcon>
+                      </span>
+                    </Text>
+                    <Text mt={4} color="brand.primary" fontWeight="semibold">
+                      ${venue.pricePerDay}/day
+                    </Text>
+                  </Flex>
+                  <NextLink href={`/venues/${venue.venueID}`}>
+                    <Button
+                      bg="brand.primary"
+                      color="white"
+                      width="100%"
+                      mt={"auto"}
+                      _hover={{
+                        bg: "transparent",
+                        border: "2px solid",
+                        borderColor: "brand.primary",
+                        color: "brand.primary",
+                      }}
+                    >
+                      View Venue <ArrowForwardIcon />
+                    </Button>
+                  </NextLink>
                 </Box>
-              ))
-              .slice(0, 4)}
+              </Box>
+            ))}
           </Grid>
         </Box>
 

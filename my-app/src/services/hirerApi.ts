@@ -17,6 +17,7 @@ interface RawVenue {
   shortDescription: string;
   imageURL: string;
   availabilityStatus: string;
+  isFeatured?: boolean;
   vendor?: { userID: number };
   amenities?: { amenityName: string }[];
   suitabilityTags?: { suitabilityName: string }[];
@@ -38,6 +39,7 @@ function normaliseVenue(raw: RawVenue): Venue {
     amenities: (raw.amenities ?? []).map((a) => a.amenityName),
     suitabilityTags: (raw.suitabilityTags ?? []).map((s) => s.suitabilityName),
     availabilityStatus: raw.availabilityStatus,
+    isFeatured: raw.isFeatured ?? false,
   };
 }
 

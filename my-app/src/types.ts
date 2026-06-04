@@ -27,6 +27,7 @@ export type Venue = {
   amenities: string[];
   suitabilityTags: string[]; // e.g. Corporate, Wedding, Conference, Gala Dinner
   availabilityStatus: string;
+  isFeatured: boolean; // set by an admin; controls the home page Featured Venues section
 };
 
 // booking record for a hirer
