@@ -1,22 +1,11 @@
-// ===========================================================
-// bookingController.ts - a HIRER applies to hire a venue
-// ===========================================================
-//   POST /api/bookings   (body validated by CreateBookingDTO)
-//
-// "Applying" creates an Application row with status "pending".
-// The vendor later approves/rejects it. We do a few
-// safety checks here that the DTO alone cannot do because they
-// need the database:
-//
-//   1. the venue must exist
-//   2. guestCount must not exceed the venue's capacity
-//   3. the event date must be today or later
-//   4. the date must NOT fall inside a blocked date range the
-//      vendor set for that venue  -> 409 "timeslot blocked"
-//
-// Check 4 prevents the race condition described in the spec: a
-// vendor blocks a date, but a stale browser still shows it free.
-// ===========================================================
+// bookingController.ts - creates a pending Application when a hirer applies to book a venue.
+// Runs four database-level guards that the DTO cannot enforce:
+//   1. venue must exist
+//   2. guestCount must not exceed capacity
+//   3. eventDate must be today or later
+//   4. eventDate must not fall inside a vendor-set blocked range (409 "timeslot blocked")
+// Guard 4 closes a race condition: the frontend reads blocked dates once on load, but a
+// vendor may add a block between page load and submission.
 
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
@@ -27,9 +16,7 @@ export class BookingController {
   private venueRepository = AppDataSource.getRepository(Venue);
   private applicationRepository = AppDataSource.getRepository(Application);
 
-  // POST /api/bookings
   async createBooking(req: Request, res: Response) {
-    // The hirer is whoever the JWT says it is (set by requireAuth).
     const hirerID = req.user!.id;
 
     const {
@@ -42,8 +29,7 @@ export class BookingController {
       additionalNotes,
     } = req.body;
 
-    // 1. Venue must exist. We also load its blocked dates so we
-    //    can run check 4 below.
+    // 1. Venue must exist (also load blocked dates for check 4).
     const venue = await this.venueRepository.findOne({
       where: { venueID },
       relations: { blockedDates: true },
@@ -59,8 +45,7 @@ export class BookingController {
       });
     }
 
-    // 3. The event date must be today or in the future.
-    //    Compare date-only (ignore the time part).
+    // 3. The event date must be today or later (date-only comparison).
     const requestedDate = new Date(eventDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -78,7 +63,6 @@ export class BookingController {
       return res.status(409).json({ message: "timeslot blocked" });
     }
 
-    // All checks passed — create the pending application.
     const application = this.applicationRepository.create({
       hirer: { userID: hirerID },
       venue: { venueID },

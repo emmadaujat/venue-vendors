@@ -1,8 +1,4 @@
-// ===========================================================
-// ComplianceDocument.ts — Entity representing the ComplianceDocument table in the database
-// A hirer can upload up to 4 compliance documents
-// ===========================================================
-
+// ComplianceDocument.ts - stores hirer-uploaded compliance documents (insurance, licences, etc.).
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -15,12 +11,9 @@ import { User } from "./User";
 
 @Entity()
 export class ComplianceDocument {
-  // Auto-incremented primary key
   @PrimaryGeneratedColumn()
   complianceDocID: number;
 
-  // Foreign key — references the hirer who uploaded this document
-  // Many documents can belong to one hirer (up to 4)
   @ManyToOne(() => User, (user) => user.complianceDocuments)
   @JoinColumn({ name: "hirerID" })
   hirer: User;

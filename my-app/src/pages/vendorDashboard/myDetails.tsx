@@ -17,7 +17,6 @@ export default function VendorMyDetails() {
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
   const { venues, isLoading: venuesLoading } = useVendorVenues();
 
-  // isLoading combines both loading states from custom hooks — page shows spinner until both are ready
   const isLoading = bookingsLoading || venuesLoading;
 
   // Editable fields
@@ -48,15 +47,11 @@ export default function VendorMyDetails() {
   const totalVenues = venues.length;
   const totalBookings = bookings.length;
 
-  // Get avg vendor rating
   const avgRating =
     bookings.length > 0
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
 
-  // ------------------------------------------------------------
-  // --------------- VALIDATION: NAME FIELD EMPTY --------------
-  // ------------------------------------------------------------
   function validateNameField(nameInput: string): boolean {
     if (nameInput.trim() === "") {
       setNameErrorMessage("Name cannot be empty");
@@ -66,17 +61,14 @@ export default function VendorMyDetails() {
     return true;
   }
 
-  // ------------------------------------------------------------
-  // --------------- VALIDATION: AUSTRALIAN MOBILE --------------
-  // ------------------------------------------------------------
   function validatePhoneField(phoneInput: string): boolean {
     const cleanedPhone = phoneInput.replace(/[\s\-]/g, "");
     if (cleanedPhone.length !== 10) {
-      setPhoneErrorMessage("Phone number must be 10 digits"); // 10 digits
+      setPhoneErrorMessage("Phone number must be 10 digits");
       return false;
     }
     if (!cleanedPhone.startsWith("04")) {
-      setPhoneErrorMessage("Phone number must start with 04"); // starting with 04
+      setPhoneErrorMessage("Phone number must start with 04");
       return false;
     }
     if (!/^\d+$/.test(cleanedPhone)) {
@@ -95,8 +87,7 @@ export default function VendorMyDetails() {
     return { firstName, lastName };
   }
 
-  // Send the updated details to the backend, then update the copy
-  // of the user in localStorage so the navbar/other pages refresh.
+  // Also updates localStorage so the navbar and other pages reflect the change immediately.
   async function saveProfile(firstName: string, lastName: string, phoneNumber: string) {
     await vendorApi.updateProfile({ firstName, lastName, phoneNumber });
 
@@ -114,13 +105,10 @@ export default function VendorMyDetails() {
     setTimeout(() => window.location.reload(), 1500);
   }
 
-  // ------------------------------------------------------------
-  // --------------- SAVE UPDATED FIRST & LAST NAME --------------
-  // ------------------------------------------------------------
   async function handleSaveName() {
     if (!validateNameField(editableName) || !user) return;
 
-    const { firstName, lastName } = splitName(editableName); // splits into firstName / lastName(
+    const { firstName, lastName } = splitName(editableName);
     try {
       await saveProfile(firstName, lastName, user.phoneNumber);
       setIsEditingName(false);
@@ -129,12 +117,9 @@ export default function VendorMyDetails() {
     }
   }
 
-  // ------------------------------------------------------------
-  // ----------------- SAVE UPDATED PHONE NUMBER ----------------
-  // ------------------------------------------------------------
   async function handleSavePhone() {
     if (!validatePhoneField(editablePhone) || !user) return;
-    const { firstName, lastName } = splitName(user.firstName + " " + user.lastName); // splits into firstName / lastName(
+    const { firstName, lastName } = splitName(user.firstName + " " + user.lastName);
 
     try {
       await saveProfile(firstName, lastName, editablePhone);

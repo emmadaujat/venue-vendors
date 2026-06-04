@@ -1,8 +1,4 @@
-// ===========================================================
-// ReputationTag.ts — Look up entity to look up reputation tags for an application
-// Tags a hirer selects about themselves when submitting an application
-// ===========================================================
-
+// ReputationTag.ts - lookup table for the available reputation tags hirers can self-select.
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { HirerReputationTag } from "./HirerReputationTag";
 
@@ -14,7 +10,6 @@ export class ReputationTag {
   @Column()
   reputationName: string;
 
-  // One tag can be selected across many applications
   @OneToMany(() => HirerReputationTag, (hirerTag) => hirerTag.reputationTag)
   hirerReputationTags: HirerReputationTag[];
 }

@@ -1,7 +1,4 @@
-// ===========================================================
-// User.ts — Entity representing the User table in the database
-// Covers both hirers and vendors, differentiated by the role field
-// ===========================================================
+// User.ts - User entity. Covers both hirers and vendors; the role column differentiates them.
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from "typeorm";
 
@@ -13,7 +10,6 @@ import { SavedVenue } from "./SavedVenue";
 
 @Entity()
 export class User {
-  // Automatically increment primary key
   @PrimaryGeneratedColumn()
   userID: number;
 
@@ -32,30 +28,24 @@ export class User {
   @Column()
   lastName: string;
 
-  // optional display name
   @Column({ nullable: true })
   displayName: string;
 
   @Column({ length: 10 })
   phoneNumber: string;
 
-  // automatically set to current date when user is created
   @CreateDateColumn()
   joinedDate: Date;
 
-  // A user - vendor, can own many venues
   @OneToMany(() => Venue, (venue) => venue.vendor)
   venues: Venue[];
 
-  // A user - hirer, can submit many applications
   @OneToMany(() => Application, (application) => application.hirer)
   applications: Application[];
 
-  // A user - hirer, can have many compliance documents
   @OneToMany(() => ComplianceDocument, (doc) => doc.hirer)
   complianceDocuments: ComplianceDocument[];
 
-  // A user - vendor, can leave many comments
   @OneToMany(() => VendorComment, (comment) => comment.vendor)
   vendorComments: VendorComment[];
 

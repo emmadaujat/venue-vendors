@@ -1,19 +1,6 @@
-// ===========================================================
-// hirerApi.ts - all the HIRER API calls in one place
-// ===========================================================
-// Every hirer page imports from here instead of calling axios
-// directly. It uses the shared `api` instance (services/api.ts)
-// which already adds the JWT "Authorization: Bearer ..." header,
-// so these functions never have to think about auth.
-//
-// The backend stores a venue's amenities and suitability tags as
-// rows in separate tables, so they arrive as arrays of objects
-// like [{ amenityName: "WiFi" }]. The frontend pages were written
-// to use plain string arrays, so normaliseVenue() flattens them
-// and turns the SQL "decimal" columns (which arrive as strings)
-// back into real numbers. One small mapper here keeps every page
-// simple.
-// ===========================================================
+// hirerApi.ts - all hirer-side API calls.
+// normaliseVenue() flattens the relational amenity/tag rows the backend sends into
+// plain string arrays, and coerces decimal-as-string columns back to numbers.
 
 import api from "@/services/api";
 import type { Venue } from "@/types";
@@ -72,7 +59,6 @@ export interface UpdateProfileInput {
 }
 
 export const hirerApi = {
-  // ---- Public venue browsing -------------------------------------
   getVenues: async (filters?: {
     search?: string;
     location?: string;
@@ -88,9 +74,7 @@ export const hirerApi = {
     return normaliseVenue(response.data as RawVenue);
   },
 
-  // Like getVenueById but also returns the vendor's blocked date
-  // ranges, so the venue detail page can grey them out on its
-  // calendar (and the booking will be refused server-side too).
+  // Returns venue details plus blocked date ranges for the venue detail page.
   getVenueDetail: async (
     venueID: number,
   ): Promise<{
@@ -117,9 +101,6 @@ export const hirerApi = {
     return response.data;
   },
 
-  // ---- Saved venues ---------------------------------------------
-  // Returns the hirer's saved venues already sorted by rank, with
-  // each venue normalised into the simple Venue shape.
   getSavedVenues: async (): Promise<
     { savedVenueID: number; rankingOrder: number; venue: Venue }[]
   > => {
@@ -153,7 +134,6 @@ export const hirerApi = {
     return response.data;
   },
 
-  // ---- Bookings / applications ----------------------------------
   createBooking: async (input: CreateBookingInput) => {
     const response = await api.post("/bookings", input);
     return response.data;
@@ -161,10 +141,9 @@ export const hirerApi = {
 
   getMyBookings: async () => {
     const response = await api.get("/hirer/bookings");
-    return response.data; // Application[] with venue + booking
+    return response.data;
   },
 
-  // ---- Dashboard / reputation / compliance ----------------------
   getDashboard: async () => {
     const response = await api.get("/hirer/dashboard");
     return response.data;
@@ -191,14 +170,11 @@ export const hirerApi = {
     return response.data;
   },
 
-  // ---- My details -----------------------------------------------
   updateProfile: async (input: UpdateProfileInput) => {
     const response = await api.put("/hirer/profile", input);
     return response.data;
   },
 
-  // GET /api/venues/stats
-  // Fetches platform-wide stats for the landing page (no auth required)
   getPlatformStats: async (): Promise<{ totalBookings: number }> => {
     const response = await api.get("/venues/stats");
     return response.data;

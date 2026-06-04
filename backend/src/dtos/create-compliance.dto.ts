@@ -1,14 +1,4 @@
-// ===========================================================
-// create-compliance.dto.ts - rules for uploading a compliance doc
-// ===========================================================
-// The hirer uploads documents (insurance, licence, business cert)
-// to build trust with vendors. The actual file is stored on the
-// browser side per the assignment; here we save the metadata
-// (what type it is, the file name, optional ABN for businesses).
-// ===========================================================
-// compliance documents
-// ===========================================================
-
+// create-compliance.dto.ts - validation rules for the POST /api/hirer/compliance request body.
 import {
   IsString,
   IsNotEmpty,
@@ -18,31 +8,25 @@ import {
 } from "class-validator";
 
 export class CreateComplianceDTO {
-  // e.g. "Public Liability Insurance", "Drivers License",
-  // "Business Registration Certificate".
   @IsString()
   @IsNotEmpty()
   @Length(2, 100)
   documentType: string;
 
-  // The original file name the hirer uploaded, e.g. "licence.pdf".
   @IsString()
   @IsNotEmpty()
   @Length(1, 255)
   fileName: string;
 
-  // Stores the file as a base64 data URL (e.g. "data:application/pdf;base64,...").
-  // No length limit here — a 2 MB file becomes ~2.7 MB of base64 text.
+  // Stored as a base64 data URL (e.g. "data:application/pdf;base64,...").
   @IsOptional()
   @IsString()
   fileURL?: string;
 
-  // True when the hirer is representing a business/organisation.
   @IsOptional()
   @IsBoolean()
   isBusiness?: boolean;
 
-  // Only required (on the frontend) when isBusiness is true.
   @IsOptional()
   @IsString()
   @Length(0, 50)

@@ -1,5 +1,5 @@
-// all the state and logic for the hire application form
-// apply.tsx just handles the layout, this hook does the rest
+// useApplicationForm.ts - all state and logic for the multi-step hirer application form.
+// apply.tsx handles layout only; this hook manages validation, draft saving, and submission.
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
@@ -215,9 +215,8 @@ export default function useApplicationForm(user: User | null) {
     }
   }
 
-  // Save the half-finished form to localStorage so the hirer can
-  // come back later. This is just a browser convenience — the real
-  // application is only created in the database on submit.
+  // Persists the in-progress form to localStorage; the actual application row is only
+  // created on submit.
   function handleSaveDraft() {
     if (!user || !selectedVenue) return;
     const draftData = {
@@ -247,10 +246,8 @@ export default function useApplicationForm(user: User | null) {
     router.push("/hirer/bookingHistory");
   }
 
-  // Submit the application — this creates a real Application row
-  // in the database via POST /api/bookings. The backend also
-  // re-checks guest count, past dates and blocked dates and will
-  // return an error message we show to the hirer.
+  // POST /api/bookings - the backend re-validates guest count, past dates, and blocked
+  // dates server-side, returning any errors to display to the hirer.
   const [submitErrorText, setSubmitErrorText] = useState("");
 
   async function handleSubmitApplication() {

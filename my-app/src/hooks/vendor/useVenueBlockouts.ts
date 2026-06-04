@@ -1,10 +1,4 @@
-// ===========================================================
-// useVenueBlockouts.ts — fetches, creates, and deletes blocked
-// date periods for a specific vendor venue.
-// Follows the same pattern as useVendorVenues.ts.
-// Used by the [venueId].tsx calendar page.
-// ===========================================================
-
+// useVenueBlockouts.ts - fetches, creates, and deletes blocked date periods for a vendor venue.
 import { useState, useEffect } from "react";
 import { vendorApi } from "@/services/vendorApi";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,17 +10,12 @@ export function useVenueBlockouts(venueId: number | null) {
   const [blockedDates, setBlockedDates] = useState<VenueBlockedDates[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Fetch all blocked dates for this venue on mount (and when venueId changes)
   useEffect(() => {
-    // Wait until both the user and a valid venueId are available
     if (user && venueId) {
       fetchBlockedDates();
     }
   }, [user, venueId]);
 
-  // -------------------------------------------------------------------
-  // Fetch blocked dates from the API
-  // -------------------------------------------------------------------
   const fetchBlockedDates = async () => {
     try {
       setIsLoading(true);
@@ -39,27 +28,17 @@ export function useVenueBlockouts(venueId: number | null) {
     }
   };
 
-  // -------------------------------------------------------------------
-  // Create a new blocked period and refresh the list
-  // -------------------------------------------------------------------
   const createBlockout = async (
     startDate: string,
     endDate: string,
     reason: string,
   ): Promise<void> => {
-    // Sends to POST /venues/:venueId/blockedDates
     await vendorApi.createVenueBlockedDates(venueId!, startDate, endDate, reason);
-    // Refresh the list so the new period appears immediately
     await fetchBlockedDates();
   };
 
-  // -------------------------------------------------------------------
-  // Delete a blocked period by its ID and refresh the list
-  // -------------------------------------------------------------------
   const deleteBlockout = async (blockedID: number): Promise<void> => {
-    // Sends to DELETE /venues/:venueId/blockedDates/:blockDateId
     await vendorApi.deleteVenueBlockedDates(venueId!, blockedID);
-    // Refresh the list so the removed period disappears immediately
     await fetchBlockedDates();
   };
 

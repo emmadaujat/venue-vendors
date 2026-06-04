@@ -139,7 +139,6 @@ export default function ManageVenue() {
   const { data: vendorsData } = useQuery(GET_VENDORS);
   const vendors: any[] = vendorsData?.vendors ?? [];
 
-  // Update venue mutation — refetches venue data after save
   const [updateVenue] = useMutation(UPDATE_VENUE, {
     refetchQueries: [{ query: GET_VENUE_BY_ID, variables: { venueId } }],
   });
@@ -150,9 +149,6 @@ export default function ManageVenue() {
   // Assign vendor mutation
   const [assignVendor] = useMutation(ASSIGN_VENDOR);
 
-  // ===========================================================
-  // Form state — all pre-populated from the venue once it loads
-  // ===========================================================
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
@@ -165,9 +161,6 @@ export default function ManageVenue() {
   const [amenityInput, setAmenityInput] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
-  // ===========================================================
-  // Per-field validation error states
-  // ===========================================================
   const [nameError, setNameError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [capacityError, setCapacityError] = useState<string | null>(null);
@@ -176,36 +169,21 @@ export default function ManageVenue() {
   const [imageURLError, setImageURLError] = useState<string | null>(null);
   const [vendorError, setVendorError] = useState<string | null>(null);
 
-  // ===========================================================
-  // Assign a vendor via drop down selection
-  // ===========================================================
   const [selectedVendorId, setSelectedVendorId] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
 
-  // ===========================================================
-  // Submission state
-  // ===========================================================
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // ===========================================================
-  // Save preview modal — shown before confirming the update
-  // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
-  // ===========================================================
-  // Delete confirmation dialog
-  // ===========================================================
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // -------------------------------------------------------------------
-  // Pre-populate form fields once venue data is loaded from venue details
-  // -------------------------------------------------------------------
   useEffect(() => {
     if (venue) {
       setName(venue.name);
@@ -219,7 +197,6 @@ export default function ManageVenue() {
       setAmenities(venue.amenities ?? []);
       setIsFeatured(venue.isFeatured ?? false);
 
-      // Pre-select the current vendor if one is assigned
       if (venue.vendor) {
         setSelectedVendorId(String(venue.vendor.userID));
         setSelectedVendor(venue.vendor);
@@ -227,9 +204,6 @@ export default function ManageVenue() {
     }
   }, [venue]);
 
-  // -------------------------------------------------------------------
-  // Get vendors from database to show as options in drop down menu
-  // -------------------------------------------------------------------
   function handleVendorSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const vendorId = e.target.value;
     setSelectedVendorId(vendorId);
@@ -237,10 +211,6 @@ export default function ManageVenue() {
     setSelectedVendor(vendor);
   }
 
-  // -------------------------------------------------------------------
-  // Amenity helpers
-  // -------------------------------------------------------------------
-  // Add the current amenity input to the list (if not empty or duplicate)
   function handleAddAmenity() {
     const trimmed = amenityInput.trim();
     if (!trimmed) return;
@@ -249,15 +219,10 @@ export default function ManageVenue() {
     setAmenityInput("");
   }
 
-  // Remove an amenity from the list by name
   function handleRemoveAmenity(name: string) {
     setAmenities(amenities.filter((a) => a !== name));
   }
 
-  // ===========================================================
-  // Validation — runs all field checks and sets error states.
-  // Returns true if the form is valid, false if anything fails.
-  // ===========================================================
   function validate(): boolean {
     const nameErr = isValidVenueName(name);
     const locationErr = isValidLocation(location);
@@ -266,13 +231,11 @@ export default function ManageVenue() {
     const descriptionErr = isValidDescription(shortDescription);
     const imageURLErr = isValidImageURL(imageURL);
 
-    // Check vendor has been selected
     const vendorErr = !selectedVendorId
       ? "Please assign a vendor to this venue before saving"
       : null;
     setVendorError(vendorErr);
 
-    // Set all errors so they all display at once
     setNameError(nameErr);
     setLocationError(locationErr);
     setCapacityError(capacityErr);
@@ -291,9 +254,6 @@ export default function ManageVenue() {
     );
   }
 
-  // ===========================================================
-  // Save button click — validates first, then opens preview modal
-  // ===========================================================
   function handleSaveClick() {
     setSubmitError("");
     if (validate()) {
@@ -301,9 +261,6 @@ export default function ManageVenue() {
     }
   }
 
-  // ===========================================================
-  // Confirm create — called when vendor clicks save in the preview modal
-  // ===========================================================
   async function handleConfirmSave() {
     setIsSubmitting(true);
     try {
@@ -353,9 +310,6 @@ export default function ManageVenue() {
     }
   }
 
-  // ===========================================================
-  // Confirm delete — called when vendor confirms in the delete dialog
-  // ===========================================================
   async function handleConfirmDelete() {
     if (!venue) return;
     setIsDeleting(true);
@@ -373,7 +327,6 @@ export default function ManageVenue() {
     }
   }
 
-  // Convert timestamp to readable date
   function formatDate(timestamp: string | number): string {
     if (!timestamp) return "N/A";
     return new Date(Number(timestamp)).toLocaleDateString("en-AU", {
@@ -383,9 +336,6 @@ export default function ManageVenue() {
     });
   }
 
-  // ===========================================================
-  // Helper — availability badge colour (matches myVenues.tsx)
-  // ===========================================================
   function getAvailabilityColor(status: string) {
     if (status === "Available") return "green";
     if (status === "Limited Availability") return "orange";
@@ -494,7 +444,7 @@ export default function ManageVenue() {
           <Text color="white" fontWeight="semibold">
             Venue Details
           </Text>
-          {/* Featured toggle — admin can mark venue as featured */}
+          {/* Featured toggle */}
           <Flex align="center" gap={2}>
             <Text color="white" fontSize="md">
               Featured
@@ -557,7 +507,7 @@ export default function ManageVenue() {
               </FormControl>
             </Flex>
 
-            {/* Capacity + Price + Rate — three-column row */}
+            {/* Capacity + Price + Rate */}
             <Flex gap={4}>
               <FormControl isInvalid={!!capacityError} flex="1">
                 <FormLabel fontWeight="semibold">
@@ -591,7 +541,7 @@ export default function ManageVenue() {
                 <FormErrorMessage>{priceError}</FormErrorMessage>
               </FormControl>
 
-              {/* Rate is always Per Day — read-only */}
+              {/* Rate - always Per Day, read-only */}
               <FormControl flex="0.5">
                 <FormLabel fontWeight="semibold">Rate</FormLabel>
                 <Select isReadOnly value="per_day" bg="gray.50">
@@ -657,7 +607,7 @@ export default function ManageVenue() {
         </Box>
 
         <Box p={6}>
-          {/* Existing amenities — each shown as a deletable row  */}
+          {/* Existing amenities */}
           {amenities.length > 0 && (
             <Stack spacing={2} mb={4}>
               {amenities.map((amenity) => (
@@ -772,7 +722,7 @@ export default function ManageVenue() {
 
         <Box p={6}>
           <Stack spacing={4}>
-            {/* Top row — vendor select + years of experience */}
+            {/* Vendor select + years of experience */}
             <Flex gap={4}>
               <FormControl flex="1" isInvalid={!!vendorError}>
                 <FormLabel fontWeight={"semibold"}>Vendor Name</FormLabel>
@@ -804,7 +754,7 @@ export default function ManageVenue() {
               </FormControl>
             </Flex>
 
-            {/* Bottom row — email + phone */}
+            {/* Vendor email + phone */}
             <Flex gap={4}>
               <FormControl flex="1">
                 <FormLabel fontWeight="semibold">Vendor Email</FormLabel>
@@ -868,7 +818,6 @@ export default function ManageVenue() {
 
           <ModalBody>
             {saveSuccess ? (
-              // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
                   ✓ Venue Updated Successfully!

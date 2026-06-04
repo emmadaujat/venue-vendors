@@ -1,7 +1,7 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { useLocation } from "react-router-dom";
 
-// Admin console footer — white on sign in page, brand.primary everywhere else
+// Admin console footer - white on sign-in page, brand.primary elsewhere.
 export default function Footer() {
   const location = useLocation();
   const isSignIn = location.pathname === "/signin";

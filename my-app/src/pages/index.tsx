@@ -17,10 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 export default function Home() {
   const { isLoggedIn, isHirer, isVendor } = useAuth();
 
-  // All venues, loaded from the backend database.
   const [venues, setVenues] = useState<Venue[]>([]);
 
-  // Total bookings across the platform — shown in the platform overview stat card
   const [totalBookings, setTotalBookings] = useState<number>(0);
 
   useEffect(() => {

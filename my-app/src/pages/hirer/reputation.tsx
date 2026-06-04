@@ -1,13 +1,4 @@
-// ===========================================================
-// reputation.tsx - the hirer's reputation history 
-// ===========================================================
-// Shows the average star rating vendors have given this hirer
-// (0.0–5.0 format), and a table of every past rated event.
-// If there are no ratings yet we show a friendly "not yet rated"
-// message instead of a misleading 0.0.
-// Data comes from GET /api/hirer/reputation.
-// ===========================================================
-
+// reputation.tsx - hirer's reputation page showing average star rating and rated event history.
 import { useState, useEffect } from "react";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";

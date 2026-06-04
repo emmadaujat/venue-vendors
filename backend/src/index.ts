@@ -1,11 +1,4 @@
-// ===========================================================
-// index.ts - production / dev entry point
-// ===========================================================
-// All routes live in app.ts so the HD supertest tests can use
-// the same Express instance without opening a port. This file
-// only initialises the database connection and starts listening.
-// ===========================================================
-
+// index.ts - production entry point. Initialises the database connection and starts the HTTP server.
 import { AppDataSource } from "./data-source";
 import app from "./app";
 

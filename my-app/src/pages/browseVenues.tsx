@@ -1,3 +1,4 @@
+// browseVenues.tsx - public venue listing page with search, filter, and suitability matching.
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import NavBar from "@/components/navbar";
@@ -222,39 +223,29 @@ export default function BrowseVenues() {
     setChosenSortOption("relevance");
   }
 
-  // Build the filtered list of venues to display
-  // Filters apply in real time as the user changes them
-  // Start with every venue from the database then narrow down
+  // Apply all active filters in sequence. Spread creates a copy so allVenues is never mutated.
   let venuesToDisplay: Venue[] = [...allVenues];
-  // the ... creates a copy of the array so we don't mutate the original data
 
-  // --- Filter by search bar text (V2: search by name, location, capacity, suitability) ---
   if (searchBarText.trim() !== "") {
     venuesToDisplay = venuesToDisplay.filter((venue) =>
       doesVenueMatchSearchTerm(venue, searchBarText)
     );
   }
 
-  // --- CR2: Filter by "recommended suitability" keyword ---
-  // A venue is recommended for the chosen keyword if one of its
-  // suitability tags matches that keyword (case-insensitive).
   if (chosenEventType !== "Any") {
     venuesToDisplay = venuesToDisplay.filter((venue) =>
       venueMatchesSuitability(venue, chosenEventType),
     );
   }
 
-  // --- Filter by location dropdown ---
   if (chosenLocation !== "All Melbourne") {
     venuesToDisplay = venuesToDisplay.filter((venue) =>
       venue.location.toLowerCase().includes(chosenLocation.toLowerCase())
     );
   }
 
-  // --- Filter by capacity checkboxes (if any are ticked) ---
   if (chosenCapacityRanges.length > 0) {
     venuesToDisplay = venuesToDisplay.filter((venue) => {
-      // venue passes if it falls within ANY of the ticked ranges
       for (let i = 0; i < CAPACITY_RANGE_BRACKETS.length; i++) {
         const bracket = CAPACITY_RANGE_BRACKETS[i];
         if (chosenCapacityRanges.includes(bracket.label)) {
@@ -267,10 +258,8 @@ export default function BrowseVenues() {
     });
   }
 
-  // --- Filter by maximum daily rate slider ---
   venuesToDisplay = venuesToDisplay.filter((venue) => venue.pricePerDay <= maximumDailyRate);
 
-  // --- Filter by amenities ---
   if (chosenAmenities.length > 0) {
     venuesToDisplay = venuesToDisplay.filter((venue) => {
       for (let i = 0; i < chosenAmenities.length; i++) {

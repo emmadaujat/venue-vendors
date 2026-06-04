@@ -1,36 +1,18 @@
-// ===========================================================
-// HD Test 4 - vendor.stats.test.ts  (Emma — vendor side)
-// ===========================================================
-// CONTEXT (the "contextual" comment block the spec asks for):
-// the vendor Infographic Report page calls GET /api/vendor/stats
-// the moment it loads. A brand-new vendor who owns no venues and
-// has received no applications is the most common real first-run
-// state. If the stats endpoint assumes there is always at least
-// one venue/booking, the aggregate maths (most-active hirer,
-// utilization-by-day, etc.) runs over empty arrays and can throw,
-// returning a 500 that makes the whole page look broken (this is
-// exactly the "page won't open" symptom we want to prevent).
+// HD Test 4 - GET /api/vendor/stats with an empty vendor
+// A brand-new vendor (no venues, no applications) is the most common first-run state.
+// If the stats endpoint assumes at least one venue or booking exists, aggregate
+// calculations over empty arrays can throw, returning a 500 that breaks the Infographic
+// Report page. This test pins the contract: an empty vendor gets 200 with zeroed/empty
+// data, never a 500, so the page can show its "No booking activity" state instead of crashing.
 //
-// This test pins down the safe contract: an empty vendor gets a
-// normal 200 with zeroed/empty data — NOT a 500 — so the page can
-// render its friendly "No booking activity" empty-state instead
-// of crashing.
-//
-// jest.mock replaces AppDataSource with an in-memory stub whose
-// repositories return empty arrays, so the test needs no live SQL
-// Server. supertest fires the request through the real Express
-// middleware chain (cors -> json -> requireAuth ->
-// requireRole("vendor") -> vendorStatsController.getStats).
-// ===========================================================
+// jest.mock replaces AppDataSource with a stub whose repos return empty arrays (no live DB).
+// supertest fires through the real Express middleware chain including requireAuth and requireRole.
 
-// JWT_SECRET must be set BEFORE utils/jwt is imported (requireAuth
-// verifies the token with it).
+// JWT_SECRET must be set before utils/jwt is imported (requireAuth verifies tokens with it).
 process.env.JWT_SECRET = "test-secret-for-hd-tests";
 
-// A shared mock repository. Every entity's getRepository() returns
-// this same object; here both venueRepository.find() and
-// applicationRepository.find() resolve to an empty list, modelling
-// a vendor with nothing yet.
+// Shared mock repository; both venueRepository.find() and applicationRepository.find()
+// resolve to an empty list, modelling a vendor with no activity.
 const mockRepo = {
   find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn(),
@@ -52,22 +34,18 @@ import { signToken } from "../utils/jwt";
 
 describe("GET /api/vendor/stats - empty vendor edge case", () => {
   test("returns 200 with zeroed/empty data (never a 500) for a vendor with no activity", async () => {
-    // A real signed JWT for a vendor — requireRole("vendor") needs it.
     const token = signToken({ id: 99, role: "vendor", email: "newvendor@example.com" });
 
     const res = await request(app)
       .get("/api/vendor/stats?range=week")
       .set("Authorization", `Bearer ${token}`);
 
-    // The whole point: empty aggregates must NOT crash the endpoint.
+    // Empty aggregates must not crash the endpoint.
     expect(res.status).toBe(200);
-
-    // Counts are zero...
     expect(res.body.totalBookings).toBe(0);
     expect(res.body.venueCount).toBe(0);
 
-    // ...and every chart dataset is an empty array, with no
-    // most/least-active hirer to highlight.
+    // Every chart dataset is an empty array with no active hirer to highlight.
     expect(res.body.perVenue).toEqual([]);
     expect(res.body.hirerPieData).toEqual([]);
     expect(res.body.utilization).toEqual([]);

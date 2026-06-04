@@ -1,12 +1,4 @@
-// ===========================================================
-// jest.config.ts - admin-backend (App 4, GraphQL) test runner
-// ===========================================================
-// ts-jest lets Jest run our TypeScript resolver tests directly.
-// testEnvironment "node" because this is a server app (no DOM).
-// The tsconfig already enables experimentalDecorators +
-// emitDecoratorMetadata, which the TypeORM entities need.
-// ===========================================================
-
+// jest.config.ts - Jest configuration for the admin-backend GraphQL resolver tests.
 import type { Config } from "jest";
 
 const config: Config = {

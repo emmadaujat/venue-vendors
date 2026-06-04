@@ -47,7 +47,6 @@ export default function ApplicationReview() {
   const { bookings } = useVendorBookings();
   const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
 
-  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
   const isLoading = applicationsLoading || commentsLoading;
 
   // for pop up confirmations
@@ -74,21 +73,15 @@ export default function ApplicationReview() {
   const [commentText, setCommentText] = useState("");
   const [commentSaved, setCommentSaved] = useState(false);
 
-  // -------------------------------------------------------------------
-  // ---------- FIND APPLICATIONID IN APPLICATIONS ---------------------
-  // -------------------------------------------------------------------
   const application =
     applications.find((a) => a.applicationID === parseInt(applicationID as string)) ?? null;
 
-  // ------------------------------------------------------------------
-  // ---------- FIND VENDOR COMMENTS FOR APPLICATIONID ----------------
-  // -------------------------------------------------------------------
   const vendorComment =
     vendorComments.find(
       (c) => c.booking.application.applicationID === parseInt(applicationID as string),
     ) ?? null;
 
-  // Fetch compliance documents for this hirer to check business status and documents
+  // Fetch this hirer's compliance documents to check business status and document list.
   const { documents } = useHirerCompliance(application?.hirer.userID ?? 0);
   // Check if hirer is applying as a business and get their ABN
   const isBusiness = documents.some((d) => d.isBusiness);
@@ -105,18 +98,11 @@ export default function ApplicationReview() {
     }
   }, [documents]);
 
-  // ------------------------------------------------------------
-  // --------- OPENS APPLICATION STATUS CONFIRMATION ------------
-  // ------------------------------------------------------------
-  // Handle accept or decline button click
   function handleActionClick(action: "Approved" | "Declined") {
     setPendingAction(action);
     onOpen();
   }
 
-  // ------------------------------------------------
-  // --------- UPDATE APPLICATION STATUS ------------
-  // ------------------------------------------------
   const handleConfirm = async () => {
     if (!pendingAction || !application) return;
 
@@ -124,7 +110,6 @@ export default function ApplicationReview() {
       await vendorApi.updateApplicationStatus(application.applicationID, pendingAction);
       fetchApplications();
       setIsSuccess(true);
-      // Show success message for 1 second
       setTimeout(() => {
         onClose();
         setIsSuccess(false);
@@ -134,11 +119,7 @@ export default function ApplicationReview() {
     }
   };
 
-  // -------------------------------------------------
-  // --------- SAVE UPDATED / EDITED COMMENT ---------
-  // -------------------------------------------------
   const handleSaveComment = async () => {
-    console.log("handleSaveComment called");
     if (!vendorComment) return;
 
     try {
@@ -146,17 +127,13 @@ export default function ApplicationReview() {
       fetchComments();
       setIsEditingComment(false);
       setCommentSaved(true);
-      setTimeout(() => setCommentSaved(false), 1000); // Shows confirmation message for 1 second
+      setTimeout(() => setCommentSaved(false), 1000);
     } catch (error) {
       console.log("error updating comment", error);
     }
   };
 
-  // -------------------------------------------------
-  // ---------------- ADD NEW COMMENT-----------------
-  // -------------------------------------------------
   const handleCreateComment = async () => {
-    console.log("handleCreateComment called");
     try {
       let bookingComment =
         bookings.find(
@@ -172,9 +149,6 @@ export default function ApplicationReview() {
     }
   };
 
-  // -------------------------------------------------
-  // ----------------- DELETE COMMENT ----------------
-  // -------------------------------------------------
   const handleDeleteComment = async () => {
     if (!vendorComment) return;
     try {
@@ -340,7 +314,7 @@ export default function ApplicationReview() {
                 </Badge>
               </Flex>
 
-              {/* ABN — only show if applying as business */}
+              {/* ABN - only shown for business applicants */}
               {isBusiness && abnNumber && (
                 <Flex justify="space-between">
                   <Text color="gray.500" fontSize="sm">

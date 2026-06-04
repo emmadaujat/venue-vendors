@@ -1,7 +1,4 @@
-// ===========================================================
-// Applications.ts — Entity representing the applications table in the database
-// ===========================================================
-
+// Application.ts - represents a hirer's application to book a venue (status: pending/approved/declined).
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -54,11 +51,9 @@ export class Application {
   @CreateDateColumn()
   submittedAt: Date;
 
-  // One application can have many reputation tags
   @OneToMany(() => HirerReputationTag, (tag) => tag.application)
   reputationTags: HirerReputationTag[];
 
-  // One application can become one booking
   @OneToOne(() => Booking, (booking) => booking.application)
   booking: Booking;
 }

@@ -1,8 +1,4 @@
-// ===========================================================
-// VendorComment.ts — Entity representing the vendors comments table in the database
-// A vendor leaves a comment about a hirer after an accepted application (an accepted application becomes a booking)
-
-// ===========================================================
+// VendorComment.ts - a comment a vendor leaves on a hirer after a completed booking.
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -20,14 +16,10 @@ export class VendorComment {
   @PrimaryGeneratedColumn()
   commentID: number;
 
-  // Foreign key — references the vendor (User) who wrote the comment
-  // Many comments can be written by one vendor
   @ManyToOne(() => User, (user) => user.vendorComments)
   @JoinColumn({ name: "vendorID" })
   vendor: User;
 
-  // Foreign key — references the booking this comment is about
-  // One comment belongs to one booking
   @OneToOne(() => Booking, (booking) => booking.vendorComments)
   @JoinColumn({ name: "bookingID" })
   booking: Booking;

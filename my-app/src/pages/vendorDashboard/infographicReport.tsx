@@ -1,23 +1,9 @@
-// ===========================================================
-// infographicReport.tsx - DI vendor analytics page
-// ===========================================================
-// Implements the DI section of the spec (5 marks):
-//   CHANGE 2.1 - bar chart of hirer tallies per venue
-//   CHANGE 2.2 - stacked bar of totals across all venues
-//   CHANGE 2.3 - pie chart of most/least active hirers
-//   CHANGE 3   - venue utilization line chart over time
-//                + a "zoom" dropdown (week / month / last month / all)
-//
-// All data comes from a SINGLE backend endpoint:
-//   GET /api/vendor/stats?range=...
-// The endpoint already does the maths in SQL/JS so the page stays
-// simple - it just pulls the JSON and feeds each shape into a
-// recharts component.
-//
-// Recharts patterns are the same ones used by graph.tsx (the
-// week 8 / A1 chart component). Keep it readable so a marker can
-// see exactly which CHANGE each chart matches.
-// ===========================================================
+// infographicReport.tsx - vendor analytics page (Distinction Implementation)
+// Four charts powered by GET /api/vendor/stats?range=...:
+//   Chart 1 - bar chart of hirer tallies per venue (CHANGE 2.1)
+//   Chart 2 - stacked bar of hirer totals by venue (CHANGE 2.2)
+//   Chart 3 - pie chart of most/least active hirers (CHANGE 2.3)
+//   Chart 4 - line chart of venue utilization over time with zoom dropdown (CHANGE 3)
 
 import { useState, useEffect } from "react";
 import NextLink from "next/link";
@@ -56,8 +42,7 @@ import VendorDashboardLayout from "@/components/vendorDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { vendorApi, type VendorStats } from "@/services/vendorApi";
 
-// Colour palette used across every chart so the same hirer (or
-// venue) keeps the same colour as the vendor switches charts.
+// Consistent colour palette across all charts so the same hirer/venue keeps the same colour.
 const CHART_COLOURS = [
   "#4C2C62", // brand purple
   "#e260c2",
@@ -69,7 +54,6 @@ const CHART_COLOURS = [
   "#DD6B20",
 ];
 
-// The four time windows the vendor can "zoom" through.
 const TIME_RANGES = [
   { value: "week", label: "This week" },
   { value: "month", label: "This month" },
@@ -88,8 +72,6 @@ export default function InfographicReport() {
   // like the page "wouldn't open"). Empty string = no error.
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Whenever the user changes the time-range dropdown, re-fetch
-  // the stats from the backend. This is the "zoom" in/out.
   useEffect(() => {
     if (!user) return;
     setIsLoading(true);
@@ -110,7 +92,7 @@ export default function InfographicReport() {
 
   return (
     <VendorDashboardLayout>
-      {/* Header - welcome + add venue (kept for visual consistency) */}
+      {/* Header */}
       <Flex justify="space-between">
         <Flex alignItems={"center"} gap={3}>
           <Avatar
@@ -139,7 +121,7 @@ export default function InfographicReport() {
         </NextLink>
       </Flex>
 
-      {/* Page title + time-range "zoom" selector */}
+      {/* Page title + time-range selector */}
       <Flex mt={8} mb={4} alignItems="flex-end" justify="space-between">
         <Box>
           <Text fontSize="xl" fontWeight="bold">
@@ -218,10 +200,7 @@ export default function InfographicReport() {
       {/* The four charts - only shown when we have data */}
       {!isLoading && !errorMessage && stats && stats.totalBookings > 0 && (
         <>
-          {/* --------------------------------------------------
-              CHART 1 - CHANGE 2.1
-              Bar chart: hirer tallies per venue
-              -------------------------------------------------- */}
+          {/* Chart 1 (CHANGE 2.1) - bar chart: hirer tallies per venue */}
           <Box mt={6} mb={10} p={4} borderWidth="1px" borderRadius="md">
             <Text fontSize="lg" fontWeight="bold" mb={1}>
               Hirers per Venue
@@ -237,7 +216,6 @@ export default function InfographicReport() {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                {/* one Bar per hirer (different colour each) */}
                 {stats.hirerNames.map((name, index) => (
                   <Bar
                     key={name}
@@ -249,10 +227,7 @@ export default function InfographicReport() {
             </ResponsiveContainer>
           </Box>
 
-          {/* --------------------------------------------------
-              CHART 2 - CHANGE 2.2
-              Stacked bar: hirer totals stacked by venue
-              -------------------------------------------------- */}
+          {/* Chart 2 (CHANGE 2.2) - stacked bar: hirer totals by venue */}
           <Box mt={6} mb={10} p={4} borderWidth="1px" borderRadius="md">
             <Text fontSize="lg" fontWeight="bold" mb={1}>
               Total Bookings per Hirer (stacked by venue)
@@ -268,8 +243,6 @@ export default function InfographicReport() {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                {/* one Bar per venue, all using stackId="all" so
-                    they stack into a single column per hirer */}
                 {stats.venueNames.map((name, index) => (
                   <Bar
                     key={name}
@@ -282,10 +255,7 @@ export default function InfographicReport() {
             </ResponsiveContainer>
           </Box>
 
-          {/* --------------------------------------------------
-              CHART 3 - CHANGE 2.3
-              Pie chart: most + least active hirers
-              -------------------------------------------------- */}
+          {/* Chart 3 (CHANGE 2.3) - pie chart: most/least active hirers */}
           <Box mt={6} mb={10} p={4} borderWidth="1px" borderRadius="md">
             <Text fontSize="lg" fontWeight="bold" mb={1}>
               Hirer Activity
@@ -306,10 +276,8 @@ export default function InfographicReport() {
                       cx="50%"
                       cy="50%"
                       outerRadius={110}
-                      // A boolean label keeps recharts' own renderer
-                      // (returning a custom string here can crash on
-                      // some recharts versions). The hirer names are
-                      // shown in the Legend + Tooltip instead.
+                      // boolean label uses recharts' built-in renderer; a custom
+                      // label function crashes on some recharts versions.
                       label
                     >
                       {stats.hirerPieData.map((_, idx) => (
@@ -325,7 +293,7 @@ export default function InfographicReport() {
                 </ResponsiveContainer>
               </Box>
 
-              {/* Most / least active callout cards */}
+              {/* Most/least active summary cards */}
               <Box minW="240px">
                 <Box
                   p={4}
@@ -366,10 +334,7 @@ export default function InfographicReport() {
             </Flex>
           </Box>
 
-          {/* --------------------------------------------------
-              CHART 4 - CHANGE 3
-              Line chart: venue utilization over time
-              -------------------------------------------------- */}
+          {/* Chart 4 (CHANGE 3) - line chart: venue utilization over time */}
           <Box mt={6} mb={10} p={4} borderWidth="1px" borderRadius="md">
             <Text fontSize="lg" fontWeight="bold" mb={1}>
               Venue Utilization Over Time
@@ -397,10 +362,7 @@ export default function InfographicReport() {
             </ResponsiveContainer>
           </Box>
 
-          {/* --------------------------------------------------
-              Summary table - quick textual recap so a marker
-              can sanity-check the numbers in the charts.
-              -------------------------------------------------- */}
+          {/* Summary table */}
           <Box mt={8} mb={10}>
             <Text fontSize="lg" fontWeight="bold" mb={2}>
               Activity Summary

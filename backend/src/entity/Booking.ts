@@ -1,6 +1,4 @@
-// ===========================================================
-// Booking.ts — Entity representing the bookings table in the database
-// ===========================================================
+// Booking.ts - a confirmed booking created when a vendor approves an Application.
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -34,7 +32,6 @@ export class Booking {
   @CreateDateColumn()
   createdAt: Date;
 
-  // One booking can have one vendor comment
   @OneToMany(() => VendorComment, (comment) => comment.booking)
   vendorComments: VendorComment[];
 }

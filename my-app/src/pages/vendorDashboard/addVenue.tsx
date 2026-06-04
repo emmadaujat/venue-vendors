@@ -52,9 +52,6 @@ export default function EditVenue() {
   const router = useRouter();
   const { user } = useAuth("vendor");
 
-  // ===========================================================
-  // Form state — all pre-populated from the venue once it loads
-  // ===========================================================
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
@@ -66,9 +63,6 @@ export default function EditVenue() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityInput, setAmenityInput] = useState("");
 
-  // ===========================================================
-  // Per-field validation error states
-  // ===========================================================
   const [nameError, setNameError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [capacityError, setCapacityError] = useState<string | null>(null);
@@ -76,23 +70,14 @@ export default function EditVenue() {
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [imageURLError, setImageURLError] = useState<string | null>(null);
 
-  // ===========================================================
-  // Submission state
-  // ===========================================================
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
-  // ===========================================================
-  // Save preview modal — shown before confirming the update
-  // ===========================================================
+
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // -------------------------------------------------------------------
-  // Retrieve draft from localStorage
-  // -------------------------------------------------------------------
-  // Load draft on page load if there is one
   useEffect(() => {
     const saved = localStorage.getItem("createVenueDraft");
     if (saved) {
@@ -109,10 +94,6 @@ export default function EditVenue() {
     }
   }, []);
 
-  // -------------------------------------------------------------------
-  // Amenity helpers
-  // -------------------------------------------------------------------
-  // Add the current amenity input to the list (if not empty or duplicate)
   function handleAddAmenity() {
     const trimmed = amenityInput.trim();
     if (!trimmed) return;
@@ -121,15 +102,10 @@ export default function EditVenue() {
     setAmenityInput("");
   }
 
-  // Remove an amenity from the list by name
   function handleRemoveAmenity(name: string) {
     setAmenities(amenities.filter((a) => a !== name));
   }
 
-  // ===========================================================
-  // Validation — runs all field checks and sets error states.
-  // Returns true if the form is valid, false if anything fails.
-  // ===========================================================
   function validate(): boolean {
     const nameErr = isValidVenueName(name);
     const locationErr = isValidLocation(location);
@@ -138,7 +114,6 @@ export default function EditVenue() {
     const descriptionErr = isValidDescription(shortDescription);
     const imageURLErr = isValidImageURL(imageURL);
 
-    // Set all errors so they all display at once
     setNameError(nameErr);
     setLocationError(locationErr);
     setCapacityError(capacityErr);
@@ -149,9 +124,6 @@ export default function EditVenue() {
     return !nameErr && !locationErr && !capacityErr && !priceErr && !descriptionErr && !imageURLErr;
   }
 
-  // ===========================================================
-  // Save button click — validates first, then opens preview modal
-  // ===========================================================
   function handleSaveClick() {
     setSubmitError("");
     if (validate()) {
@@ -159,9 +131,6 @@ export default function EditVenue() {
     }
   }
 
-  // ===========================================================
-  // Confirm create — called when vendor clicks create in the preview modal
-  // ===========================================================
   async function handleConfirmSave() {
     setIsSubmitting(true);
     try {
@@ -178,7 +147,6 @@ export default function EditVenue() {
       });
       setSaveSuccess(true);
       localStorage.removeItem("createVenueDraft");
-      // Show success message for 1.5 seconds then redirect
       setTimeout(() => {
         onPreviewClose();
         setSaveSuccess(false);
@@ -215,9 +183,6 @@ export default function EditVenue() {
     );
   }
 
-  // ===========================================================
-  // Cancel form — reset all form fields to empty, clear saved draft from localStorage
-  // ===========================================================
   function handleCancel() {
     setName("");
     setLocation("");
@@ -231,9 +196,6 @@ export default function EditVenue() {
     localStorage.removeItem("createVenueDraft");
   }
 
-  // ===========================================================
-  // Helper — availability badge colour (matches myVenues.tsx)
-  // ===========================================================
   function getAvailabilityColor(status: string) {
     if (status === "Available") return "green";
     if (status === "Limited Availability") return "orange";
@@ -374,7 +336,7 @@ export default function EditVenue() {
               </FormControl>
             </Flex>
 
-            {/* Capacity + Price + Rate — three-column row */}
+            {/* Capacity + Price + Rate */}
             <Flex gap={4}>
               <FormControl isInvalid={!!capacityError} flex="1">
                 <FormLabel fontWeight="semibold">
@@ -408,7 +370,7 @@ export default function EditVenue() {
                 <FormErrorMessage>{priceError}</FormErrorMessage>
               </FormControl>
 
-              {/* Rate is always Per Day — read-only */}
+              {/* Rate - always Per Day, read-only */}
               <FormControl flex="0.5">
                 <FormLabel fontWeight="semibold">Rate</FormLabel>
                 <Select isReadOnly value="per_day" bg="gray.50">
@@ -474,7 +436,7 @@ export default function EditVenue() {
         </Box>
 
         <Box p={6}>
-          {/* Existing amenities — each shown as a deletable row  */}
+          {/* Existing amenities */}
           {amenities.length > 0 && (
             <Stack spacing={2} mb={4}>
               {amenities.map((amenity) => (
@@ -599,7 +561,6 @@ export default function EditVenue() {
 
           <ModalBody>
             {saveSuccess ? (
-              // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
                   ✓ Venue Created Successfully!

@@ -1,6 +1,4 @@
-// Fetches full booking history for a specific hirer across
-// all venues. Used on the vendor's hirer profile detail page.
-// ===========================================================
+// useHirerBookingHistory.ts - fetches a specific hirer's full booking history across all venues.
 import { useState, useEffect } from "react";
 import { vendorApi } from "@/services/vendorApi";
 import { Booking } from "@/types";
@@ -11,7 +9,6 @@ export function useHirerBookingHistory(hirerID: number) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Don't fetch if hirerID is not yet available (e.g. router not ready)
     if (!hirerID || isNaN(hirerID)) return;
 
     async function fetchBookings() {

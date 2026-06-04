@@ -1,16 +1,5 @@
-// ===========================================================
-// admin-frontend — App 3 entry point (SCAFFOLD ONLY)
-// ===========================================================
-// Scaffolded as part of Task S1. The real admin dashboard
-// (Apollo Client setup + login/dashboard/venues/reports pages)
-// is Emma's Task B4.2, built from her Figma designs.
-//
-// Emma: wrap <App /> in <ApolloProvider client={client}> here,
-// following weeklypracsforref/week10/week10LECTURE/example1/
-// frontend (services/apollo-client.ts pattern). The GraphQL URL
-// comes from import.meta.env.VITE_ADMIN_API_URL.
-// ===========================================================
-
+// main.tsx - admin-frontend (App 3) entry point. Wraps the app in ApolloProvider,
+// ChakraProvider, and BrowserRouter, then mounts it on the root DOM node.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ApolloProvider } from "@apollo/client";

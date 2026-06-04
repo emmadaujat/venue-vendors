@@ -54,7 +54,7 @@ const GET_VENDORS = gql`
   }
 `;
 
-// Create venue mutation — matches VenueInput in schema.ts
+// Create venue mutation
 const CREATE_VENUE = gql`
   mutation CreateVenue($input: VenueInput!) {
     createVenue(input: $input) {
@@ -74,9 +74,6 @@ const AVAILABILITY_OPTIONS = ["Available", "Limited Availability", "Not Availabl
 export default function AddVenue() {
   const navigate = useNavigate();
 
-  // ===========================================================
-  // Form state — all pre-populated from the venue once it loads
-  // ===========================================================
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
@@ -88,9 +85,6 @@ export default function AddVenue() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityInput, setAmenityInput] = useState("");
 
-  // ===========================================================
-  // Per-field validation error states
-  // ===========================================================
   const [nameError, setNameError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [capacityError, setCapacityError] = useState<string | null>(null);
@@ -99,22 +93,13 @@ export default function AddVenue() {
   const [imageURLError, setImageURLError] = useState<string | null>(null);
   const [vendorError, setVendorError] = useState<string | null>(null);
 
-  // ===========================================================
-  // Assign a vendor via drop down selection
-  // ===========================================================
   const [selectedVendorId, setSelectedVendorId] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any>(null);
 
-  // ===========================================================
-  // Submission state
-  // ===========================================================
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // ===========================================================
-  // Save preview modal — shown before confirming the update
-  // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
 
   const { data: vendorsData } = useQuery(GET_VENDORS);
@@ -122,10 +107,6 @@ export default function AddVenue() {
 
   const [createVenue] = useMutation(CREATE_VENUE);
 
-  // -------------------------------------------------------------------
-  // Retrieve draft from localStorage
-  // -------------------------------------------------------------------
-  // Load draft on page load if there is one
   useEffect(() => {
     const saved = localStorage.getItem("createVenueDraft");
     if (saved) {
@@ -142,9 +123,6 @@ export default function AddVenue() {
     }
   }, []);
 
-  // -------------------------------------------------------------------
-  // Get vendors from database to show as options in drop down menu
-  // -------------------------------------------------------------------
   function handleVendorSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const vendorId = e.target.value;
     setSelectedVendorId(vendorId);
@@ -152,9 +130,6 @@ export default function AddVenue() {
     setSelectedVendor(vendor);
   }
 
-  // -------------------------------------------------------------------
-  // Calculate Vendors years of experience
-  // -------------------------------------------------------------------
   function getVendorYearsExperience(): string {
     if (!selectedVendor?.joinedDate) return "";
     const years = Math.floor(
@@ -164,10 +139,6 @@ export default function AddVenue() {
     return `${years} years`;
   }
 
-  // -------------------------------------------------------------------
-  // Amenity helpers
-  // -------------------------------------------------------------------
-  // Add the current amenity input to the list (if not empty or duplicate)
   function handleAddAmenity() {
     const trimmed = amenityInput.trim();
     if (!trimmed) return;
@@ -176,15 +147,10 @@ export default function AddVenue() {
     setAmenityInput("");
   }
 
-  // Remove an amenity from the list by name
   function handleRemoveAmenity(name: string) {
     setAmenities(amenities.filter((a) => a !== name));
   }
 
-  // ===========================================================
-  // Validation — runs all field checks and sets error states.
-  // Returns true if the form is valid, false if anything fails.
-  // ===========================================================
   function validate(): boolean {
     const nameErr = isValidVenueName(name);
     const locationErr = isValidLocation(location);
@@ -193,13 +159,11 @@ export default function AddVenue() {
     const descriptionErr = isValidDescription(shortDescription);
     const imageURLErr = isValidImageURL(imageURL);
 
-    // Check vendor has been selected
     const vendorErr = !selectedVendorId
       ? "Please assign a vendor to this venue before saving"
       : null;
     setVendorError(vendorErr);
 
-    // Set all errors so they all display at once
     setNameError(nameErr);
     setLocationError(locationErr);
     setCapacityError(capacityErr);
@@ -218,9 +182,6 @@ export default function AddVenue() {
     );
   }
 
-  // ===========================================================
-  // Save button click — validates first, then opens preview modal
-  // ===========================================================
   function handleSaveClick() {
     setSubmitError("");
     if (validate()) {
@@ -228,9 +189,6 @@ export default function AddVenue() {
     }
   }
 
-  // ===========================================================
-  // Confirm create — called when vendor clicks create in the preview modal
-  // ===========================================================
   async function handleConfirmSave() {
     setIsSubmitting(true);
     try {
@@ -253,7 +211,6 @@ export default function AddVenue() {
       });
       setSaveSuccess(true);
       localStorage.removeItem("createVenueDraft");
-      // Show success message for 1.5 seconds then redirect
       setTimeout(() => {
         onPreviewClose();
         setSaveSuccess(false);
@@ -286,9 +243,6 @@ export default function AddVenue() {
     );
   }
 
-  // ===========================================================
-  // Cancel form — reset all form fields to empty, clear saved draft from localStorage
-  // ===========================================================
   function handleCancel() {
     setName("");
     setLocation("");
@@ -303,9 +257,6 @@ export default function AddVenue() {
     localStorage.removeItem("createVenueDraft");
   }
 
-  // ===========================================================
-  // Helper — availability badge colour (matches myVenues.tsx)
-  // ===========================================================
   function getAvailabilityColor(status: string) {
     if (status === "Available") return "green";
     if (status === "Limited Availability") return "orange";
@@ -403,7 +354,6 @@ export default function AddVenue() {
         </Box>
       )}
 
-      {/* ===================== VENUE DETAILS FORM CARD ===================== */}
       <Box border="1px solid" borderColor="gray.200" borderRadius="md" mb={8} maxW="80%">
         <Flex bg="brand.primary" p={4} borderTopRadius="md" justify="space-between" align="center">
           <Text color="white" fontWeight="semibold">
@@ -442,7 +392,7 @@ export default function AddVenue() {
               </FormControl>
             </Flex>
 
-            {/* Capacity + Price + Rate — three-column row */}
+            {/* Capacity + Price + Rate */}
             <Flex gap={4}>
               <FormControl isRequired isInvalid={!!capacityError} flex="1">
                 <FormLabel fontWeight="semibold">Capacity</FormLabel>
@@ -472,7 +422,7 @@ export default function AddVenue() {
                 <FormErrorMessage>{priceError}</FormErrorMessage>
               </FormControl>
 
-              {/* Rate is always Per Day — read-only */}
+              {/* Rate - always Per Day, read-only */}
               <FormControl flex="0.5">
                 <FormLabel fontWeight="semibold">Rate</FormLabel>
                 <Select isReadOnly value="per_day" bg="gray.50">
@@ -534,7 +484,7 @@ export default function AddVenue() {
         </Box>
 
         <Box p={6}>
-          {/* Existing amenities — each shown as a deletable row  */}
+          {/* Existing amenities */}
           {amenities.length > 0 && (
             <Stack spacing={2} mb={4}>
               {amenities.map((amenity) => (
@@ -649,7 +599,7 @@ export default function AddVenue() {
 
         <Box p={6}>
           <Stack spacing={4}>
-            {/* Top row — vendor select + years of experience */}
+            {/* Vendor select + years of experience */}
             <Flex gap={4}>
               <FormControl flex="1" isRequired isInvalid={!!vendorError}>
                 <FormLabel fontWeight={"semibold"}>Vendor Name</FormLabel>
@@ -681,7 +631,7 @@ export default function AddVenue() {
               </FormControl>
             </Flex>
 
-            {/* Bottom row — email + phone */}
+            {/* Vendor email + phone */}
             <Flex gap={4}>
               <FormControl flex="1">
                 <FormLabel fontWeight="semibold">Vendor Email</FormLabel>
@@ -739,7 +689,6 @@ export default function AddVenue() {
 
           <ModalBody>
             {saveSuccess ? (
-              // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
                   ✓ Venue Created Successfully!

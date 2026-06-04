@@ -1,25 +1,10 @@
-// ===========================================================
-// HD Test 1 - auth.signup.test.ts
-// ===========================================================
-// CONTEXT (this is the "contextual" comment block the spec asks
-// for): the sign-up form on the React side already refuses weak
-// passwords, but a determined attacker can bypass that by POST-
-// ing JSON directly to the API. This is OWASP A07
-// (Identification & Authentication Failures): if the backend
-// trusts the frontend's validation, a single curl command can
-// create an account with the password "abc".
-//
-// This test pins down the backend's defence: the API itself
-// MUST reject a weak password with a 400 status BEFORE doing
-// anything else (so it never touches the database with an
-// untrusted credential).
-//
-// supertest hits the real Express app exported by app.ts, so
-// every middleware (cors -> express.json -> auth controller) is
-// exercised end-to-end. The test does not need the database to
-// be initialised because authController.register() returns on
-// the password check long before it queries `userRepository`.
-// ===========================================================
+// HD Test 1 - POST /api/register rejects weak passwords
+// The sign-up form validates passwords client-side, but an attacker can bypass it by
+// posting JSON directly to the API (OWASP A07 - Identification and Authentication Failures).
+// This test pins the backend's defence: the API must reject a weak password with 400
+// before touching the database.
+// supertest uses the real Express app from app.ts; no database init is needed because
+// authController.register() returns on the password check before querying userRepository.
 
 import request from "supertest";
 import app from "../app";
@@ -35,17 +20,9 @@ describe("POST /api/register - weak password is rejected", () => {
       password: "abc", // too short -> must be rejected
     });
 
-    // 400 = Bad Request, NOT 500. A 500 would mean the bad input
-    // reached the DB and exploded there instead of being caught.
     expect(res.status).toBe(400);
-
-    // The validateDto middleware (validate.ts) returns TWO shapes:
-    //   - message: "Validation failed"
-    //   - fields: ["password"]   <-- what the frontend uses to highlight fields
-    //   - errors: [{ property, constraints }]
-    // The spec says "the HD sign-up test relies on this" (TASK_ALLOCATION_PLAN.md).
-    // We check `fields` so the assertion stays stable even if the
-    // exact wording of the constraint message changes.
+    // Assert on `fields` (the list of failing property names), not the constraint message
+    // text, so the assertion stays stable if wording changes.
     expect(res.body.fields).toContain("password");
   });
 
@@ -60,8 +37,6 @@ describe("POST /api/register - weak password is rejected", () => {
     });
 
     expect(res.status).toBe(400);
-    // Again check `fields` — the failing property is "password"
-    // because the @Matches(/[A-Z]/) decorator is on that field.
     expect(res.body.fields).toContain("password");
   });
 });

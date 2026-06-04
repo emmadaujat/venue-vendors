@@ -1,13 +1,5 @@
-// ===========================================================
-// venue.routes.ts - public venue browsing
-// ===========================================================
-// Browsing venues is public (a visitor can look before signing
-// up), so these routes do NOT use requireAuth. Mounted at
-// /api/venues in index.ts.
-//
-// Route order matters: the more specific "/:id/suitability" is
-// listed before "/:id" so Express matches it correctly.
-// ===========================================================
+// Public venue browsing - no auth required. Mounted at /api/venues.
+// The more-specific "/:id/suitability" route is registered before "/:id" so Express matches it first.
 
 import { Router } from "express";
 import { VenueBrowseController } from "../controller/venueBrowseController";
@@ -17,7 +9,6 @@ const venueBrowseController = new VenueBrowseController();
 
 router.get("/", (req, res) => venueBrowseController.getAllVenues(req, res));
 
-// Get total events hosted stat for index pg
 router.get("/stats", (req, res) => venueBrowseController.getPlatformStats(req, res));
 
 router.get("/:id/suitability", (req, res) => venueBrowseController.getVenueSuitability(req, res));

@@ -37,14 +37,10 @@ export default function HirerProfileDetail() {
   // Fetch from custom hooks
   const { applications, isLoading: applicationsLoading } = useVendorApplications();
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
-  // This hirer's full booking history across all venues — used for the table
   const { bookings: hirerBookings, isLoading: historyLoading } = useHirerBookingHistory(hirerID);
-  // get vendor comments for hirer
   const { vendorComments, isLoading: commentsLoading } = useVendorComments();
-  // Compliance documents and credibility score for this hirer
   const { documents, credibilityScore, isLoading: complianceLoading } = useHirerCompliance(hirerID);
 
-  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
   const isLoading =
     applicationsLoading ||
     bookingsLoading ||
@@ -52,25 +48,15 @@ export default function HirerProfileDetail() {
     historyLoading ||
     complianceLoading;
 
-  // -------------------------------------------------------------------
-  // ---------- FIND HIRER DETAILS FROM APPLICATIONS ---------------------
-  // -------------------------------------------------------------------
   const hirer = applications.find((a) => a.hirer.userID === hirerID)?.hirer;
 
-  // ------------------------------------------------------------------
-  // ---------- FIND VENDOR COMMENTS FOR HIRERID ----------------
-  // -------------------------------------------------------------------
   const hirerComments = vendorComments.filter(
     (c) => c.booking.application.hirer.userID === hirerID,
   );
 
-  // Reputation
   const reputation = getReputationBadge(hirerID, bookings);
-
-  // Hirer rating
   const avgRating = getHirerAvgRating(hirerID, bookings);
 
-  // Totals row calculations for the booking history table
   const totalEvents = hirerBookings.length;
 
   // unique venues

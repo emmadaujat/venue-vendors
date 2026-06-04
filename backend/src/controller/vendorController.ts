@@ -1,3 +1,4 @@
+// vendorController.ts - handles vendor-side operations: applicants, bookings, comments, hirer profiles.
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
@@ -16,26 +17,13 @@ export class VendorController {
   private commentRepository = AppDataSource.getRepository(VendorComment);
   private complianceRepository = AppDataSource.getRepository(ComplianceDocument);
 
-  /**
-   * @param request - Express request object containing user details in body
-   * @param response - Express response object
-   * @returns JSON response containing the created user or error message
-   */
-
-  // Helper: get the logged-in vendor's ID from the verified JWT.
   private vendorID(req: Request): number {
     return req.user!.id;
   }
 
-  // -------------------------------------------------------------------
-  // ------------------ GET APPLICANTS FOR VENDORS VENUES --------------
-  // -------------------------------------------------------------------
-  // GET /api/vendor/applicants
   async getVendorApplicants(req: Request, res: Response) {
-    // find the vendor
     const vendorID = this.vendorID(req);
 
-    /** Retrieve all applications associated with the vendor from the database */
     const applications = await this.applicationRepository.find({
       where: { venue: { vendor: { userID: vendorID } } },
       relations: { hirer: true, venue: true, reputationTags: { reputationTag: true } },
@@ -51,17 +39,11 @@ export class VendorController {
       },
     });
 
-    /** Return the applications */
     res.json(applications);
   }
 
-  // ------------------------------------------------------------------------------
-  // ------------------ UPDATE APPLICATION STATUS FOR VENDORS VENUES --------------
-  // ------------------------------------------------------------------------------
-  // PUT /api/vendor/applications/:applicationID/status
-  // Update the status (Pending/Approved/Declined) of an application.
   async updateApplicationStatus(req: Request, res: Response) {
-    const vendorID = this.vendorID(req); // get from JWT
+    const vendorID = this.vendorID(req);
     const applicationID = parseInt(req.params.applicationID as string);
     const { status } = req.body;
 
@@ -78,7 +60,6 @@ export class VendorController {
       return res.status(403).json({ message: "Not authorised to update this application" });
     }
 
-    // only update the status in application
     applicationToUpdate = Object.assign(applicationToUpdate, {
       status,
     });
@@ -91,12 +72,7 @@ export class VendorController {
     }
   }
 
-  // -------------------------------------------------------------------
-  // ------------------ GET BOOKINGS FOR THIS VENDORS VENUES --------------
-  // -------------------------------------------------------------------
-  // GET /api/vendor/bookings
   async getVendorBookings(req: Request, res: Response) {
-    // find the vendor
     const vendorID = this.vendorID(req);
 
     const bookings = await this.bookingRepository.find({
@@ -139,13 +115,7 @@ export class VendorController {
     res.json(bookings);
   }
 
-  // ------------------------------------------------------------------------------------------
-  // ------------------ GET COMMENTS ON ACCEPTED BOOKINGS FOR VENDORS APPLICANTS --------------
-  // ------------------------------------------------------------------------------------------
-  // GET /api/vendor/comments
-  // Retrieve all comments this vendor has left on bookings.
   async getVendorComments(req: Request, res: Response) {
-    // find the vendor
     const vendorID = this.vendorID(req);
 
     const comments = await this.commentRepository.find({
@@ -193,10 +163,6 @@ export class VendorController {
     res.json(comments);
   }
 
-  // ------------------------------------------------------------------------------------------
-  // ------------------ DELETE A COMMENT ON ACCEPTED BOOKINGS FOR THIS VENDORS APPLICANTS --------------
-  // ------------------------------------------------------------------------------------------
-  // DELETE /api/vendor/comments/:commentID
   async deleteVendorComment(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const commentID = parseInt(req.params.commentID as string);
@@ -210,7 +176,6 @@ export class VendorController {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // Ownership check: only the vendor who wrote the comment can delete it
     if (commentToDelete.vendor.userID !== vendorID) {
       return res.status(403).json({ message: "Not authorised to delete this comment" });
     }
@@ -223,9 +188,6 @@ export class VendorController {
     }
   }
 
-  // ------------------------------------------------------------------------------------------
-  // ------------------ EDIT COMMENT ON ACCEPTED BOOKINGS FOR THIS VENDORS APPLICANTS --------------
-  // ------------------------------------------------------------------------------------------
   async updateVendorComment(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const commentID = parseInt(req.params.commentID as string);
@@ -240,7 +202,6 @@ export class VendorController {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    // Ownership check: only the vendor who wrote the comment can edit it
     if (commentToUpdate.vendor.userID !== vendorID) {
       return res.status(403).json({ message: "Not authorised to edit this comment" });
     }
@@ -258,15 +219,11 @@ export class VendorController {
     }
   }
 
-  // ------------------------------------------------------------------------------------------
-  // ------------------ ADD A NEW COMMENT TO A BOOKINGS FOR THIS VENDORS VENUE ----------------
-  // ------------------------------------------------------------------------------------------
   async createVendorComment(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const bookingID = parseInt(req.params.bookingID as string);
     const { commentText } = req.body;
 
-    // Load the booking with relations to verify it belongs to this vendor
     const booking = await this.bookingRepository.findOne({
       where: { bookingID },
       relations: { application: { venue: { vendor: true } } },
@@ -276,7 +233,6 @@ export class VendorController {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Ownership check: only the venue's vendor can comment on its bookings
     if (booking.application.venue.vendor.userID !== vendorID) {
       return res.status(403).json({ message: "Not authorised to comment on this booking" });
     }
@@ -296,10 +252,6 @@ export class VendorController {
     res.status(201).json(newComment);
   }
 
-  // ------------------------------------------------------------------------------------------
-  // ------------------ EDIT LOGGED IN VENDORS NAME / PHONE -----------------------------------
-  // ------------------------------------------------------------------------------------------
-  // edit logged in vendors name / phone number
   async updateProfile(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
 
@@ -320,7 +272,6 @@ export class VendorController {
       return res.status(500).json({ message: "Error updating profile", error });
     }
 
-    // Send back the safe fields only (never the password hash).
     res.json({
       userID: user.userID,
       firstName: user.firstName,
@@ -332,16 +283,10 @@ export class VendorController {
     });
   }
 
-  // --------------------------------------------------------------------------------
-  // -------- GET A HIRERS APPROVED APPLICATIONS/ BOOKINGS ACROSS ALL VENUES --------
-  // --------------------------------------------------------------------------------
-  // Used by the vendor to view a hirer's full historical hire list.
   // hirerID comes from the URL param, not the JWT.
   async getHirerBookingHistory(req: Request, res: Response) {
-    // get hirerID from URL
     const hirerID = parseInt(req.params.hirerID as string);
 
-    // check hirer exists
     const hirerExists = await this.userRepository.findOne({
       where: { userID: hirerID, role: "hirer" },
     });
@@ -355,16 +300,9 @@ export class VendorController {
     return res.json(bookings);
   }
 
-  // ---------------------------------------------------------------
-  // ------------------ GET HIRER COMPLIANCE DOCS ------------------
-  // ---------------------------------------------------------------
-  // Fetch compliance documents and credibility score for a specific hirer.
-  // Used by the vendor to view a hirer's credibility on their profile page.
-  // hirerID comes from the URL param not the JWT
   async getHirerCompliance(req: Request, res: Response) {
     const hirerID = parseInt(req.params.hirerID as string);
 
-    // Verify the hirer exists and is actually a hirer role
     const hirerExists = await this.userRepository.findOne({
       where: { userID: hirerID, role: "hirer" },
     });
@@ -372,14 +310,12 @@ export class VendorController {
       return res.status(404).json({ message: "Hirer not found" });
     }
 
-    // Fetch all compliance documents for this hirer
     const documents = await this.complianceRepository.find({
       where: { hirer: { userID: hirerID } },
       order: { uploadedAt: "DESC" },
     });
 
-    // Calculate credibility score as a percentage
-    // score out of 5, capped at 5, converted to %
+    // Score is capped at 5 documents, then converted to a percentage.
     const credibilityScore = Math.round((Math.min(5, documents.length) / 5) * 100);
 
     return res.json({ documents, credibilityScore });

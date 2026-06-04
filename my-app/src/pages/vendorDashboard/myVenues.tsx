@@ -14,7 +14,6 @@ export default function MyVenues() {
   const { bookings, isLoading: bookingsLoading } = useVendorBookings();
   const { venues, isLoading: venuesLoading } = useVendorVenues();
 
-  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
   const isLoading = venuesLoading || bookingsLoading;
 
   // Helper - get total completed bookings for a venue
@@ -53,7 +52,7 @@ export default function MyVenues() {
           </Text>
         </Box>
 
-        {/* Add Venue button — navigates to the add venue form */}
+        {/* Add Venue button */}
         <NextLink href="/vendorDashboard/addVenue">
           <Button
             bg="brand.primary"
@@ -149,7 +148,7 @@ export default function MyVenues() {
                   </Button>
                 </NextLink>
 
-                {/* Manage Venue button — links to edit venue form */}
+                {/* Manage Venue button */}
                 <NextLink href={`/vendorDashboard/editVenue/${venue.venueID}`}>
                   <Button
                     variant="outline"

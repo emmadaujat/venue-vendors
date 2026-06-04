@@ -1,14 +1,4 @@
-// ===========================================================
-// vendor-stats.routes.ts - DI vendor analytics
-// ===========================================================
-// Mounted at /api/vendor in index.ts (alongside vendor.routes).
-// Only a signed-in VENDOR can hit these endpoints.
-//
-//   GET /api/vendor/stats?range=week|month|lastMonth|all
-//
-// The stats power the four charts on the Infographic Report page.
-// ===========================================================
-
+// vendor-stats.routes.ts - vendor analytics endpoint. GET /api/vendor/stats powers the Infographic Report.
 import { Router } from "express";
 import { VendorStatsController } from "../controller/vendorStatsController";
 import { requireAuth, requireRole } from "../middlewares/auth";

@@ -1,11 +1,4 @@
-// ===========================================================
-// userProfile.tsx — the hirer's read-only profile + quick stats
-// ===========================================================
-// All data comes from the backend:
-//   GET /api/users/:id/profile   (name, email, phone, joined date)
-//   GET /api/hirer/dashboard     (totals + average rating)
-// ===========================================================
-
+// userProfile.tsx - hirer's read-only profile page showing personal details and quick stats.
 import { useState, useEffect } from "react";
 import NavBar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -26,7 +19,6 @@ type DashboardSummary = {
 };
 
 export default function UserProfile() {
-  // This page is only for hirers
   const { user } = useAuth("hirer");
 
   const [profile, setProfile] = useState<User | null>(null);
