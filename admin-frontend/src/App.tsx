@@ -1,5 +1,5 @@
-// Scaffold placeholder. Emma (B4.2) replaces this with the
-// admin login / dashboard / venues / reports pages from Figma.
+// App.tsx - admin dashboard routes. Sign-in is public; everything else is wrapped
+// in ProtectedRoute, which requires a stored admin token.
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import SignIn from "./pages/signIn";
