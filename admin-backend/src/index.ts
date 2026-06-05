@@ -19,7 +19,7 @@ async function main() {
   // Allow requests from admin frontend running on localhost:5173
   app.use(
     cors({
-      origin: "http://localhost:5173",
+      origin: ["http://localhost:5173", "https://venuevendorsconsole.onrender.com"],
       credentials: true,
     }),
   );
