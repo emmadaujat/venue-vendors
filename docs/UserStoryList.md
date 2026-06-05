@@ -2,7 +2,7 @@
 
 **Format:** User Story = *"As a (persona) I want to (task) so that (goal)"* · Acceptance Criteria = *"Given … When … Then …"*
 
-> This Markdown file is the human-readable master. For submission the rubric asks for `docs/UserStoryList.xlsx` paste the table below into Excel/Sheets.
+This markdown file is same thing as UserStoryList.xlsx
 
 | Epic | Persona | User Story | Acceptance Criteria |
 | --- | --- | --- | --- |
