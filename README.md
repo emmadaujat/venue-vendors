@@ -487,7 +487,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 ├── tsconfig.node.json                                 # TypeScript config for Vite Node environment
 ├── vite.config.d.ts                                   # Type declarations for Vite config
 ├── vite.config.js                                     # Vite configuration (JavaScript)
-└── vite.config.ts                                     # Vite configuration (TypeScript — primary config file)```
+└── vite.config.ts                                     # Vite configuration (TypeScript — primary config file)
 ```
 
 ## Project Structure - VenueVendors Console Backend (/admin-backend)
@@ -530,7 +530,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 
 ### VenueVendors Frontend (/my-app)
 
-### Public Pages
+#### Public Pages
 - `/` - Home page
 - `/signin` - Sign in with email & password
 - `/signup` - Create new account (hirer or vendor)
@@ -539,7 +539,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 - `/about` - About page
 - `/contact` - Contact page
 
-### Hirer Pages (Protected)
+#### Hirer Pages (Protected)
 - `/hirer/dashboard` - View saved venues and booking history
 - `/hirer/apply?venueId=xxx` - Multi-step application form
 - `/hirer/bookingHistory` - Full booking history with status
@@ -547,7 +547,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 - `/hirer/complianceDocuments` - Upload compliance documents (license, insurance, business cert)
 - `/hirer/savedVenues` - Manage saved venues & rankings
 
-### Vendor Pages (Protected)
+#### Vendor Pages (Protected)
 - `/vendorDashboard` - Vendor dashboard overview
 - `/vendorDashboard/editVenue/[venueID]` - Edit an existing venue
 - `/vendorDashboard/addVenue` - Add a new venue
@@ -560,7 +560,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 - `/vendorDashboard/infographicReport` - Analytics dashboard with summary table (most/least/not selected)
 
 ### Admin Console (/admin-frontend)
-### Admin Pages (Protected — separate console at venuevendorsconsole.onrender.com)
+#### Admin Pages (Protected — separate console at venuevendorsconsole.onrender.com)
 - `/` - Admin sign in page
 - `/dashboard` - Admin dashboard overview
 - `/venues` - View and manage all venues with CRUD controls
