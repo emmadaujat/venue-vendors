@@ -18,14 +18,12 @@
 
 | Service | URL |
 |---------|-----|
-| VV Frontend (/my-app) | https://venuevendors.onrender.com |
-| VV Backend (/backend) | https://vv-backend-phqq.onrender.com |
+| VenueVendors Frontend (/my-app) | https://venuevendors.onrender.com |
+| VenueVendors Backend (/backend) | https://vv-backend-phqq.onrender.com |
 | Admin Frontend (/admin-frontend) | https://venuevendorsconsole.onrender.com |
 | Admin Backend (/admin-backend) | https://vv-admin-backend-yk3e.onrender.com/graphql |
 
-### Admin Login
-- Username: `admin`
-- Password: `admin`
+> See [Login Credentials](#login-credentials) section below for all test account details.
 
 ## Getting Started
 
@@ -35,44 +33,47 @@
 - npm
 
 ### Installation & Running
+This project consists of 4 separate applications. Run each from its own directory:
 
 ```bash
+# VenueVendors Frontend (my-app)
+cd my-app
 # Install dependencies
 npm install
-
 # Run the development server
 npm run dev
+
+# VenueVendors Backend (backend)
+cd backend
+# Install dependencies
+npm install
+# Run the development server
+npm run dev
+
+# Admin Frontend (admin-frontend)
+cd admin-frontend
+# Install dependencies
+npm install
+# Run the development server
+npm run dev
+
+# Admin Backend (admin-backend)
+cd admin-backend
+# Install dependencies
+npm install
+# Run the development server
+npm run dev
+
 ```
+All 4 apps build cleanly with `npm run build`
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Running Tests
-
-From the `my-app` directory, use one of these commands:
-
-```bash
-# Run all tests
-npm test
-
-# Run both specific test files
-npx jest src/__tests__/hirerTests.test.tsx src/__tests__/vendorTests.test.tsx
-
-# Run a single file (hirer)
-npx jest src/__tests__/hirerTests.test.tsx
-
-# Run a single file (vendor)
-npx jest src/__tests__/vendorTests.test.tsx
-
-# Clear Jest cache and run both files
-npx jest --no-cache src/__tests__/hirerTests.test.tsx src/__tests__/vendorTests.test.tsx
-
-# Watch mode (re-run tests on file changes)
-npx jest --watchAll
-```
-
----
+Open [https://venuevendors.onrender.com](https://venuevendors.onrender.com) in your browser.
 
 ## Login Credentials
+
+### Admin Login
+- Username: `admin`
+- Password: `admin`
 
 ### Test Users - Hirers (Event Organizers)
 
@@ -125,6 +126,13 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 - View infographic dashboard showing top/worst performers
 - Manage multiple venues
 
+### For Admins
+- Log in to a separate admin console
+- View and manage all venues (CRUD)
+- Assign and swap vendors to venues
+- Toggle featured venues on the hirer browse page
+- Generate reports — top 3 popular venues and top 3 most active applicants
+
 ---
 
 ## Technology Stack
@@ -146,16 +154,22 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 
 ### Sign In as a Hirer
 
-1. Go to [http://localhost:3000/signin](http://localhost:3000/signin)
+1. Go to [https://venuevendors.onrender.com/signin](https://venuevendors.onrender.com/signin)
 2. Enter: `taylorswift@gmail.com` / `Password/101`
 3. You'll be redirected to the hirer dashboard
 
 ### Sign In as a Vendor
 
-1. Go to [http://localhost:3000/signin](http://localhost:3000/signin)
+1. Go to [https://venuevendors.onrender.com/signin](https://venuevendors.onrender.com/signin)
 2. Enter: `harrystyles@gmail.com` / `Password/104`
 3. You'll be redirected to the vendor dashboard
 
+### Sign In as Admin
+
+1. Go to [https://venuevendorsconsole.onrender.com](https://venuevendorsconsole.onrender.com)
+2. Enter: `admin` / `admin`
+3. You'll be redirected to the admin dashboard
+   
 ### Submit an Application
 
 1. Sign in as a hirer
@@ -172,6 +186,22 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 4. Click "Approve" or "Decline"
 5. Application status updates on hirer's dashboard
 
+### Generate a Report
+
+1. Sign in as admin 
+2. Click "Reports" in the sidebar
+3. View Top 3 Popular Venues and Top 3 Most Active Applicants
+4. Click "Refresh" on either table to regenerate the report
+
+### Manage Venues (Admin)
+
+1. Sign in as admin
+2. Click "Venues" in the sidebar
+3. View all venues with their assigned vendors
+4. Click "Manage" on a venue to edit details, swap vendor, or toggle featured status
+5. Click "+ Add Venue" to create a new venue and assign it to a vendor
+6. To delete a venue, open it via "Manage" and click "Delete"
+
 ---
 
 ## Unit tests
@@ -185,30 +215,44 @@ they are split across the two backends:
 - **2 tests in the GraphQL admin API (`/admin-backend`) covering Venue CRUD**
 
 Each test opens with a CONTEXT comment block explaining why it exists.
+---
 
 **`/backend` — 4 tests** (`backend/src/__tests__/`):
 
 ```bash
 cd backend
 npm install
-npm test
-```
 
+# Run all tests
+npm test
+
+# Run a single file
+npx jest src/__tests__/auth.signup.test.ts
+npx jest src/__tests__/booking.create.test.ts
+npx jest src/__tests__/reputation.compute.test.ts
+npx jest src/__tests__/vendor.stats.test.ts
+```
 - `auth.signup.test.ts` — the API rejects weak passwords even when the React
-  form is bypassed (OWASP A07). *(Aleeya)*
+  form is bypassed (OWASP A07).
 - `booking.create.test.ts` — a hirer cannot book a date the vendor has blocked
-  (`409 timeslot blocked`), guarding the stale-frontend race condition. *(Aleeya)*
+  (`409 timeslot blocked`), guarding the stale-frontend race condition. 
 - `reputation.compute.test.ts` — average-reputation edge cases (zero → `null`,
-  single → exact value, many → mean rounded to 1dp), using `node:assert/strict`. *(Aleeya)*
+  single → exact value, many → mean rounded to 1dp), using `node:assert/strict`.
 - `vendor.stats.test.ts` — a brand-new vendor with no venues/bookings gets a
-  `200` with zeroed/empty data, never a `500` (empty-aggregate edge case). *(Emma)*
+  `200` with zeroed/empty data, never a `500` (empty-aggregate edge case). 
+---
 
 **`/admin-backend` — 2 tests** (`admin-backend/src/__tests__/`):
 
 ```bash
 cd admin-backend
 npm install
+
+# Run all tests
 npm test
+
+# Run a single file
+npx jest src/__tests__/venue.crud.test.ts
 ```
 
 - `venue.crud.test.ts` — two tests on the admin GraphQL CRUD resolvers: *(Emma)*
@@ -219,14 +263,26 @@ Stack: **Jest + ts-jest + supertest + node:assert** in `/backend`;
 **Jest + ts-jest** (resolvers called directly) in `/admin-backend`.
 See `backend/README.md` for full details.
 
+--- 
+
 ### Frontend tests (my-app)
 
 ```bash
 cd my-app
-npm test
-```
 
-- `src/__tests__/vendorTests.test.tsx` — sign-in form validation.
+# Run all tests
+npm test
+
+# Run vendor tests
+npx jest src/__tests__/vendorTests.test.tsx
+
+# Clear Jest cache and run tests
+npx jest --no-cache src/__tests__/vendorTests.test.tsx
+
+# Watch mode (re-run tests on file changes)
+npx jest --watchAll
+```
+- `src/__tests__/vendorTests.test.tsx` — sign-in form validation tests. Verifies that the sign-in form correctly rejects invalid inputs (missing email, weak password, empty fields) before any API call is made, ensuring frontend validation works independently of the backend.
 
 Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 
@@ -310,7 +366,7 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 │   │   └── globals.css                             
 │   ├── helpersUtil.tsx                              # Shared UI helper functions (star rendering, status colours)
 │   ├── hirerRatingCalculation.ts                    # Hirer reputation score and badge calculation
-│   ├── pdfStorage.ts                                # IndexedDB helper for storing PDF compliance documents
+│   ├── pdfStorage.ts                                # Helper utility for handling PDF compliance document uploads
 │   ├── theme.ts                                     # Chakra UI theme configuration (brand colours, fonts)
 │   ├── types.ts                                     # Shared TypeScript type definitions
 │   ├── validation.ts                                # Form validation logic for sign up and sign in
@@ -325,22 +381,165 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 ├── postcss.config.mjs                               # PostCSS configuration for Tailwind/CSS processing
 └── tsconfig.json                                    # TypeScript compiler configuration
 ```
+## Project Structure - VenueVendors Backend (/backend)
 
 ```
+├── src
+│   ├── __tests__                         # Jest contextual unit tests (HD requirement)
+│   │   ├── auth.signup.test.ts                   # Tests API rejects weak passwords (OWASP A07)
+│   │   ├── booking.create.test.ts                # Tests hirer cannot book a vendor-blocked date
+│   │   ├── reputation.compute.test.ts            # Tests reputation average edge cases
+│   │   └── vendor.stats.test.ts                  # Tests stats endpoint returns 200 for new vendor with no data
+│   ├── controller                        # Express route handler functions
+│   │   ├── authController.ts                     # Sign-up, sign-in, sign-out, profile endpoints
+│   │   ├── bookingController.ts                  # Booking creation and status retrieval
+│   │   ├── hirerController.ts                    # Hirer profile, saved venues, compliance documents
+│   │   ├── vendorController.ts                   # Vendor application management and hirer profile views
+│   │   ├── vendorStatsController.ts              # Vendor analytics data (bookings, rejections, per-venue stats)
+│   │   ├── venueBrowseController.ts              # Public venue browsing, search, and filtering
+│   │   └── venueController.ts                    # Vendor venue CRUD and blockout management
+│   ├── dtos                              # Data Transfer Objects — validate and shape incoming request bodies
+│   │   ├── create-booking.dto.ts                 # DTO for creating a new booking
+│   │   ├── create-compliance.dto.ts              # DTO for uploading a compliance document
+│   │   ├── manage-venue.dto.ts                   # DTO for creating or updating a venue
+│   │   ├── register.dto.ts                       # DTO for sign-up (email, password, role, name)
+│   │   ├── saved-venue.dto.ts                    # DTO for saving or ranking a venue
+│   │   ├── update-application-status.dto.ts      # DTO for approving or declining an application
+│   │   ├── update-profile.dto.ts                 # DTO for updating user name and phone
+│   │   ├── vendor-comment.dto.ts                 # DTO for adding a vendor comment on a hirer
+│   │   └── venue-blockout.dto.ts                 # DTO for blocking a venue date range
+│   ├── entity                             # TypeORM entity files — map to database tables
+│   │   ├── Application.ts                        # Venue application submitted by a hirer
+│   │   ├── Booking.ts                            # Approved booking record
+│   │   ├── ComplianceDocument.ts                 # Hirer compliance document (license, insurance, cert)
+│   │   ├── HirerReputationTag.ts                 # Junction table linking hirers to reputation tags
+│   │   ├── ReputationTag.ts                      # Reputation tag definitions (e.g. reliable, late payer)
+│   │   ├── SavedVenue.ts                         # Hirer's saved venue 
+│   │   ├── User.ts                               # User account (hirer, vendor, or admin)
+│   │   ├── VendorComment.ts                      # Vendor's private comment on a hirer
+│   │   ├── Venue.ts                              # Venue listing owned by a vendor
+│   │   ├── VenueAmenities.ts                     # Amenities associated with a venue
+│   │   ├── VenueBlockedDates.ts                  # Date ranges blocked by a vendor for a venue
+│   │   └── VenueSuitabilityTag.ts                # Suitability tags for a venue (e.g. wedding, concert)
+│   ├── middlewares                        # Express middleware functions
+│   │   ├── auth.ts                               # JWT authentication middleware — protects routes
+│   │   └── validate.ts                           # Request body validation middleware using class-validator
+│   ├── routes                              # Express router definitions — map URLs to controllers
+│   │   ├── auth.routes.ts                        # Auth routes (sign-up, sign-in, profile)
+│   │   ├── booking.routes.ts                     # Booking routes
+│   │   ├── hirer.routes.ts                       # Hirer-specific routes
+│   │   ├── vendor-stats.routes.ts                # Vendor analytics/stats routes
+│   │   ├── vendor.routes.ts                      # Vendor management routes
+│   │   └── venue.routes.ts                       # Venue browsing and management routes
+│   ├── types
+│   │   └── express
+│   │       └── index.d.ts                        # Extends Express Request type to include authenticated user
+│   ├── utils                               # Shared utility/helper functions
+│   │   ├── jwt.ts                                # JWT token generation and verification helpers
+│   │   └── reputation.ts                         # Hirer reputation score calculation logic
+│   ├── app.ts                               # Express app setup — registers middleware and routes
+│   ├── data-source.ts                       # TypeORM data source configuration and DB connection
+│   └── index.ts                             # Entry point — starts the Express server
+├── .env.example                             # Example environment variables (DB credentials, JWT secret)
+├── .gitignore                               # Files excluded from git
+├── README.md                                # Backend-specific documentation including unit test context
+├── jest.config.ts                           # Jest test runner configuration
+├── package-lock.json                        # Locked dependency versions
+├── package.json                             # Project dependencies and scripts
+└── tsconfig.json                            # TypeScript compiler configuration
+```
+## Project Structure - VenueVendors Console Frontend (/admin-frontend)
 
----
+```
+├── public
+│   ├── favicon.png                                    # Browser tab icon
+│   └── logo.png                                       # VenueVendors logo image asset
+├── src
+│   ├── components                              # Reusable React components
+│   │   ├── adminDashboardLayout.tsx                   # Shared layout wrapper for all admin dashboard pages
+│   │   ├── footer.tsx                                 # Site-wide footer
+│   │   ├── logo.tsx                                   # VenueVendors logo component
+│   │   ├── navbar.tsx                                 # Top navigation bar for the admin console
+│   │   ├── protectedRoutes.tsx                        # Route guard — redirects to sign in if not authenticated
+│   │   └── signout.tsx                                # Sign out button and logic
+│   ├── pages                                   # Admin dashboard pages
+│   │   ├── addVenue.tsx                               # Create a new venue and assign it to a vendor
+│   │   ├── dashboard.tsx                              # Admin dashboard overview
+│   │   ├── manageVenue.tsx                            # Edit venue details, swap vendor, toggle featured status
+│   │   ├── reports.tsx                                # Top 3 popular venues and top 3 most active applicants
+│   │   ├── signIn.tsx                                 # Admin sign in page (admin/admin credentials)
+│   │   └── venues.tsx                                 # View and manage all venues with CRUD controls
+│   ├── services                                # API service layer
+│   │   ├── api.ts                                     # Shared Axios instance for any REST calls
+│   │   ├── apollo-client.ts                           # Apollo Client setup — connects to admin GraphQL backend
+│   │   └── graphql.ts                                 # GraphQL query and mutation definitions
+│   ├── App.tsx                                        # Root app component — sets up routing and providers
+│   ├── index.css                                      # Global CSS styles
+│   ├── main.tsx                                       # Entry point — mounts the React app to the DOM
+│   ├── theme.ts                                       # Chakra UI theme configuration (brand colours, fonts)
+│   ├── venueValidation.ts                             # Form validation logic for venue forms
+│   └── vite-env.d.ts                                  # Vite environment type declarations
+├── .gitignore                                         # Files excluded from git
+├── index.html                                         # HTML entry point for the Vite app
+├── package-lock.json                                  # Locked dependency versions
+├── package.json                                       # Project dependencies and scripts
+├── tsconfig.json                                      # TypeScript compiler configuration
+├── tsconfig.node.json                                 # TypeScript config for Vite Node environment
+├── vite.config.d.ts                                   # Type declarations for Vite config
+├── vite.config.js                                     # Vite configuration (JavaScript)
+└── vite.config.ts                                     # Vite configuration (TypeScript — primary config file)
+```
+
+## Project Structure - VenueVendors Console Backend (/admin-backend)
+
+```
+├── src
+│   ├── __tests__                               # Jest contextual unit tests (HD requirement)
+│   │   └── venue.crud.test.ts                         # Tests createVenue rejects duplicates and deleteVenue removes correctly
+│   ├── entity                                  # TypeORM entity files — map to the same database tables as /backend
+│   │   ├── Application.ts                             # Venue application submitted by a hirer
+│   │   ├── Booking.ts                                 # Approved booking record
+│   │   ├── ComplianceDocument.ts                      # Hirer compliance document (license, insurance, cert)
+│   │   ├── HirerReputationTag.ts                      # Junction table linking hirers to reputation tags
+│   │   ├── ReputationTag.ts                           # Reputation tag definitions (e.g. reliable, late payer)
+│   │   ├── SavedVenue.ts                              # Hirer's saved/wishlisted venue with rank
+│   │   ├── User.ts                                    # User account (hirer, vendor, or admin)
+│   │   ├── VendorComment.ts                           # Vendor's private comment on a hirer
+│   │   ├── Venue.ts                                   # Venue listing owned by a vendor
+│   │   ├── VenueAmenities.ts                          # Amenities associated with a venue
+│   │   ├── VenueBlockedDates.ts                       # Date ranges blocked by a vendor for a venue
+│   │   └── VenueSuitabilityTag.ts                     # Suitability tags for a venue (e.g. wedding, concert)
+│   ├── graphql                                 # GraphQL schema and resolver definitions
+│   │   ├── resolvers.ts                               # GraphQL resolvers — handle queries and mutations for admin operations
+│   │   └── schema.ts                                  # GraphQL type definitions — defines all queries, mutations, and types
+│   ├── middlewares                             # Express middleware functions (auth guards for admin routes)
+│   ├── migrations                              # TypeORM database migration files
+│   ├── utils                                   # Shared utility/helper functions
+│   │   └── jwt.ts                                     # JWT token generation and verification for admin authentication
+│   ├── data-source.ts                                 # TypeORM data source configuration — connects to shared Cloud MS SQL database
+│   └── index.ts                                       # Entry point — starts the Apollo GraphQL server
+├── .env.example                                       # Example environment variables (DB credentials, JWT secret)
+├── .gitignore                                         # Files excluded from git
+├── jest.config.ts                                     # Jest test runner configuration
+├── package-lock.json                                  # Locked dependency versions
+├── package.json                                       # Project dependencies and scripts
+└── tsconfig.json                                      # TypeScript compiler configuration
+```
 
 ## Key Pages
 
-### Public Pages
+### VenueVendors Frontend (/my-app)
 
+#### Public Pages
 - `/` - Home page
 - `/signin` - Sign in with email & password
 - `/signup` - Create new account (hirer or vendor)
 - `/browseVenues` - Browse and search all venues
+- `/venues/[venueId]` - Public venue detail page
+- `/about` - About page
+- `/contact` - Contact page
 
-### Hirer Pages (Protected)
-
+#### Hirer Pages (Protected)
 - `/hirer/dashboard` - View saved venues and booking history
 - `/hirer/apply?venueId=xxx` - Multi-step application form
 - `/hirer/bookingHistory` - Full booking history with status
@@ -348,20 +547,31 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 - `/hirer/complianceDocuments` - Upload compliance documents (license, insurance, business cert)
 - `/hirer/savedVenues` - Manage saved venues & rankings
 
-### Vendor Pages (Protected)
-
+#### Vendor Pages (Protected)
 - `/vendorDashboard` - Vendor dashboard overview
+- `/vendorDashboard/editVenue/[venueID]` - Edit an existing venue
+- `/vendorDashboard/addVenue` - Add a new venue
 - `/vendorDashboard/applications` - View & manage applications
 - `/vendorDashboard/hirerProfiles/[hirerId]` - View hirer profile & compliance documents
-- `/vendorDashboard/applications/[hirerId]` - View specific hirer application
+- `/vendorDashboard/applications/[applicationID]` - View specific hirer application
 - `/vendorDashboard/myDetails` - Vendor profile edit (name, phone)
 - `/vendorDashboard/myVenues` - Manage vendor's venues
 - `/vendorDashboard/calendar/[venueId]` - Venue availability calendar
 - `/vendorDashboard/infographicReport` - Analytics dashboard with summary table (most/least/not selected)
 
-### Backend Structure
+### Admin Console (/admin-frontend)
+#### Admin Pages (Protected — separate console at venuevendorsconsole.onrender.com)
+- `/` - Admin sign in page
+- `/dashboard` - Admin dashboard overview
+- `/venues` - View and manage all venues with CRUD controls
+- `/venues/add` - Create a new venue and assign it to a vendor
+- `/venues/manage/[venueId]` - Edit venue details, swap vendor, toggle featured status
+- `/reports` - Top 3 popular venues and top 3 most active applicants
 
-- `entity/` → TypeScript classes that map to your database tables (User.ts, Venue.ts, etc.) — these use TypeORM
-- `controller/` → Functions that handle each API request (e.g. "what happens when someone POSTs to /api/auth/login")
-- `routes/index.ts` → Maps URL paths to controller functions (e.g. /api/auth/login → calls the login controller)
-- `data-source.ts` → Your database connection config (connects to the RMIT MS SQL server)
+## Submission Documents
+
+The following required documents are included in the zip submission:
+
+- **ER Diagram** — `docs/ERD.pdf`
+- **User Story List** — `docs/UserStoryList.xlsx`
+- **Group Contribution Form** — `docs/GroupContributionForm.pdf`
