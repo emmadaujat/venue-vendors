@@ -2,33 +2,36 @@
 
 ```
 ├── src
-│   ├── entity
-│   │   ├── Application.ts
-│   │   ├── Booking.ts
-│   │   ├── ComplianceDocument.ts
-│   │   ├── HirerReputationTag.ts
-│   │   ├── ReputationTag.ts
-│   │   ├── SavedVenue.ts
-│   │   ├── User.ts
-│   │   ├── VendorComment.ts
-│   │   ├── Venue.ts
-│   │   ├── VenueAmenities.ts
-│   │   ├── VenueBlockedDates.ts
-│   │   └── VenueSuitabilityTag.ts
-│   ├── graphql
-│   │   ├── resolvers.ts
-│   │   └── schema.ts
-│   ├── middlewares
-│   ├── migrations
-│   ├── utils
-│   │   └── jwt.ts
-│   ├── data-source.ts
-│   └── index.ts
-├── .env.example
-├── .gitignore
-├── package-lock.json
-├── package.json
-└── tsconfig.json
+│   ├── __tests__                               # Jest contextual unit tests (HD requirement)
+│   │   └── venue.crud.test.ts                         # Tests createVenue rejects duplicates and deleteVenue removes correctly
+│   ├── entity                                  # TypeORM entity files — map to the same database tables as /backend
+│   │   ├── Application.ts                             # Venue application submitted by a hirer
+│   │   ├── Booking.ts                                 # Approved booking record
+│   │   ├── ComplianceDocument.ts                      # Hirer compliance document (license, insurance, cert)
+│   │   ├── HirerReputationTag.ts                      # Junction table linking hirers to reputation tags
+│   │   ├── ReputationTag.ts                           # Reputation tag definitions (e.g. reliable, late payer)
+│   │   ├── SavedVenue.ts                              # Hirer's saved/wishlisted venue with rank
+│   │   ├── User.ts                                    # User account (hirer, vendor, or admin)
+│   │   ├── VendorComment.ts                           # Vendor's private comment on a hirer
+│   │   ├── Venue.ts                                   # Venue listing owned by a vendor
+│   │   ├── VenueAmenities.ts                          # Amenities associated with a venue
+│   │   ├── VenueBlockedDates.ts                       # Date ranges blocked by a vendor for a venue
+│   │   └── VenueSuitabilityTag.ts                     # Suitability tags for a venue (e.g. wedding, concert)
+│   ├── graphql                                 # GraphQL schema and resolver definitions
+│   │   ├── resolvers.ts                               # GraphQL resolvers — handle queries and mutations for admin operations
+│   │   └── schema.ts                                  # GraphQL type definitions — defines all queries, mutations, and types
+│   ├── middlewares                             # Express middleware functions (auth guards for admin routes)
+│   ├── migrations                              # TypeORM database migration files
+│   ├── utils                                   # Shared utility/helper functions
+│   │   └── jwt.ts                                     # JWT token generation and verification for admin authentication
+│   ├── data-source.ts                                 # TypeORM data source configuration — connects to shared Cloud MS SQL database
+│   └── index.ts                                       # Entry point — starts the Apollo GraphQL server
+├── .env.example                                       # Example environment variables (DB credentials, JWT secret)
+├── .gitignore                                         # Files excluded from git
+├── jest.config.ts                                     # Jest test runner configuration
+├── package-lock.json                                  # Locked dependency versions
+├── package.json                                       # Project dependencies and scripts
+└── tsconfig.json                                      # TypeScript compiler configuration
 ```
 
 ---

@@ -79,7 +79,7 @@
 │ │ └── globals.css  
 │ ├── helpersUtil.tsx # Shared UI helper functions (star rendering, status colours)
 │ ├── hirerRatingCalculation.ts # Hirer reputation score and badge calculation
-│ ├── pdfStorage.ts # IndexedDB helper for storing PDF compliance documents
+│ ├── pdfStorage.ts # Helper utility for handling PDF compliance document uploads
 │ ├── theme.ts # Chakra UI theme configuration (brand colours, fonts)
 │ ├── types.ts # Shared TypeScript type definitions
 │ ├── validation.ts # Form validation logic for sign up and sign in
