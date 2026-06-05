@@ -92,6 +92,7 @@ export default function AdminDashboard() {
 
   const topVendors: any[] = topVendorsData?.topRatedVendors ?? [];
 
+  // Recently added — last 4 venues
   const recentVenues = [...venues].reverse().slice(0, 4);
 
   // Top 3 rated vendors

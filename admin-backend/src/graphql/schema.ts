@@ -1,6 +1,10 @@
 import gql from "graphql-tag";
 
 export const typeDefs = gql`
+  # --------------------
+  # ---- Core Types ----
+  # --------------------
+
   type User {
     userID: ID!
     firstName: String!
@@ -38,6 +42,10 @@ export const typeDefs = gql`
     avgRating: Float!
   }
 
+  # ----------------------
+  # ---- Report Types ----
+  # ----------------------
+
   type VenueStat {
     venueID: ID!
     name: String!
@@ -59,6 +67,10 @@ export const typeDefs = gql`
     joinedDate: String
   }
 
+  # --------------------------
+  # ---- Dashboard Stats -----
+  # --------------------------
+
   type DashboardStats {
     totalVenues: Int!
     totalVendors: Int!
@@ -67,9 +79,17 @@ export const typeDefs = gql`
     avgRating: Float!
   }
 
+  # ---------------
+  # ---- Auth ----
+  # ---------------
+
   type AuthPayload {
     token: String!
   }
+
+  # ---------------------
+  # ---- Input Types ----
+  # ---------------------
 
   input VenueInput {
     name: String!
@@ -85,13 +105,30 @@ export const typeDefs = gql`
     vendorId: ID
   }
 
+  # -----------------
+  # ---- Queries ----
+  # -----------------
+
   type Query {
+    # Get all venues with their assigned vendor (resolver.ts step 1)
     venues: [Venue!]!
+
+    # Get a single venue by ID — used by ManageVenue page
     venueById(venueId: ID!): Venue
+
+    # Get all users with vendor role (resolver.ts step 2)
     vendors: [User!]!
+
+    # Dashboard stat cards — total venues, vendors, hirers, bookings, avg rating
     dashboardStats: DashboardStats!
+
+    # Top 3 most popular venues with most popular day and timeslot (resolver.ts step 8)
     topVenues: [VenueStat!]!
+
+    # Top 3 most active applicants (resolver.ts step 9)
     topApplicants: [ApplicationStat!]!
+
+    # Get top rated vendors
     topRatedVendors: [VendorStat!]!
   }
 
@@ -99,12 +136,15 @@ export const typeDefs = gql`
     # Hardcoded credentials per spec (admin/admin).
     adminLogin(username: String!, password: String!): AuthPayload!
 
+    # Assign or swap a vendor to a venue (resolver.ts step 3)
     assignVendor(venueId: ID!, vendorId: ID!): Venue!
 
+    # CRUD on venues (resolver.ts step 4-6)
     createVenue(input: VenueInput!): Venue!
     updateVenue(venueId: ID!, input: VenueInput!): Venue!
     deleteVenue(venueId: ID!): Boolean!
 
+    # Toggle featured status on hirer browse page (resolver.ts step 7)
     setFeatured(venueId: ID!, featured: Boolean!): Venue!
   }
 `;

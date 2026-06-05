@@ -59,9 +59,11 @@ export default function SignIn() {
       {/* Navbar */}
       <NavBar />
 
+      {/* Main content — purple background */}
       <Flex flex="1" bg="brand.primary" align="center" justify="center">
         <Box bg="white" borderRadius={8} p={10} w="640px">
           <Flex gap={10}>
+            {/* Left side — welcome text */}
             <Box flex="1" pt={2}>
               <Text
                 fontSize="2xl"
@@ -79,7 +81,7 @@ export default function SignIn() {
               />
             </Box>
 
-            {/* Right side */}
+            {/* Right side - form or success state*/}
             <Box flex="1.2">
               {!loginSuccess ? (
                 <>

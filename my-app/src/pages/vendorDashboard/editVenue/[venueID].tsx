@@ -64,8 +64,12 @@ export default function EditVenue() {
   // Fetch all vendor venues from hook
   const { venues, isLoading: venuesLoading } = useVendorVenues();
 
+  // Find the specific venue by ID from the URL
   const venue = venues.find((v) => v.venueID === parseInt(venueID as string));
 
+  // ===========================================================
+  // Form state — all pre-populated from the venue once it loads
+  // ===========================================================
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [capacity, setCapacity] = useState("");
@@ -77,6 +81,9 @@ export default function EditVenue() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityInput, setAmenityInput] = useState("");
 
+  // ===========================================================
+  // Per-field validation error states
+  // ===========================================================
   const [nameError, setNameError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [capacityError, setCapacityError] = useState<string | null>(null);
@@ -84,17 +91,30 @@ export default function EditVenue() {
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [imageURLError, setImageURLError] = useState<string | null>(null);
 
+  // ===========================================================
+  // Submission state
+  // ===========================================================
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // ===========================================================
+  // Save preview modal — shown before confirming the update
+  // ===========================================================
   const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
+
+  // ===========================================================
+  // Delete confirmation dialog
+  // ===========================================================
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  // -------------------------------------------------------------------
+  // Pre-populate form fields once venue data is loaded from venue details
+  // -------------------------------------------------------------------
   useEffect(() => {
     if (venue) {
       setName(venue.name);
@@ -109,6 +129,10 @@ export default function EditVenue() {
     }
   }, [venue]);
 
+  // -------------------------------------------------------------------
+  // Amenity helpers
+  // -------------------------------------------------------------------
+  // Add the current amenity input to the list (if not empty or duplicate)
   function handleAddAmenity() {
     const trimmed = amenityInput.trim();
     if (!trimmed) return;
@@ -117,10 +141,15 @@ export default function EditVenue() {
     setAmenityInput("");
   }
 
+  // Remove an amenity from the list by name
   function handleRemoveAmenity(name: string) {
     setAmenities(amenities.filter((a) => a !== name));
   }
 
+  // ===========================================================
+  // Validation — runs all field checks and sets error states.
+  // Returns true if the form is valid, false if anything fails.
+  // ===========================================================
   function validate(): boolean {
     const nameErr = isValidVenueName(name);
     const locationErr = isValidLocation(location);
@@ -139,6 +168,9 @@ export default function EditVenue() {
     return !nameErr && !locationErr && !capacityErr && !priceErr && !descriptionErr && !imageURLErr;
   }
 
+  // ===========================================================
+  // Save button click — validates first, then opens preview modal
+  // ===========================================================
   function handleSaveClick() {
     setSubmitError("");
     if (validate()) {
@@ -146,6 +178,9 @@ export default function EditVenue() {
     }
   }
 
+  // ===========================================================
+  // Confirm save — called when vendor clicks Save in the preview modal
+  // ===========================================================
   async function handleConfirmSave() {
     if (!venue) return;
     setIsSubmitting(true);
@@ -175,6 +210,9 @@ export default function EditVenue() {
     }
   }
 
+  // ===========================================================
+  // Confirm delete — called when vendor confirms in the delete dialog
+  // ===========================================================
   async function handleConfirmDelete() {
     if (!venue) return;
     setIsDeleting(true);
@@ -190,6 +228,9 @@ export default function EditVenue() {
     }
   }
 
+  // ===========================================================
+  // Helper — availability badge colour
+  // ===========================================================
   function getAvailabilityColor(status: string) {
     if (status === "Available") return "green";
     if (status === "Limited Availability") return "orange";
@@ -559,6 +600,7 @@ export default function EditVenue() {
 
           <ModalBody>
             {saveSuccess ? (
+              // Success state — shown after save confirmed
               <Flex direction="column" align="center" py={6} gap={3}>
                 <Text fontSize="xl" fontWeight="bold" color="brand.primary">
                   ✓ Venue Updated Successfully!

@@ -47,11 +47,15 @@ export default function VendorMyDetails() {
   const totalVenues = venues.length;
   const totalBookings = bookings.length;
 
+  // Get avg vendor rating
   const avgRating =
     bookings.length > 0
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
       : 0;
 
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: NAME FIELD EMPTY --------------
+  // ------------------------------------------------------------
   function validateNameField(nameInput: string): boolean {
     if (nameInput.trim() === "") {
       setNameErrorMessage("Name cannot be empty");
@@ -61,6 +65,9 @@ export default function VendorMyDetails() {
     return true;
   }
 
+  // ------------------------------------------------------------
+  // --------------- VALIDATION: AUSTRALIAN MOBILE --------------
+  // ------------------------------------------------------------
   function validatePhoneField(phoneInput: string): boolean {
     const cleanedPhone = phoneInput.replace(/[\s\-]/g, "");
     if (cleanedPhone.length !== 10) {
@@ -105,6 +112,9 @@ export default function VendorMyDetails() {
     setTimeout(() => window.location.reload(), 1500);
   }
 
+  // ------------------------------------------------------------
+  // --------------- SAVE UPDATED FIRST & LAST NAME --------------
+  // ------------------------------------------------------------
   async function handleSaveName() {
     if (!validateNameField(editableName) || !user) return;
 
@@ -117,6 +127,9 @@ export default function VendorMyDetails() {
     }
   }
 
+  // ------------------------------------------------------------
+  // ----------------- SAVE UPDATED PHONE NUMBER ----------------
+  // ------------------------------------------------------------
   async function handleSavePhone() {
     if (!validatePhoneField(editablePhone) || !user) return;
     const { firstName, lastName } = splitName(user.firstName + " " + user.lastName);

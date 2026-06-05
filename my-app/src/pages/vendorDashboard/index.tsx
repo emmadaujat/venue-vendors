@@ -40,10 +40,16 @@ export default function VendorDashboard() {
 
   const isLoading = applicationsLoading || bookingsLoading || commentsLoading || venuesLoading;
 
+  // ------------------------------------------------------------
+  // ---------- STAT CARD CALCULATIONS --------------
+  // ------------------------------------------------------------
+
+  // Total revenue — sum of pricePerDay for all completed bookings
   const totalRevenue = bookings
     .filter((booking) => booking.status === "Completed")
     .reduce((sum, booking) => sum + (booking.application.venue.pricePerDay ?? 0), 0);
 
+  // Upcoming bookings
   const upcomingBookings = bookings
     .filter((booking) => new Date(booking.application.eventDate) > new Date())
     .sort(
@@ -52,6 +58,7 @@ export default function VendorDashboard() {
         new Date(application.application.eventDate).getTime(),
     );
 
+  // Next upcoming booking date for display under the stat card
   const nextBookingDate = upcomingBookings[0]?.application.eventDate
     ? new Date(upcomingBookings[0].application.eventDate).toLocaleDateString("en-AU", {
         day: "numeric",
@@ -59,6 +66,7 @@ export default function VendorDashboard() {
       })
     : "None";
 
+  // Get avg vendor rating
   const avgRating =
     bookings.length > 0
       ? bookings.reduce((acc, curr) => acc + curr.vendorRating, 0) / bookings.length
@@ -216,6 +224,7 @@ export default function VendorDashboard() {
             ) : (
               bookings.map((booking) => (
                 <Tr key={booking.bookingID}>
+                  {/* Hirer name — links to hirer profile page */}
                   <Td>
                     <Box>
                       <NextLink
@@ -254,6 +263,7 @@ export default function VendorDashboard() {
                       )}
                     </Flex>
                   </Td>
+                  {/* Compliance score — percentage based on how many documents the hirer has uploaded */}
                   <Td>
                     {credibilityMap[booking.application.hirer.userID] !== undefined ? (
                       <Text fontWeight="semibold">

@@ -16,6 +16,7 @@ async function main() {
   console.log("Admin DB connected");
 
   const app = express();
+  // Allow requests from admin frontend running on localhost:5173
   app.use(
     cors({
       origin: "http://localhost:5173",
@@ -27,6 +28,7 @@ async function main() {
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();
 
+  // Attach GraphQL endpoint to Express at /graphql
   app.use(
     "/graphql",
     expressMiddleware(server, {
@@ -43,6 +45,7 @@ async function main() {
         const token = authHeader.split(" ")[1];
         try {
           const user = verifyToken(token);
+          // Verify the token belongs to an admin
           if (user.role !== "admin") {
             throw new Error("Unauthorized: admin access only");
           }

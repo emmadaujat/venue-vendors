@@ -47,6 +47,7 @@ export default function ApplicationReview() {
   const { bookings } = useVendorBookings();
   const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
 
+  // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
   const isLoading = applicationsLoading || commentsLoading;
 
   // for pop up confirmations
@@ -73,9 +74,15 @@ export default function ApplicationReview() {
   const [commentText, setCommentText] = useState("");
   const [commentSaved, setCommentSaved] = useState(false);
 
+  // -------------------------------------------------------------------
+  // ---------- FIND APPLICATIONID IN APPLICATIONS ---------------------
+  // -------------------------------------------------------------------
   const application =
     applications.find((a) => a.applicationID === parseInt(applicationID as string)) ?? null;
 
+  // ------------------------------------------------------------------
+  // ---------- FIND VENDOR COMMENTS FOR APPLICATIONID ----------------
+  // -------------------------------------------------------------------
   const vendorComment =
     vendorComments.find(
       (c) => c.booking.application.applicationID === parseInt(applicationID as string),
@@ -98,11 +105,18 @@ export default function ApplicationReview() {
     }
   }, [documents]);
 
+  // ------------------------------------------------------------
+  // --------- OPENS APPLICATION STATUS CONFIRMATION ------------
+  // ------------------------------------------------------------
+  // Handle accept or decline button click
   function handleActionClick(action: "Approved" | "Declined") {
     setPendingAction(action);
     onOpen();
   }
 
+  // ------------------------------------------------
+  // --------- UPDATE APPLICATION STATUS ------------
+  // ------------------------------------------------
   const handleConfirm = async () => {
     if (!pendingAction || !application) return;
 
@@ -119,6 +133,9 @@ export default function ApplicationReview() {
     }
   };
 
+  // -------------------------------------------------
+  // --------- SAVE UPDATED / EDITED COMMENT ---------
+  // -------------------------------------------------
   const handleSaveComment = async () => {
     if (!vendorComment) return;
 
@@ -133,6 +150,9 @@ export default function ApplicationReview() {
     }
   };
 
+  // -------------------------------------------------
+  // ---------------- ADD NEW COMMENT-----------------
+  // -------------------------------------------------
   const handleCreateComment = async () => {
     try {
       let bookingComment =
@@ -149,6 +169,9 @@ export default function ApplicationReview() {
     }
   };
 
+  // -------------------------------------------------
+  // ----------------- DELETE COMMENT ----------------
+  // -------------------------------------------------
   const handleDeleteComment = async () => {
     if (!vendorComment) return;
     try {

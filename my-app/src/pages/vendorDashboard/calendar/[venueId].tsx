@@ -52,6 +52,7 @@ export default function VenueCalendar() {
   // Find the specific venue from the list (for displaying its name)
   const venue = venues.find((v) => v.venueID === venueIdNum);
 
+  // Combined loading state — wait for both to be ready
   const isLoading = venuesLoading || blockoutsLoading;
 
   // Calendar date range selection state
@@ -71,6 +72,10 @@ export default function VenueCalendar() {
   const { isOpen: isRemoveOpen, onOpen: onRemoveOpen, onClose: onRemoveClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  // -------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------
+  // Format date to to YYYY-MM-DD string
   function formatLocalDate(date: Date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -78,6 +83,7 @@ export default function VenueCalendar() {
     return `${year}-${month}-${day}`;
   }
 
+  // Format date for display
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-AU", {
       day: "numeric",
@@ -86,6 +92,11 @@ export default function VenueCalendar() {
     });
   }
 
+  // -------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------
+
+  // Handle confirm block dates when vendor clicks in the block dates dialog
   async function handleConfirm() {
     if (!selectedRange?.from || !selectedRange?.to) return;
 
@@ -96,6 +107,7 @@ export default function VenueCalendar() {
         reason,
       );
       setIsSuccess(true);
+      // Show success message for 2 seconds then close
       setTimeout(() => {
         setIsSuccess(false);
         onConfirmClose();
@@ -107,6 +119,7 @@ export default function VenueCalendar() {
     }
   }
 
+  // Handle remove blocked period
   async function handleRemoveConfirm() {
     if (!periodToRemove) return;
     try {

@@ -18,6 +18,10 @@ export class VenueController {
     return req.user!.id;
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ GET A VENDORS VENUES ---------------------------
+  // -------------------------------------------------------------------
+  // including amenities and suitability tags for each venue.
   async getVendorVenues(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
 
@@ -38,6 +42,10 @@ export class VenueController {
     res.json(mappedVenues);
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ UPDATE A VENUE ---------------------------------
+  // -------------------------------------------------------------------
+  // Updates venue details, amenities and suitability tags.
   // Amenities and suitability tags are delete-then-reinserted because they are stored
   // in separate tables with no unique constraint to upsert on.
   async updateVenue(req: Request, res: Response) {
@@ -68,6 +76,7 @@ export class VenueController {
       return res.status(403).json({ message: "Not authorised to edit this venue" });
     }
 
+    // Update main venue fields
     venue.name = name;
     venue.location = location;
     venue.capacity = capacity;
@@ -77,11 +86,14 @@ export class VenueController {
     venue.availabilityStatus = availabilityStatus;
 
     try {
+      // Save updated venue fields first
       await this.venueRepository.save(venue);
 
+      // Delete old amenities and suitability tags then reinsert new ones
       await this.amenityRepository.delete({ venue: { venueID } });
       await this.suitabilityTagRepository.delete({ venue: { venueID } });
 
+      // Insert new amenities
       if (amenities && amenities.length > 0) {
         const newAmenities = amenities.map((amenityName: string) =>
           this.amenityRepository.create({ amenityName, venue: { venueID } }),
@@ -89,6 +101,7 @@ export class VenueController {
         await this.amenityRepository.save(newAmenities);
       }
 
+      // Insert new suitability tags
       if (suitabilityTags && suitabilityTags.length > 0) {
         const newTags = suitabilityTags.map((suitabilityName: string) =>
           this.suitabilityTagRepository.create({ suitabilityName, venue: { venueID } }),
@@ -102,6 +115,9 @@ export class VenueController {
     }
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ DELETE A VENUE ---------------------------------
+  // -------------------------------------------------------------------
   // Amenities/tags/blocked dates are removed via cascade. Applications referencing the
   // venue have venueID set to NULL (onDelete: SET NULL) to preserve booking history.
   async deleteVenue(req: Request, res: Response) {
@@ -129,6 +145,10 @@ export class VenueController {
     }
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ CREATE A VENUE ---------------------------------
+  // -------------------------------------------------------------------
+  // Create a new venue for the logged-in vendor
   async createVenue(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const {
@@ -158,6 +178,7 @@ export class VenueController {
     }
 
     try {
+      // Create and save the venue first
       const newVenue = this.venueRepository.create({
         name,
         location,
@@ -173,6 +194,7 @@ export class VenueController {
 
       const savedVenue = await this.venueRepository.save(newVenue);
 
+      // Insert amenities if provided
       if (amenities && amenities.length > 0) {
         const newAmenities = amenities.map((amenityName: string) =>
           this.amenityRepository.create({ amenityName, venue: { venueID: savedVenue.venueID } }),
@@ -180,6 +202,7 @@ export class VenueController {
         await this.amenityRepository.save(newAmenities);
       }
 
+      // Insert suitability tags if provided
       if (suitabilityTags && suitabilityTags.length > 0) {
         const newTags = suitabilityTags.map((suitabilityName: string) =>
           this.suitabilityTagRepository.create({
@@ -196,6 +219,10 @@ export class VenueController {
     }
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ GET VENUES BLOCKED DATES -----------------------
+  // -------------------------------------------------------------------
+  // fetches all blocked periods for a venue
   async getVenueBlockedDates(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const venueId = parseInt(req.params.venueId as string);
@@ -208,6 +235,7 @@ export class VenueController {
       return res.status(404).json({ message: "Venue not found or not authorised" });
     }
 
+    // Fetch all blocked date records for this venue
     const blockedDates = await this.venueBlockedDates.find({
       where: { venue: { venueID: venueId } },
     });
@@ -215,6 +243,10 @@ export class VenueController {
     return res.json(blockedDates);
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ CREATE VENUES BLOCKED DATES --------------------
+  // -------------------------------------------------------------------
+  // creates a new blocked period for a venue
   async createVenueBlockedDates(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const venueId = parseInt(req.params.venueId as string);
@@ -228,6 +260,7 @@ export class VenueController {
       return res.status(404).json({ message: "Venue not found or not authorised" });
     }
 
+    // Convert YYYY-MM-DD strings from the DTO into Date objects for the entity
     const newBlockout = this.venueBlockedDates.create({
       venue,
       startDate: new Date(startDate),
@@ -239,6 +272,10 @@ export class VenueController {
     return res.status(201).json(saved);
   }
 
+  // -------------------------------------------------------------------
+  // ------------------ DELETE VENUES BLOCKED DATES --------------------
+  // -------------------------------------------------------------------
+  // removes a blocked period by ID
   async deleteVenueBlockedDates(req: Request, res: Response) {
     const vendorID = this.vendorID(req);
     const venueId = parseInt(req.params.venueId as string);
@@ -252,6 +289,7 @@ export class VenueController {
       return res.status(404).json({ message: "Venue not found or not authorised" });
     }
 
+    // Find the specific blocked date record
     const blockout = await this.venueBlockedDates.findOne({
       where: { blockedID: blockDateId, venue: { venueID: venueId } },
     });

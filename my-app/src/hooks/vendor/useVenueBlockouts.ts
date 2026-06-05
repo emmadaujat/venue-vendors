@@ -10,12 +10,14 @@ export function useVenueBlockouts(venueId: number | null) {
   const [blockedDates, setBlockedDates] = useState<VenueBlockedDates[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Fetch all blocked dates for this venue
   useEffect(() => {
     if (user && venueId) {
       fetchBlockedDates();
     }
   }, [user, venueId]);
 
+  // Fetch blocked dates from the API
   const fetchBlockedDates = async () => {
     try {
       setIsLoading(true);
@@ -28,6 +30,7 @@ export function useVenueBlockouts(venueId: number | null) {
     }
   };
 
+  // Create a new blocked period and refresh the list
   const createBlockout = async (
     startDate: string,
     endDate: string,
@@ -37,6 +40,7 @@ export function useVenueBlockouts(venueId: number | null) {
     await fetchBlockedDates();
   };
 
+  // Delete a blocked period by its ID and refresh the list
   const deleteBlockout = async (blockedID: number): Promise<void> => {
     await vendorApi.deleteVenueBlockedDates(venueId!, blockedID);
     await fetchBlockedDates();
