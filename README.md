@@ -10,9 +10,22 @@
   - Name: Aleeya Ahmad  
     Student ID: 4093344  
     Enrolled in Veronika's Tuesday @ 2:30pm class (Activity 07)
-- **GitHub Repo URL:** https://github.com/rmit-fsd-2026-s1/a1-fsd-pra01-07-tue-2-30pm-veronika-team12
+- **GitHub Repo URL:** https://github.com/rmit-fsd-2026-s1/a2-fsd-pra01-07-tue-2-30pm-veronika-team12
 
 ---
+
+## Deployed Services
+
+| Service | URL |
+|---------|-----|
+| VV Frontend (/my-app) | https://venuevendors.onrender.com |
+| VV Backend (/backend) | https://vv-backend-phqq.onrender.com |
+| Admin Frontend (/admin-frontend) | https://venuevendorsconsole.onrender.com |
+| Admin Backend (/admin-backend) | https://vv-admin-backend-yk3e.onrender.com/graphql |
+
+### Admin Login
+- Username: `admin`
+- Password: `admin`
 
 ## Getting Started
 
@@ -219,54 +232,100 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 
 ---
 
-## Project Structure
+## Project Structure - VenueVendors Frontend (/my-app)
 
 ```
-src/
-├── pages/              # Next.js pages and routes
-│   ├── hirer/         # Hirer dashboard, applications, booking history
-│   │   ├── apply.tsx                    # Multi-step application form
-│   │   ├── bookingHistory.tsx           # Booking history & status
-│   │   ├── complianceDocuments.tsx      # Upload compliance docs (license, insurance, business cert)
-│   │   ├── dashboard.tsx                # Hirer dashboard
-│   │   ├── myDetails.tsx                # Update profile (name, phone)
-│   │   └── savedVenues.tsx              # Manage saved venues & rankings
-│   ├── vendorDashboard/  # Vendor dashboard, applications, infographics
-│   │   ├── index.tsx                    # Vendor dashboard overview
-│   │   ├── applications.tsx             # View & manage applications
-│   │   ├── infographicReport.tsx        # Analytics & insights with summary table
-│   │   ├── myDetails.tsx                # Vendor profile edit (name, phone)
-│   │   ├── myVenues.tsx                 # Manage vendor's venues
-│   │   ├── applications/[hirerId].tsx   # View hirer details & documents
-│   │   ├── calendar/[venueId].tsx       # Venue availability calendar
-│   │   └── hirerProfiles/[hirerId].tsx  # View hirer profile & compliance docs
-│   ├── signin.tsx     # Sign-in page
-│   ├── signup.tsx     # Sign-up page
-│   └── browseVenues.tsx  # Venue browsing & search
-├── components/         # Reusable React components
-│   ├── navbar.tsx     # Navigation bar (with Sign Up link)
-│   ├── footer.tsx     # Footer
-│   ├── graph.tsx      # Recharts infographic component
-│   ├── hirerSidebar.tsx    # Hirer sidebar navigation
-│   ├── vendorDashboardLayout.tsx  # Vendor dashboard layout with sidebar
-│   ├── signout.tsx    # Sign-out component
-│   ├── logo.tsx       # Logo component
-│   └── applySteps/    # Multi-step application form components
-├── hooks/             # Custom React hooks
-│   ├── useAuth.ts     # Authentication logic
-│   └── useApplicationForm.ts  # Application form state
-├── __tests__/         # Jest unit tests
-│   ├── hirerTests.test.tsx      # Hirer feature tests (with node:assert)
-│   └── vendorTests.test.tsx     # Vendor feature tests
-├── pdfStorage.ts      # IndexedDB helper for PDF persistence
-├── types.ts           # TypeScript type definitions
-├── dummyData.ts       # Sample data (users, venues, bookings, applications)
-├── validation.ts      # Form validation logic
-├── theme.ts           # Chakra UI theme configuration
-├── getApplications.ts # Application filtering & retrieval
-├── ratingCalculation.ts  # Hirer credibility & vendor rating calculations
-└── styles/            # Global CSS styles
-    └── globals.css
+├── src
+│   ├── __tests__                            # Jest unit tests
+│   │   └── vendorTests.test.tsx                     # Vendor sign-in form validation tests
+│   ├── components                           # Reusable React components
+│   │   ├── applySteps                               # Multi-step application form components
+│   │   │   ├── StepAccount.tsx                      # Step 1 — account details
+│   │   │   ├── StepDocuments.tsx                    # Step 4 — compliance document uploads
+│   │   │   ├── StepEventDetails.tsx                 # Step 2 — event details
+│   │   │   ├── StepReputation.tsx                   # Step 3 — hirer reputation tags
+│   │   │   └── StepReview.tsx                       # Step 5 — review and submit
+│   │   ├── footer.tsx                               # Site-wide footer
+│   │   ├── graph.tsx                                # Recharts infographic component for vendor analytics
+│   │   ├── hirerSidebar.tsx                         # Sidebar navigation for hirer dashboard
+│   │   ├── logo.tsx                                 # VenueVendors logo component
+│   │   ├── navbar.tsx                               # Top navigation bar with auth links
+│   │   ├── signout.tsx                              # Sign out button and logic
+│   │   └── vendorDashboardLayout.tsx                # Shared layout wrapper for vendor dashboard pages
+│   ├── contexts
+│   │   └── AuthContext.tsx                          # React context for global auth state
+│   ├── hooks                               # Custom React hooks
+│   │   ├── vendor                               # Vendor-specific data fetching hooks
+│   │   │   ├── useHirerBookingHistory.ts             # Fetches full booking history for a specific hirer
+│   │   │   ├── useHirerCompliance.ts                 # Fetches compliance documents and credibility score for a hirer
+│   │   │   ├── useVendorApplications.ts              # Fetches all applications for the vendor's venues
+│   │   │   ├── useVendorBookings.ts                  # Fetches all approved bookings for the vendor
+│   │   │   ├── useVendorComments.ts                  # Fetches and manages vendor comments on hirers
+│   │   │   ├── useVendorVenues.ts                    # Fetches all venues owned by the vendor
+│   │   │   └── useVenueBlockouts.ts                  # Fetches and manages blocked date periods for a venue
+│   │   ├── useApplicationForm.ts                     # All state and logic for the multi-step application form
+│   │   └── useAuth.ts                                # Auth hook — checks login state and protects routes
+│   ├── pages                              # Next.js pages router
+│   │   ├── hirer                              # Hirer dashboard pages (protected)
+│   │   │   ├── apply.tsx                            # Multi-step venue application form
+│   │   │   ├── bookingHistory.tsx                   # Hirer's full booking history and application status
+│   │   │   ├── complianceDocuments.tsx              # Upload compliance documents (license, insurance, business cert)
+│   │   │   ├── dashboard.tsx                        # Hirer dashboard overview
+│   │   │   ├── myDetails.tsx                        # Update hirer profile (name, phone)
+│   │   │   ├── reputation.tsx                       # View reputation tags and credibility score
+│   │   │   ├── savedVenues.tsx                      # Manage saved venues and rankings
+│   │   │   └── userProfile.tsx                      # Hirer public profile view
+│   │   ├── vendorDashboard                    # Vendor dashboard pages (protected)
+│   │   │   ├── applications
+│   │   │   │   └── [applicationID].tsx              # Full application review page for a specific application
+│   │   │   ├── calendar
+│   │   │   │   └── [venueId].tsx                    # Venue availability calendar and blockout management
+│   │   │   ├── editVenue
+│   │   │   │   └── [venueID].tsx                    # Edit an existing venue's details
+│   │   │   ├── hirerProfiles
+│   │   │   │   └── [hirerId].tsx                    # View a specific hirer's profile and compliance documents
+│   │   │   ├── addVenue.tsx                         # Add a new venue
+│   │   │   ├── applications.tsx                     # List of all applications across vendor's venues
+│   │   │   ├── hirerProfiles.tsx                    # List of all hirers who have applied
+│   │   │   ├── index.tsx                            # Vendor dashboard overview
+│   │   │   ├── infographicReport.tsx                # Analytics dashboard with charts and summary table
+│   │   │   ├── myDetails.tsx                        # Update vendor profile (name, phone)
+│   │   │   └── myVenues.tsx                         # Manage vendor's venues (view, edit, delete)
+│   │   ├── venues
+│   │   │   └── [venueId].tsx              # Public venue detail page
+│   │   ├── _app.tsx                                 # Next.js app wrapper — global providers and theme
+│   │   ├── _document.tsx                            # Next.js document wrapper — custom HTML head
+│   │   ├── about.tsx                                # About page
+│   │   ├── browseVenues.tsx                         # Browse and search all venues
+│   │   ├── contact.tsx                              # Contact page
+│   │   ├── index.tsx                                # Home/landing page
+│   │   ├── signin.tsx                               # Sign in page
+│   │   └── signup.tsx                               # Sign up page (hirer or vendor)
+│   ├── services                          # Axios API service layer
+│   │   ├── api.ts                                   # Shared Axios instance with base URL and JWT interceptor
+│   │   ├── authApi.ts                               # Auth API calls (sign in, sign up, sign out)
+│   │   ├── hirerApi.ts                              # Hirer API calls (venues, bookings, compliance, saved venues)
+│   │   └── vendorApi.ts                             # Vendor API calls (applications, venues, comments, blockouts)
+│   ├── styles                            # Global CSS styles
+│   │   └── globals.css                             
+│   ├── helpersUtil.tsx                              # Shared UI helper functions (star rendering, status colours)
+│   ├── hirerRatingCalculation.ts                    # Hirer reputation score and badge calculation
+│   ├── pdfStorage.ts                                # IndexedDB helper for storing PDF compliance documents
+│   ├── theme.ts                                     # Chakra UI theme configuration (brand colours, fonts)
+│   ├── types.ts                                     # Shared TypeScript type definitions
+│   ├── validation.ts                                # Form validation logic for sign up and sign in
+│   └── venueValidation.ts                           # Form validation logic for venue forms
+├── .gitignore                                       # Files excluded from git
+├── eslint.config.mjs                                # ESLint configuration
+├── jest.config.ts                                   # Jest test runner configuration
+├── jest.setup.ts                                    # Jest setup file (global test configuration)
+├── next.config.ts                                   # Next.js configuration
+├── package-lock.json                                # Locked dependency versions
+├── package.json                                     # Project dependencies and scripts
+├── postcss.config.mjs                               # PostCSS configuration for Tailwind/CSS processing
+└── tsconfig.json                                    # TypeScript compiler configuration
+```
+
 ```
 
 ---
