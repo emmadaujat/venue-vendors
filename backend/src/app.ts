@@ -14,7 +14,11 @@ import vendorStatsRoutes from "./routes/vendor-stats.routes";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+// Compliance documents are sent as base64 data URLs, which can be a few MB once encoded.
+// Express defaults to a 100kb body limit and rejects anything larger with 413, so raise it.
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/api", authRoutes);
 
