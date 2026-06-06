@@ -92,18 +92,7 @@ export class VendorController {
             application: { applicationID },
             status: "active",
           });
-          // Separate try/catch to expose exact booking save error
-          try {
-            await this.bookingRepository.save(newBooking);
-            console.log("Booking created successfully for applicationID:", applicationID);
-          } catch (bookingError) {
-            console.log("BOOKING SAVE ERROR:", bookingError);
-            return res
-              .status(500)
-              .json({ message: "Booking save failed", error: String(bookingError) });
-          }
-        } else {
-          console.log("Booking already exists for applicationID:", applicationID);
+          await this.bookingRepository.save(newBooking);
         }
       }
 
@@ -113,6 +102,7 @@ export class VendorController {
       return res.status(400).json({ message: "Error updating application status", error });
     }
   }
+
   // -------------------------------------------------------------------
   // ------------------ GET BOOKINGS FOR THIS VENDORS VENUES -----------
   // -------------------------------------------------------------------
