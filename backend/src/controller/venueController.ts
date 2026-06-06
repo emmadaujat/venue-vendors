@@ -138,6 +138,11 @@ export class VenueController {
     }
 
     try {
+      // Manually delete related records first as cascade is not working
+      await this.amenityRepository.delete({ venue: { venueID } });
+      await this.suitabilityTagRepository.delete({ venue: { venueID } });
+      await this.venueBlockedDates.delete({ venue: { venueID } });
+
       await this.venueRepository.remove(venue);
       return res.json({ message: "Venue deleted successfully" });
     } catch (error) {

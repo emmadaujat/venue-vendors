@@ -382,7 +382,7 @@ export default function ApplicationReview() {
           </Box>
           {/* Vendor comment on hirer */}
           {/* Only show comment box if application has been approved */}
-          {application.status === "approved" ||
+          {application.status === "Approved" ||
             (application.status === "Approved" && (
               <Box
                 border="1px solid"

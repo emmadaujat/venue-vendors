@@ -37,7 +37,7 @@ export default function VendorApplications() {
 
   // Stats counts
   const pendingCount = applications.filter((a) => a.status === "pending").length;
-  const approvedCount = applications.filter((a) => a.status === "approved").length;
+  const approvedCount = applications.filter((a) => a.status === "Approved").length;
   const declinedCount = applications.filter((a) => a.status === "Declined").length;
 
   if (isLoading)
