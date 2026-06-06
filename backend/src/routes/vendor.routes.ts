@@ -56,7 +56,7 @@ router.put("/comments/:commentID", validateDto(VendorCommentDTO), async (req, re
 });
 
 // Add a new comment to a booking under the logged-in vendor's venue.
-router.post("/bookings/comments/:bookingID", validateDto(VendorCommentDTO), async (req, res) => {
+router.post("/bookings/:bookingID/comments", validateDto(VendorCommentDTO), async (req, res) => {
   await vendorController.createVendorComment(req, res);
 });
 

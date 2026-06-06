@@ -44,7 +44,7 @@ export default function ApplicationReview() {
     isLoading: applicationsLoading,
     fetchApplications,
   } = useVendorApplications();
-  const { bookings } = useVendorBookings();
+  const { bookings, fetchBookings } = useVendorBookings();
   const { vendorComments, isLoading: commentsLoading, fetchComments } = useVendorComments();
 
   // isLoading combines both loading states from custom hooks — page shows spinner until all are ready
@@ -123,6 +123,11 @@ export default function ApplicationReview() {
     try {
       await vendorApi.updateApplicationStatus(application.applicationID, pendingAction);
       fetchApplications();
+      fetchBookings();
+
+      await fetchApplications();
+      await fetchBookings();
+
       setIsSuccess(true);
       setTimeout(() => {
         onClose();
@@ -159,6 +164,8 @@ export default function ApplicationReview() {
         bookings.find(
           (booking) => booking.application.applicationID === parseInt(applicationID as string),
         ) ?? null;
+      if (!bookingComment) return;
+
       await vendorApi.createComment(bookingComment!.bookingID, commentText);
       fetchComments();
       setCommentSaved(true);
@@ -237,7 +244,9 @@ export default function ApplicationReview() {
           >
             {application.status}
           </Badge>
-          {application.status === "Approved" && <CheckIcon boxSize="8" color="green" />}
+          {(application.status === "Approved" || application.status === "approved") && (
+            <CheckIcon boxSize="8" color="green" />
+          )}
         </Flex>
       </Flex>
 
@@ -382,113 +391,109 @@ export default function ApplicationReview() {
           </Box>
           {/* Vendor comment on hirer */}
           {/* Only show comment box if application has been approved */}
-          {application.status === "Approved" ||
-            (application.status === "Approved" && (
-              <Box
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="md"
-                p={6}
-                mt={6}
-                bg="brand.secondary"
-              >
-                <Box p={4} borderRadius="md">
-                  <Text fontWeight="bold" fontSize="lg" color="brand.primary">
-                    Comments on Hirer
-                  </Text>
-                  <Text fontSize="sm" color="brand.primary" fontWeight="semibold">
-                    Add private notes or feedback about this hirer. These are saved to their
-                    profile.
-                  </Text>
-                </Box>
+          {(application.status === "Approved" || application.status === "approved") && (
+            <Box
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="md"
+              p={6}
+              mt={6}
+              bg="brand.secondary"
+            >
+              <Box p={4} borderRadius="md">
+                <Text fontWeight="bold" fontSize="lg" color="brand.primary">
+                  Comments on Hirer
+                </Text>
+                <Text fontSize="sm" color="brand.primary" fontWeight="semibold">
+                  Add private notes or feedback about this hirer. These are saved to their profile.
+                </Text>
+              </Box>
 
-                <Divider mb={2} borderColor="brand.primary" />
+              <Divider mb={2} borderColor="brand.primary" />
 
-                {/* READ MODE - show comment as text with Edit button */}
-                {!isEditingComment ? (
-                  <Box p={4}>
-                    <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
-                      {vendorComment?.commentText || "No comment added yet."}
+              {/* READ MODE - show comment as text with Edit button */}
+              {!isEditingComment ? (
+                <Box p={4}>
+                  <Text fontSize="sm" color="brand.primary" lineHeight="tall" mb={4}>
+                    {vendorComment?.commentText || "No comment added yet."}
+                  </Text>
+                  {commentDeleted && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment deleted successfully.
                     </Text>
-                    {commentDeleted && (
-                      <Text fontSize="sm" color="green.500">
-                        Comment deleted successfully.
-                      </Text>
-                    )}
-                    {commentSaved && (
-                      <Text fontSize="sm" color="green.500">
-                        Comment saved successfully.
-                      </Text>
-                    )}
+                  )}
+                  {commentSaved && (
+                    <Text fontSize="sm" color="green.500">
+                      Comment saved successfully.
+                    </Text>
+                  )}
 
+                  <Button
+                    bg="brand.primary"
+                    color="white"
+                    _hover={{ bg: "brand.secondary", color: "brand.primary" }}
+                    onClick={() => {
+                      setIsEditingComment(true);
+                      setCommentSaved(false);
+                      setCommentText(vendorComment?.commentText ?? "");
+                    }}
+                  >
+                    {vendorComment ? "Edit Comment" : "Add Comment"}
+                  </Button>
+                  {vendorComment?.commentText && (
+                    <Button
+                      variant="outline"
+                      borderColor="red.400"
+                      color="red.400"
+                      _hover={{ bg: "red.50" }}
+                      onClick={onDeleteOpen}
+                      ml={4}
+                    >
+                      Delete Comment
+                    </Button>
+                  )}
+                </Box>
+              ) : (
+                /* EDIT MODE - show textarea with Save and Cancel buttons */
+                <Box>
+                  <Textarea
+                    placeholder="Write your notes about this hirer here..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    mb={3}
+                    resize="vertical"
+                    borderColor="gray.300"
+                    color="brand.primary"
+                    _focus={{ borderColor: "brand.primary" }}
+                  />
+
+                  {commentSaved && (
+                    <Text fontSize="sm" color="green.500" mb={2}>
+                      Comment saved successfully.
+                    </Text>
+                  )}
+
+                  <Flex gap={3}>
                     <Button
                       bg="brand.primary"
                       color="white"
                       _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                      onClick={() => {
-                        setIsEditingComment(true);
-                        setCommentSaved(false);
-                        setCommentText(vendorComment?.commentText ?? "");
-                      }}
+                      onClick={() => (vendorComment ? handleSaveComment() : handleCreateComment())}
                     >
-                      {vendorComment ? "Edit Comment" : "Add Comment"}
+                      Save Comment
                     </Button>
-                    {vendorComment?.commentText && (
-                      <Button
-                        variant="outline"
-                        borderColor="red.400"
-                        color="red.400"
-                        _hover={{ bg: "red.50" }}
-                        onClick={onDeleteOpen}
-                        ml={4}
-                      >
-                        Delete Comment
-                      </Button>
-                    )}
-                  </Box>
-                ) : (
-                  /* EDIT MODE - show textarea with Save and Cancel buttons */
-                  <Box>
-                    <Textarea
-                      placeholder="Write your notes about this hirer here..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      mb={3}
-                      resize="vertical"
+                    <Button
+                      variant="outline"
                       borderColor="gray.300"
-                      color="brand.primary"
-                      _focus={{ borderColor: "brand.primary" }}
-                    />
-
-                    {commentSaved && (
-                      <Text fontSize="sm" color="green.500" mb={2}>
-                        Comment saved successfully.
-                      </Text>
-                    )}
-
-                    <Flex gap={3}>
-                      <Button
-                        bg="brand.primary"
-                        color="white"
-                        _hover={{ bg: "brand.secondary", color: "brand.primary" }}
-                        onClick={() =>
-                          vendorComment ? handleSaveComment() : handleCreateComment()
-                        }
-                      >
-                        Save Comment
-                      </Button>
-                      <Button
-                        variant="outline"
-                        borderColor="gray.300"
-                        onClick={() => setIsEditingComment(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </Flex>
-                  </Box>
-                )}
-              </Box>
-            ))}
+                      onClick={() => setIsEditingComment(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </Flex>
+                </Box>
+              )}
+            </Box>
+          )}
         </Box>
 
         {/* Right column - hirer details + actions */}
@@ -577,7 +582,7 @@ export default function ApplicationReview() {
           </Box>
 
           {/* Accept / Decline actions - only show if still pending */}
-          {application.status === "pending" && (
+          {(application.status === "pending" || application.status === "Pending") && (
             <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={6}>
               <Text fontWeight="bold" fontSize="lg" mb={4} color="brand.primary">
                 Actions
@@ -606,7 +611,7 @@ export default function ApplicationReview() {
           )}
 
           {/* Show message if already actioned */}
-          {application.status !== "pending" && (
+          {application.status !== "pending" && application.status !== "Pending" && (
             <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={6} bg="gray.50">
               <Text fontSize="sm" color="gray.500" textAlign="center">
                 This application has already been {application.status.toLowerCase()}.

@@ -3,8 +3,9 @@ import { Box } from "@chakra-ui/react";
 
 // Helper to get badge colour based on application status
 export function getStatusColor(status: string) {
-  if (status === "approved") return "green";
-  if (status === "Declined") return "red";
+  if (status === "Approved" || status === "approved") return "green";
+  if (status === "Declined" || status === "declined") return "red";
+  if (status === "Rejected" || status === "rejected") return "red";
   return "gray";
 }
 

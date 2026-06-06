@@ -71,19 +71,48 @@ export class VendorController {
       return res.status(403).json({ message: "Not authorised to update this application" });
     }
 
-    // only update the status in application
+    // Normalise status to capitalised form e.g. "Approved", "Declined", "Pending"
+    const normalisedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+
     applicationToUpdate = Object.assign(applicationToUpdate, {
-      status,
+      status: normalisedStatus,
     });
 
     try {
       const updatedApplication = await this.applicationRepository.save(applicationToUpdate);
+
+      // When approved, create a booking record if one doesn't already exist
+      if (normalisedStatus === "Approved") {
+        const existingBooking = await this.bookingRepository.findOne({
+          where: { application: { applicationID } },
+        });
+
+        if (!existingBooking) {
+          const newBooking = this.bookingRepository.create({
+            application: { applicationID },
+            status: "active",
+          });
+          // Separate try/catch to expose exact booking save error
+          try {
+            await this.bookingRepository.save(newBooking);
+            console.log("Booking created successfully for applicationID:", applicationID);
+          } catch (bookingError) {
+            console.log("BOOKING SAVE ERROR:", bookingError);
+            return res
+              .status(500)
+              .json({ message: "Booking save failed", error: String(bookingError) });
+          }
+        } else {
+          console.log("Booking already exists for applicationID:", applicationID);
+        }
+      }
+
       return res.json(updatedApplication);
     } catch (error) {
+      console.log("Error:", error);
       return res.status(400).json({ message: "Error updating application status", error });
     }
   }
-
   // -------------------------------------------------------------------
   // ------------------ GET BOOKINGS FOR THIS VENDORS VENUES -----------
   // -------------------------------------------------------------------
