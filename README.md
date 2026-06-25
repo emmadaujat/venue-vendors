@@ -1,16 +1,27 @@
 # Venue Vendors (VV) - Event Venue Management System
 
-## Group Details
+A two-sided marketplace built for a Full Stack Development unit at RMIT, where vendors list venues for event hire and hirers browse, apply, and book. Includes a separate admin console for managing venues, vendors, and reporting.
 
-- **Team Name:** Team 12
-- **Group Members:**
-  - Name: Emma Daujat  
-    Student ID: 4151401  
-    Enrolled in Veronika's Tuesday @ 2:30pm class (Activity 07)
-  - Name: Aleeya Ahmad  
-    Student ID: 4093344  
-    Enrolled in Veronika's Tuesday @ 2:30pm class (Activity 07)
-- **GitHub Repo URL:** https://github.com/rmit-fsd-2026-s1/a2-fsd-pra01-07-tue-2-30pm-veronika-team12
+Built in partnership. My contributions: 
+- Designed  hi-fi wireframes for all pages
+- Built all vendor pages (frontend and backend)
+- implemented frontend and backend for admin console (admin GraphQL)
+
+🔗 **Live site:** https://venuevendors.onrender.com
+
+🔗 **Admin console:** https://venuevendorsconsole.onrender.com
+
+---
+
+## Technology Stack
+
+- **Frontend (my-app)**: React + TypeScript, Next.js Pages Router, Chakra UI
+- **Backend**: Node + Express + TypeORM REST API
+- **Admin frontend**: Vite + React TS + Apollo Client
+- **Admin backend**: Apollo Server (GraphQL) + TypeORM
+- **Database**: Cloud MS SQL Server (shared by both backends)
+- **Auth**: JWT (argon2 password hashing) 
+- **Testing**: Jest + ts-jest + supertest + node:assert
 
 ---
 
@@ -132,18 +143,6 @@ Justin Bieber (vendor) owns: Yarra Valley Harvest Estate, Collingwood Factory Lo
 - Assign and swap vendors to venues
 - Toggle featured venues on the hirer browse page
 - Generate reports — top 3 popular venues and top 3 most active applicants
-
----
-
-## Technology Stack
-
-- **Frontend (my-app)**: React + TypeScript (functional components + hooks), Next.js Pages Router, Chakra UI
-- **Backend**: Node + Express + TypeORM REST API
-- **Admin frontend**: Vite + React TS + Apollo Client
-- **Admin backend**: Apollo Server (GraphQL) + TypeORM
-- **Database**: Cloud MS SQL Server (shared by both backends)
-- **Auth**: JWT (argon2 password hashing) stored in `localStorage` as `vv_token`
-- **Testing**: Jest + ts-jest + supertest + node:assert (backend HD tests)
 
 ---
 
@@ -570,8 +569,5 @@ Jest config: `jest.config.ts` and setup file `jest.setup.ts`.
 
 ## Submission Documents
 
-The following required documents are included in the zip submission:
-
 - **ER Diagram** — `docs/ERD.pdf`
 - **User Story List** — `docs/UserStoryList.xlsx`
-- **Group Contribution Form** — `docs/GroupContributionForm.pdf`
